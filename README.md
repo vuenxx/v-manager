@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge&logo=windows" alt="Platform: Windows" />
   <img src="https://img.shields.io/badge/Framework-Electron-activegreen?style=for-the-badge&logo=electron" alt="Framework: Electron" />
   <img src="https://img.shields.io/badge/License-ISC-orange?style=for-the-badge" alt="License: ISC" />
-  <img src="https://img.shields.io/badge/Version-0.0.1-red?style=for-the-badge" alt="Version: 0.0.1" />
+  <img src="https://img.shields.io/badge/Version-0.0.1-red?style=for-the-badge" alt="Version: 0.x.x" />
 </p>
 
 ---
