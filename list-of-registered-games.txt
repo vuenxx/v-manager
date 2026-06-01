@@ -1,0 +1,14 @@
+# V-Manager - Kayıtlı Oyun Dosya Yolları Listesi
+
+[Cyberpunk 2077]
+exe_location = Cyberpunk 2077\bin\x64
+streamline_location = Cyberpunk 2077\bin\x64
+
+[gay]
+exe_location = Cyberpunk 2077\bin\x64
+streamline_location = Cyberpunk 2077\bin\x64
+
+[deneme123]
+exe_location = C:\Users\vuenxx\Desktop\Videolar için\Dualsense\DualSenseCompanion.exe
+streamline_location = C:\Users\vuenxx\Desktop\Videolar için\Dualsense
+

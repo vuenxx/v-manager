@@ -1,0 +1,22 @@
+{
+  "cyberpunk-2077": {
+    "exe_relative_path": "bin/x64/Cyberpunk2077.exe",
+    "compatibility": "green"
+  },
+  "the-witcher-3-wild-hunt": {
+    "exe_relative_path": "bin/x64_dx12/witcher3.exe",
+    "compatibility": "yellow"
+  },
+  "control": {
+    "exe_relative_path": "Control_DX12.exe",
+    "compatibility": "yellow"
+  },
+  "alan-wake-2": {
+    "exe_relative_path": "AlanWake2.exe",
+    "compatibility": "yellow"
+  },
+  "hogwarts-legacy": {
+    "exe_relative_path": "Phoenix/Binaries/Win64/HogwartsLegacy.exe",
+    "compatibility": "green"
+  }
+}

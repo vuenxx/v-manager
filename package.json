@@ -1,0 +1,38 @@
+{
+  "name": "v-manager",
+  "version": "0.0.1",
+  "description": "V-Manager made by vuenxx",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.vuenxx.vmanager",
+    "productName": "V-Manager",
+    "asarUnpack": [
+      "node_modules/7zip-bin",
+      "node_modules/**/7zip-bin/**/*"
+    ],
+    "extraResources": [
+      { "from": "developer-games.json", "to": "developer-games.json" },
+      { "from": "mods/dlssenabler", "to": "mods/dlssenabler" },
+      { "from": "mods/streamline", "to": "mods/streamline" }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    }
+  },
+  "author": "vuenxx",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "7zip-bin": "^5.2.0",
+    "adm-zip": "^0.5.17",
+    "node-7z": "^3.0.0"
+  }
+}

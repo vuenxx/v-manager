@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V-Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body data-theme="dark">
+    <div class="app-container">
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header containing Brand, Navigation, and Controls -->
+            <header class="top-header">
+                <div class="header-brand">
+                    <img src="program_logo.png" alt="V-Manager Logo" class="header-logo">
+                    <h1>V-Manager</h1>
+                </div>
+
+                <nav class="header-nav">
+                    <ul class="nav-list">
+                        <li><button class="nav-item active" data-target="home">Ana Sayfa</button></li>
+                        <li><button class="nav-item" data-target="games">Oyunlar</button></li>
+                        <li><button class="nav-item" data-target="modes">Modlar</button></li>
+                        <li><button class="nav-item" data-target="compress">Sıkıştır</button></li>
+                        <li><button class="nav-item" data-target="updates">Güncellemeler</button></li>
+                        <li><button class="nav-item" data-target="videos">Videolar</button></li>
+                    </ul>
+                </nav>
+
+                <div class="header-controls">
+                    <button class="nav-item settings-nav-btn" data-target="settings-tab" title="Ayarlar">⚙️
+                        Ayarlar</button>
+                    <button id="theme-toggle" class="theme-toggle-btn" title="Temayı Değiştir">
+                        <span id="theme-icon">🌙</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tab Contents -->
+            <div class="tab-content active" id="home">
+                <div class="dashboard-welcome">
+                    <h2>V-Manager Kontrol Paneli</h2>
+                    <p>Uygulama durumunu izleyin, kurulu modlarınızı yönetin ve yeni içeriklere hızlıca erişin.</p>
+                </div>
+
+                <div class="stats-container">
+                    <div class="stat-card total-mods">
+                        <div class="stat-icon-wrapper">🛠️</div>
+                        <div class="stat-info-group">
+                            <div id="total-mods-count" class="stat-value">0</div>
+                            <div class="stat-label">Toplam Kurulu Mod</div>
+                        </div>
+                    </div>
+                    <div class="stat-card dlss-enabler-mods">
+                        <div class="stat-icon-wrapper">✨</div>
+                        <div class="stat-info-group">
+                            <div id="dlss-enabler-count" class="stat-value">0</div>
+                            <div class="stat-label">DLSS Enabler</div>
+                        </div>
+                    </div>
+                    <div class="stat-card optiscaler-mods">
+                        <div class="stat-icon-wrapper">⚙️</div>
+                        <div class="stat-info-group">
+                            <div id="optiscaler-count" class="stat-value">0</div>
+                            <div class="stat-label">OptiScaler</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-section-title">
+                    <h3>Hızlı Menü & Keşfet</h3>
+                </div>
+
+                <div class="promo-grid">
+                    <!-- Promo Card 1: Games -->
+                    <div class="promo-card" data-target-tab="games">
+                        <div class="promo-header">
+                            <div class="promo-icon">🎮</div>
+                            <h4>Oyun Kütüphanesi</h4>
+                        </div>
+                        <p class="promo-desc">Buradan oyunlarınıza DLSS Enabler, Optiscaler kurabilir ve Streamline
+                            dosyalarını güncelleyebilirsiniz.</p>
+                        <button class="promo-action-btn">Oyunları Yönet ➔</button>
+                    </div>
+
+                    <!-- Promo Card 2: Mods -->
+                    <div class="promo-card" data-target-tab="modes">
+                        <div class="promo-header">
+                            <div class="promo-icon">📦</div>
+                            <h4>Mod Sürümleri</h4>
+                        </div>
+                        <p class="promo-desc">Modlar yerinden programda olan modların (DLSS Enabler, Optiscaler vs)
+                            sürümlerini güncelleyebilirsiniz.</p>
+                        <button class="promo-action-btn">Sürümleri İncele ➔</button>
+                    </div>
+
+                    <!-- Promo Card 3: Videos -->
+                    <div class="promo-card" data-target-tab="videos">
+                        <div class="promo-header">
+                            <div class="promo-icon">📺</div>
+                            <h4>Youtube Rehberleri</h4>
+                        </div>
+                        <p class="promo-desc">Videolar yerinden Youtube kanalımda işinize yarayabilecek içerikleri
+                            görüntüleyip, izleyebilirsiniz.</p>
+                        <button class="promo-action-btn">Videoları İzle ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="games">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2>Oyunlar</h2>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div class="game-search-wrapper">
+                            <input type="text" id="game-search-input" placeholder="Oyunlarda ara..."
+                                class="game-search-input">
+                            <span class="game-search-icon">🔍</span>
+                            <button id="game-search-clear" class="game-search-clear"
+                                style="display: none;">&times;</button>
+                        </div>
+                        <select id="game-sort-select" class="opti-select" style="padding: 8px 12px; font-size: 13px;">
+                            <option value="name">Sırala: İsim (A-Z)</option>
+                            <option value="source">Sırala: Platform</option>
+                        </select>
+                        <button id="refresh-games-btn" class="install-btn"
+                            style="width: auto; padding: 10px 20px; background-color: var(--text-secondary);">Listeyi
+                            Yenile</button>
+                        <button id="add-game-btn" class="install-btn" style="width: auto; padding: 10px 20px;">Manuel
+                            Oyun Ekle</button>
+                    </div>
+                </div>
+                <p>Sisteminizde yüklü olan oyunlar aşağıda listelenmektedir. Yıldız simgesiyle favorilerinizi başa
+                    tutturabilirsiniz.</p>
+
+                <div id="loading-games"
+                    style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);">
+                    Oyunlar taranıyor ve kapaklar indiriliyor, lütfen bekleyin...
+                </div>
+
+                <div class="games-grid" id="games-container">
+                    <!-- Game cards will be injected here -->
+                </div>
+            </div>
+
+            <div class="tab-content" id="modes">
+                <h2>Kullanılabilir Modlar</h2>
+                <p>Sisteminize kurabileceğiniz eklenti ve paketler.</p>
+                <div class="packages-grid">
+                    <!-- Package 1 -->
+                    <div class="package-card">
+                        <div class="package-header">
+                            <h3>DLSS Enabler</h3>
+                            <span class="package-badge">Önerilen</span>
+                        </div>
+                        <div class="package-features">
+                            <p>Neredeyse tüm kartlara Multi Frame Generation uygular.</p>
+                            <div class="package-links">
+                                <a href="#" class="external-link" data-url="https://www.youtube.com/">Video</a>
+                            </div>
+                        </div>
+                        <div class="package-actions">
+                            <button id="dlss-versions-btn" class="install-btn">Sürümler</button>
+                        </div>
+                    </div>
+                    <!-- Package 2 -->
+                    <div class="package-card">
+                        <div class="package-header">
+                            <h3>Optiscaler</h3>
+                        </div>
+                        <div class="package-features">
+                            <p>Çeşitli ölçeklendirme seçenekleri ve optimizasyonlar sunar.</p>
+                            <div class="package-links">
+                                <a href="#" class="external-link" data-url="https://www.youtube.com/">Video</a>
+                            </div>
+                        </div>
+                        <div class="package-actions">
+                            <button id="optiscaler-versions-btn" class="install-btn">Sürümler</button>
+                        </div>
+                    </div>
+                    <!-- Package 3 -->
+                    <div class="package-card">
+                        <div class="package-header">
+                            <h3>OptiPatcher</h3>
+                        </div>
+                        <div class="package-features">
+                            <p>OptiScaler için yamalar ve ek uyumluluk geliştirmeleri sunar.</p>
+                            <div class="package-links">
+                                <a href="#" class="external-link"
+                                    data-url="https://github.com/optiscaler/OptiPatcher">GitHub</a>
+                            </div>
+                        </div>
+                        <div class="package-actions">
+                            <button id="optipatcher-versions-btn" class="install-btn">Sürümler</button>
+                        </div>
+                    </div>
+                    <!-- Package 4 -->
+                    <div class="package-card">
+                        <div class="package-header">
+                            <h3>FSR4 Dosyaları</h3>
+                        </div>
+                        <div class="package-features">
+                            <p>FSR4 modu için gerekli arşiv ve kütüphane dosyalarını sağlar.</p>
+                            <div class="package-links">
+                                <a href="#" class="external-link" data-url="http://190.92.151.212/fsr4files/">İndirme
+                                    Sitesi</a>
+                            </div>
+                        </div>
+                        <div class="package-actions">
+                            <button id="fsr4-versions-btn" class="install-btn">Sürümler</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="updates">
+                <h2>Güncellemeler</h2>
+                <p>Uygulama güncellemelerini buradan takip edebilirsiniz.</p>
+                <div class="card">
+                    <h3>Sürüm 0.0.1</h3>
+                    <p>V-Manager ilk sürümü yayınlandı!</p>
+                </div>
+            </div>
+
+            <div class="tab-content" id="compress">
+                <div class="compress-tabs-header">
+                    <h2>Sıkıştır</h2>
+                    <div class="compress-sub-nav">
+                        <button class="sub-nav-item active" data-sub-target="compress-tools">Sıkıştırma
+                            Araçları</button>
+                        <button class="sub-nav-item" data-sub-target="compress-db">Sıkıştırma DB</button>
+                        <button class="sub-nav-item" data-sub-target="compress-watch">Otomatik Sıkıştır</button>
+                    </div>
+                </div>
+
+                <hr class="compress-divider" style="margin-top: 5px;">
+
+                <!-- Sub-Tab: Tools -->
+                <div class="sub-tab-content active" id="compress-tools">
+                    <p class="compress-info">Bu sıkıştırma yöntemiyle birlikte oyunlarınızı ve klasörlerinizi
+                        sıkıştırabilip diskte yer kazanabilirsiniz. Sıkıştırma yapıldığında hala içerik (oyun, program
+                        vs) kullanılabilir olacak.</p>
+
+                    <div class="compress-container">
+                        <!-- Left: Folder List -->
+                        <div class="compress-left">
+                            <button id="select-folder-btn" class="install-btn">Klasör Seç</button>
+                            <div id="added-folders-list" class="folder-list">
+                                <!-- Folders will be listed here -->
+                            </div>
+                            <div class="compress-action-group"
+                                style="display: none; flex-direction: column; gap: 10px; margin-top: auto;">
+                                <button id="compress-selected-btn" class="install-btn">Seçilen Klasörü Sıkıştır</button>
+                                <button id="uncompress-selected-btn" class="install-btn"
+                                    style="background-color: var(--text-secondary);">Sıkıştırmayı Geri Al</button>
+                            </div>
+                        </div>
+
+                        <!-- Right: Folder Details & Settings -->
+                        <div class="compress-right" id="folder-details-view" style="display: none;">
+                            <div class="folder-header">
+                                <h3 id="detail-folder-name">Klasör İsmi</h3>
+                                <p id="detail-folder-path" class="small-text">Klasör Yolu</p>
+                            </div>
+                            <div class="folder-stats">
+                                <p>Sıkıştırılmamış boyutu: <span id="detail-folder-size">-</span></p>
+                                <p>Dosya sayısı: <span id="detail-file-count">-</span></p>
+                            </div>
+                            <hr class="compress-divider">
+
+                            <!-- New: Compression Stats Section (Shown when compressed) -->
+                            <div id="compression-stats-section"
+                                style="display: none; flex-direction: column; gap: 15px;">
+                                <h4>Sıkıştırma İstatistikleri</h4>
+                                <div class="stats-card-mini">
+                                    <!-- Compression Method Info -->
+                                    <div id="detected-method-container"
+                                        style="margin-bottom: 15px; display: none; align-items: center; justify-content: space-between;">
+                                        <span style="font-size: 13px; color: var(--text-secondary);">Kullanılan
+                                            Yöntem</span>
+                                        <span id="detected-method-name" class="utag utag-dlss"
+                                            style="background: var(--accent-color); color: black; font-weight: bold;">-</span>
+                                    </div>
+
+                                    <!-- Progress Percentage (Real-time) -->
+                                    <div id="realtime-progress-container"
+                                        style="display: none; margin-bottom: 15px; text-align: center;">
+                                        <div id="realtime-progress-text"
+                                            style="font-size: 18px; font-weight: 800; color: var(--accent-color);">0%
+                                        </div>
+                                        <div id="realtime-status-text"
+                                            style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+                                            İşleniyor...</div>
+                                    </div>
+
+                                    <!-- Original Size Bar -->
+
+                                    <div class="stat-bar-group">
+                                        <div class="stat-bar-label">
+                                            <span>Orijinal Boyut</span>
+                                            <span id="detail-folder-size-raw" style="color: var(--text-secondary);">0
+                                                Bytes</span>
+                                        </div>
+                                        <div class="comp-progress-container original">
+                                            <div class="comp-progress-bar original" style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Current Size Bar -->
+                                    <div class="stat-bar-group" style="margin-top: 15px;">
+                                        <div class="stat-bar-label">
+                                            <span>Mevcut Boyut</span>
+                                            <span id="detail-folder-compressed-size"
+                                                style="font-weight: bold; color: var(--accent-color);">0 Bytes</span>
+                                        </div>
+                                        <div class="comp-progress-container current">
+                                            <div id="compression-bar" class="comp-progress-bar current"
+                                                style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        style="text-align: center; margin-top: 15px; font-size: 13px; color: var(--text-secondary); background: rgba(68, 214, 44, 0.05); padding: 8px; border-radius: 6px;">
+                                        Diskte <span id="compression-saved-percent"
+                                            style="color: var(--accent-color); font-weight: bold;">%0</span> oranında
+                                        yer açıldı.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="compression-method-section" id="compression-method-section">
+                                <h4>Sıkıştırma Yöntemi</h4>
+
+                                <div class="method-grid">
+                                    <div class="method-box" data-method="XPRESS4K">
+                                        <span class="method-name">XPRESS 4K</span>
+                                        <span class="method-info">%21 sıkıştırma oranı</span>
+                                    </div>
+                                    <div class="method-box" data-method="XPRESS8K">
+                                        <span class="method-name">XPRESS 8K</span>
+                                        <span class="method-info">Daha fazla tasarruf</span>
+                                    </div>
+                                    <div class="method-box" data-method="XPRESS16K">
+                                        <span class="method-name">XPRESS 16K</span>
+                                        <span class="method-info">Yüksek tasarruf</span>
+                                    </div>
+                                    <div class="method-box" data-method="LZX">
+                                        <span class="method-name">LZX</span>
+                                        <span class="method-info">Maksimum tasarruf</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="configuration-section">
+                                <h4>Seçenekler</h4>
+                                <div class="config-buttons">
+                                    <button class="config-btn active" data-config="normal">Normal</button>
+                                    <label class="dlss-checkbox-container" style="margin-left: 20px;">
+                                        <input type="checkbox" id="watch-folder-checkbox">
+                                        <span class="dlss-checkmark"></span>
+                                        Bu klasörü izle (Otomatik sıkıştır)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Tab: DB -->
+                <div class="sub-tab-content" id="compress-db" style="display: none;">
+                    <div class="db-header-row">
+                        <div class="db-info-text">
+                            <h3>Sıkıştırma Veritabanı</h3>
+                            <p>Topluluk sonuçlarına göre en verimli sıkıştırma yöntemlerini inceleyin.</p>
+                        </div>
+                        <div class="db-search-box">
+                            <input type="text" id="db-search-input" placeholder="Oyunlarda ara..." class="opti-select">
+                        </div>
+                    </div>
+
+                    <div id="db-cards-container" class="db-grid">
+                        <!-- Game cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Sub-Tab: Watch -->
+                <div class="sub-tab-content" id="compress-watch" style="display: none;">
+                    <p class="compress-info">Otomatik sıkıştırma aktif olan klasörleriniz aşağıda listelenmektedir. Bu
+                        klasörlere yeni dosya eklendiğinde sistem otomatik olarak sıkıştıracaktır.</p>
+
+                    <div class="watch-container" id="watched-folders-list">
+                        <!-- Watched folders will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="settings-tab" style="background: rgba(255,255,255,0.01); min-height: 100%;">
+                <h2>Ayarlar</h2>
+                <p>Uygulama tercihlerinizi buradan yönetebilirsiniz.</p>
+
+                <div class="settings-section">
+                    <h3>Kara Liste</h3>
+                    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 10px;">
+                        Listeden kaldırdığınız oyunlar burada görünür.
+                    </p>
+                    <button id="toggle-blacklist-btn" class="install-btn"
+                        style="width: auto; padding: 8px 16px; font-size: 14px;">Kara Listeyi Göster</button>
+
+                    <div id="blacklist-container" class="blacklist-container">
+                        <!-- Blacklist items will be injected here -->
+                    </div>
+                </div>
+                <!-- ── Kullanıcı Oyun Yolları ──────────────────────────────── -->
+                <div class="settings-section" style="margin-top: 25px;">
+                    <h3>Kullanıcı Oyun Yolları</h3>
+                    <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px;">
+                        Otomatik mod kurulumu için oyunlarınızın ana klasörünü ve EXE yolunu tanımlayın. Bu kayıtlar her
+                        zaman otomatik tarama sonuçlarından önce gelir.
+                    </p>
+
+                    <!-- User games table -->
+                    <div class="card"
+                        style="padding: 15px; margin-bottom: 20px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;"
+                            id="user-games-table">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: var(--accent-color);">
+                                    <th style="padding: 12px;">Oyun Adı</th>
+                                    <th style="padding: 12px;">Ana Klasör (game_root)</th>
+                                    <th style="padding: 12px;">EXE Yolu</th>
+                                    <th style="padding: 12px; text-align: right;">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-games-list">
+                                <!-- Dynamic entries injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Add new user game form -->
+                    <div class="card"
+                        style="padding: 20px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;">
+                        <h4 style="margin-top:0; color: var(--accent-color); margin-bottom: 15px; font-size: 15px;">✦
+                            Yeni Oyun Tanımla</h4>
+                        <div
+                            style="display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 15px; align-items: flex-end; margin-bottom: 12px;">
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 12px; color: var(--text-secondary);">Oyun Adı</label>
+                                <input type="text" id="ug-game-name" placeholder="Örn: Cyberpunk 2077"
+                                    class="opti-select"
+                                    style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 12px; color: var(--text-secondary);">Ana Klasör
+                                    (game_root)</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="ug-game-root" placeholder="Örn: D:\Games\Cyberpunk 2077"
+                                        class="opti-select" readonly
+                                        style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 6px; flex: 1; box-sizing: border-box; outline: none;">
+                                    <button id="ug-browse-root-btn" class="install-btn"
+                                        style="width: auto; padding: 10px 14px; font-size: 13px; border-radius: 6px; white-space: nowrap;">📁
+                                        Seç</button>
+                                </div>
+                            </div>
+                            <div></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: flex-end;">
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 12px; color: var(--text-secondary);">
+                                    EXE Yolu
+                                    <span id="ug-exe-hint"
+                                        style="margin-left: 8px; font-size: 11px; color: var(--accent-color); display: none;">✨
+                                        Otomatik dolduruldu</span>
+                                </label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="ug-exe-path"
+                                        placeholder="Örn: D:\Games\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe"
+                                        class="opti-select"
+                                        style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 6px; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+                                    <button id="ug-browse-exe-btn" class="install-btn"
+                                        style="width: auto; padding: 10px 14px; font-size: 13px; border-radius: 6px; white-space: nowrap;">📂
+                                        Seç</button>
+                                </div>
+                            </div>
+                            <button id="ug-add-btn" class="install-btn"
+                                style="width: auto; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 6px; height: 42px; box-sizing: border-box; cursor: pointer; transition: background 0.2s;">Kaydet</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Desteklenen Oyunlar (Geliştirici Tanımlı, Salt Okunur) ── -->
+                <div class="settings-section" style="margin-top: 25px;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div>
+                            <h3 style="margin: 0;">Uygulama Tarafından Desteklenen Oyunlar</h3>
+                            <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0;">
+                                Bu oyunlar için otomatik EXE yolu tespiti yapılabilmektedir. Salt okunurdur,
+                                düzenlenemez.
+                            </p>
+                        </div>
+                        <button id="toggle-dev-games-btn" class="install-btn"
+                            style="width: auto; padding: 8px 16px; font-size: 13px; background-color: var(--text-secondary);">Listeyi
+                            Göster</button>
+                    </div>
+                    <div id="dev-games-container" style="display: none;">
+                        <div class="card"
+                            style="padding: 15px; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                                <thead>
+                                    <tr
+                                        style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--accent-color);">
+                                        <th style="padding: 10px;">Oyun (Key)</th>
+                                        <th style="padding: 10px;">Göreceli EXE Yolu</th>
+                                        <th style="padding: 10px; text-align: center; width: 100px;">Uyumluluk</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dev-games-list">
+                                    <!-- Dynamic entries injected by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Videos Tab -->
+            <div class="tab-content" id="videos" style="display: none;">
+                <h2>Videolar</h2>
+                <p>YouTube kanalımdan son yayınlanan videolar.</p>
+                <div id="videos-loading" class="videos-loading">Videolar yükleniyor...</div>
+                <div id="videos-error" class="videos-error" style="display: none;">Videolar yüklenirken bir hata oluştu.
+                    Lütfen bağlantınızı kontrol edin.</div>
+                <div class="videos-grid" id="videos-container"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="mod-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" data-target="mod-modal">&times;</span>
+            <h3 style="margin-top: 0;">Hangi modu kurmak istiyorsunuz?</h3>
+            <p id="mod-modal-game-name" style="margin-bottom: 20px; font-weight: 600; color: var(--accent-color);"></p>
+            <div class="mod-options" style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="mod-option-btn" data-mod="DLSS Enabler">DLSS Enabler</button>
+                <button class="mod-option-btn" data-mod="Optiscaler">Optiscaler</button>
+                <button class="mod-option-btn" data-mod="Streamline">Streamline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Game Add Modal (folder-based) -->
+    <div id="manual-add-modal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <span class="close-modal" data-target="manual-add-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">Manuel Oyun Ekle</h3>
+
+            <!-- Selected folder display -->
+            <div style="margin-top: 15px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;"
+                id="manual-game-root-display">—</div>
+
+            <!-- Game name -->
+            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: var(--text-secondary);">Oyun Adı</label>
+                <input type="text" id="manual-game-name-input" class="opti-select"
+                    style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; box-sizing: border-box;"
+                    placeholder="Örn: Cyberpunk 2077">
+            </div>
+
+            <!-- EXE path (auto-filled or manual) -->
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 6px;">
+                <label style="font-size: 12px; color: var(--text-secondary);">
+                    EXE Yolu
+                    <span id="manual-exe-hint"
+                        style="margin-left: 8px; font-size: 11px; color: var(--accent-color); display: none;">✨ Otomatik
+                        dolduruldu — düzenleyebilirsiniz</span>
+                </label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="manual-exe-path-input" class="opti-select"
+                        style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; box-sizing: border-box;"
+                        placeholder="EXE yolu (opsiyonel — boş bırakılırsa ana klasör kullanılır)">
+                    <button id="manual-exe-browse-btn" class="install-btn"
+                        style="width: auto; padding: 10px 14px; font-size: 13px; border-radius: 6px; white-space: nowrap;">📂
+                        Seç</button>
+                </div>
+            </div>
+
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px; line-height: 1.5;">
+                Desteklenen oyunlarda EXE yolu otomatik hesaplanır. İsterseniz düzenleyebilirsiniz.
+            </p>
+
+            <div class="confirm-btn-group" style="margin-top: 20px;">
+                <button id="manual-add-confirm-btn" class="btn-confirm-yes"
+                    style="background-color: var(--accent-color);">Ekle</button>
+                <button id="manual-add-cancel-btn" class="btn-confirm-no">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" data-target="confirm-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">Emin misiniz?</h3>
+            <p style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px;">
+                Bu oyun veya program listeden kaldırılacak ve oyuna ait veriler V-Manager'ın veri tabanından
+                silinecektir. İsterseniz kara listeye ekleyebilir ve daha sonraki tarama işlemlerinde gözükmemesini
+                sağlayabilirsiniz. Değişiklliği geri almak için ise kara listeyi ayarlarda görüntülebilirsiniz.
+            </p>
+            <div class="confirm-btn-group"
+                style="margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="confirm-blacklist-btn" class="btn-confirm-yes"
+                    style="background-color: var(--accent-color); color: white;">Kara Listeye Ekle</button>
+                <button id="confirm-remove-btn" class="btn-confirm-yes"
+                    style="background-color: #ef4444; color: white;">Listeden Kaldır</button>
+                <button id="confirm-cancel-btn" class="btn-confirm-no">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Settings Modal -->
+    <div id="scan-settings-modal" class="modal">
+        <div class="modal-content" style="max-width: 460px;">
+            <span class="close-modal" data-target="scan-settings-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color); font-size: 18px;">✦ Tarama Ayarları</h3>
+
+            <!-- Section 1: coversOnly -->
+            <div class="scan-modal-section">
+                <div class="scan-item-row" style="padding: 0;">
+                    <div>
+                        <div class="scan-item-name">Yalnızca eksik kapakları yenile</div>
+                        <div class="scan-item-label">Oyun taraması yapılmaz, sadece kapaksız oyunların kapağı indirilir
+                        </div>
+                    </div>
+                    <label class="scan-toggle-label" id="covers-only-toggle-label"
+                        style="min-width: fit-content; margin-left: 16px;">
+                        <input type="checkbox" id="scan-covers-only-toggle">
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Section 2: Drives (dynamically populated) -->
+            <div class="scan-modal-section" id="scan-drives-section">
+                <div class="scan-modal-section-title">Taranacak Sürücüler</div>
+                <div id="scan-drives-list">
+                    <div class="scan-drives-loading">Sürücüler yükleniyor...</div>
+                </div>
+            </div>
+
+            <!-- Section 2.5: Optional Scan Folders -->
+            <div class="scan-modal-section" id="scan-custom-folders-section">
+                <div class="scan-modal-section-title"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span>İSTEĞE BAĞLI KLASÖRLER</span>
+                    <button id="scan-add-custom-folder-btn" class="install-btn"
+                        style="width: auto; padding: 4px 10px; font-size: 12px; margin: 0; background-color: var(--accent-color); color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">+
+                        Ekle</button>
+                </div>
+                <div id="scan-custom-folders-list"
+                    style="display: flex; flex-direction: column; gap: 8px; max-height: 120px; overflow-y: auto; padding-right: 4px;">
+                    <!-- JS will populate optional folders -->
+                </div>
+            </div>
+
+            <!-- Section 3: Sources -->
+            <div class="scan-modal-section" id="scan-sources-section">
+                <div class="scan-modal-section-title">Taranacak Kaynaklar</div>
+
+                <div class="scan-item-row">
+                    <div class="scan-item-name">Steam</div>
+                    <label class="scan-toggle-label">
+                        <input type="checkbox" class="scan-source-toggle" data-source="Steam" checked>
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="scan-item-row">
+                    <div class="scan-item-name">Epic Games</div>
+                    <label class="scan-toggle-label">
+                        <input type="checkbox" class="scan-source-toggle" data-source="Epic" checked>
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="scan-item-row">
+                    <div class="scan-item-name">GOG Galaxy</div>
+                    <label class="scan-toggle-label">
+                        <input type="checkbox" class="scan-source-toggle" data-source="GOG" checked>
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="scan-item-row">
+                    <div class="scan-item-name">Xbox</div>
+                    <label class="scan-toggle-label">
+                        <input type="checkbox" class="scan-source-toggle" data-source="Xbox" checked>
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="scan-item-row">
+                    <div class="scan-item-name">EA App</div>
+                    <label class="scan-toggle-label">
+                        <input type="checkbox" class="scan-source-toggle" data-source="EA" checked>
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="scan-item-row">
+                    <div class="scan-item-name">Ubisoft Connect</div>
+                    <label class="scan-toggle-label">
+                        <input type="checkbox" class="scan-source-toggle" data-source="Ubisoft" checked>
+                        <span class="scan-toggle-track"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="scan-modal-footer">
+                <button id="scan-settings-close-btn" class="scan-close-btn">Kapat</button>
+                <button id="scan-settings-start-btn" class="scan-start-btn">Taramayı Başlat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Progress Modal -->
+    <div id="scan-progress-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px; transition: max-width 0.3s ease;">
+            <span class="close-modal" data-target="scan-progress-modal">&times;</span>
+            <h3 id="scan-progress-title" style="margin-top: 0; color: var(--accent-color);">Oyunlar Taranıyor</h3>
+
+            <div id="scan-progress-running-area" style="margin-top: 20px;">
+                <div
+                    style="width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 5px; overflow: hidden; margin-bottom: 10px;">
+                    <div id="scan-progress-bar"
+                        style="width: 0%; height: 100%; background: var(--accent-color); transition: width 0.3s ease;">
+                    </div>
+                </div>
+                <div
+                    style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary);">
+                    <span id="scan-progress-status">Hazırlanıyor...</span>
+                    <span id="scan-progress-percent">0%</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 20px; line-height: 1.4;">
+                    Bu pencereyi kapatabilirsiniz, tarama arka planda devam edecektir.
+                </p>
+            </div>
+
+            <!-- Custom Folders Scan Results (Hidden during scan, shown on completion if custom folders exist) -->
+            <div id="scan-custom-results-area" style="display: none; margin-top: 20px;">
+                <p style="font-size: 13px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 15px;">
+                    Aşağıda seçtiğiniz klasörün içerisindeki klasörler listelendi. Eğer bunlar oyuna ait değilse tikini
+                    kapatarak kaydedebilir ve tiki açık olanların oyun listenize eklenmesini sağlayabilirsiniz. Burada
+                    yaptığınız her şey kaydolur, bir dahaki taramada sizden bu tekrar istenir fakat seçimleriniz
+                    hatırlanır.
+                </p>
+                <div id="scan-custom-results-list"
+                    style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: rgba(0,0,0,0.2); margin-bottom: 20px;">
+                    <!-- JS will populate subfolders -->
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="scan-custom-save-btn" class="install-btn"
+                        style="background-color: var(--accent-color); color: white; width: auto; padding: 8px 24px; font-weight: bold;">Seçilenleri
+                        Ekle</button>
+                    <button id="scan-custom-finish-btn" class="btn-confirm-no"
+                        style="width: auto; padding: 8px 24px; font-weight: bold;">Kaydetmeden Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- DLSS Enabler Installation Modal -->
+    <div id="dlss-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-modal" data-target="dlss-modal">&times;</span>
+            <div class="dlss-modal-body">
+                <!-- Left Side: Cover & Name -->
+                <div class="dlss-modal-left">
+                    <div class="dlss-cover-wrapper">
+                        <img id="dlss-game-cover" src="" alt="" class="dlss-game-img">
+                        <div id="dlss-game-placeholder" class="dlss-placeholder" style="display:none;">🎮</div>
+                    </div>
+                    <div id="dlss-game-name" class="dlss-game-title"></div>
+                </div>
+
+                <!-- Right Side: Info & Controls -->
+                <div class="dlss-modal-right">
+                    <h2 class="dlss-modal-title">DLSS Enabler</h2>
+                    <p class="dlss-modal-desc">DLSS Enabler, birçok ekran kartına Multi Frame Generation özelliğini
+                        getiren bir moddur.</p>
+
+                    <hr class="dlss-divider">
+
+                    <div class="dlss-options-section">
+                        <h4 class="dlss-options-title">DLSS Enabler Sürümü</h4>
+                        <select id="dlss-version" class="opti-select" style="margin-bottom: 12px; width: 100%;">
+                            <option value="">Yükleniyor...</option>
+                        </select>
+
+                        <h4 class="dlss-options-title" style="margin-top: 10px;">Kurulum DLL Adı</h4>
+                        <select id="dlss-dll-name" class="opti-select" style="width: 100%;">
+                            <option value="version.dll">version.dll (Varsayılan)</option>
+                            <option value="dxgi.dll">dxgi.dll</option>
+                            <option value="winmm.dll">winmm.dll</option>
+                            <option value="dbghelp.dll">dbghelp.dll</option>
+                            <option value="psapi.dll">psapi.dll</option>
+                            <option value="winhttp.dll">winhttp.dll</option>
+                        </select>
+                        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.4;">
+                            Klasörde zaten DLSS Enabler varsa bu seçim görmezden gelinir, mevcut isim korunur.
+                        </p>
+                    </div>
+
+                    <div class="dlss-modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button id="dlss-auto-install-btn" class="install-btn"
+                            style="background-color: var(--accent-color); color: white; width: auto; padding: 10px 24px;">Otomatik
+                            Kur</button>
+                        <button id="dlss-install-btn" class="install-btn dlss-install-action"
+                            style="background-color: var(--text-secondary); width: auto; padding: 10px 24px;">Manuel
+                            Kur</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optiscaler Installation Modal -->
+    <div id="optiscaler-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-modal" data-target="optiscaler-modal">&times;</span>
+            <div class="dlss-modal-body">
+                <!-- Left Side: Cover & Name -->
+                <div class="dlss-modal-left">
+                    <div class="dlss-cover-wrapper">
+                        <img id="opti-game-cover" src="" alt="" class="dlss-game-img">
+                        <div id="opti-game-placeholder" class="dlss-placeholder" style="display:none;">🎮</div>
+                    </div>
+                    <div id="opti-game-name" class="dlss-game-title"></div>
+                </div>
+
+                <!-- Right Side: Options -->
+                <div class="dlss-modal-right">
+                    <h2 class="dlss-modal-title">OptiScaler Kurulumu</h2>
+                    <p class="dlss-modal-desc">OptiScaler, FSR/XeSS/DLSS gibi upscaling teknolojilerini hemen her oyunda
+                        kullanabilmeni sağlar.</p>
+
+                    <hr class="dlss-divider">
+
+                    <div class="opti-options-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 15px;">
+
+                        <!-- Left Column: Version & Injection Type -->
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Version -->
+                            <div class="opti-field">
+                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                    <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">Sürüm</label>
+                                </div>
+                                <div id="opti-versions-loading"
+                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0;">Sürümler
+                                    yükleniyor...</div>
+                                <select id="opti-version" class="opti-select" style="width: 100%; display: none;"></select>
+                            </div>
+
+                            <!-- Injection Type -->
+                            <div class="opti-field">
+                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                    <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">Enjeksiyon Tipi</label>
+                                </div>
+                                <select id="opti-injection" class="opti-select" style="width: 100%;">
+                                    <option value="dxgi.dll">dxgi.dll</option>
+                                    <option value="winmm.dll">winmm.dll</option>
+                                    <option value="d3d12.dll">d3d12.dll</option>
+                                    <option value="dbghelp.dll">dbghelp.dll</option>
+                                    <option value="version.dll">version.dll</option>
+                                    <option value="wininet.dll">wininet.dll</option>
+                                    <option value="winhttp.dll">winhttp.dll</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Optional Components stacked vertically -->
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- FSR4 INT8 Field -->
+                            <div class="opti-field">
+                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">FSR4 INT8</label>
+                                        <span style="cursor: help; color: var(--text-secondary); font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08);" title="FSR4 upscaling dosyalarını ve enjeksiyon modülünü yükleyerek oyunda FSR 4 desteği sağlar.">?</span>
+                                    </div>
+                                    <label class="scan-toggle-label" style="margin: 0;">
+                                        <input type="checkbox" id="opti-install-fsr4">
+                                        <span class="scan-toggle-track"></span>
+                                    </label>
+                                </div>
+                                <div id="opti-fsr4-versions-loading"
+                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0; display: none;">Sürümler yükleniyor...</div>
+                                <select id="opti-fsr4-version" class="opti-select"
+                                    style="width: 100%; font-size: 14px; opacity: 0.5; pointer-events: none;"></select>
+                            </div>
+
+                            <!-- OptiPatcher Field -->
+                            <div class="opti-field">
+                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">OptiPatcher</label>
+                                        <span style="cursor: help; color: var(--text-secondary); font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08);" title="OptiScaler için ek asi eklentilerini otomatik yükler ve ini dosyasını yapılandırır. Uyumluluğu artırır.">?</span>
+                                    </div>
+                                    <label class="scan-toggle-label" style="margin: 0;">
+                                        <input type="checkbox" id="opti-install-patcher">
+                                        <span class="scan-toggle-track"></span>
+                                    </label>
+                                </div>
+                                <div id="opti-patcher-versions-loading"
+                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0; display: none;">Sürümler yükleniyor...</div>
+                                <select id="opti-patcher-version" class="opti-select"
+                                    style="width: 100%; font-size: 14px; opacity: 0.5; pointer-events: none;"></select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="dlss-modal-footer"
+                        style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
+                        <button id="opti-auto-install-btn" class="install-btn"
+                            style="background-color: var(--accent-color); color: white; width: auto; padding: 10px 24px;">Otomatik
+                            Kur</button>
+                        <button id="opti-install-btn" class="install-btn dlss-install-action"
+                            style="background-color: var(--text-secondary); width: auto; padding: 10px 24px;">Manuel
+                            Kur</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DLSS Install Confirm Modal -->
+    <div id="dlss-confirm-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" data-target="dlss-confirm-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ DLSS Enabler Kurulumu</h3>
+            <p style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px;">
+                DLSS Enabler oyununuza kurulmak üzere, onaylıyor musunuz?
+            </p>
+            <div class="confirm-btn-group">
+                <button id="dlss-confirm-yes-btn" class="btn-confirm-yes"
+                    style="background-color: #22c55e;">Evet</button>
+                <button id="dlss-confirm-no-btn" class="btn-confirm-no">Hayır</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DLSS Enabler Sürümler Modalı -->
+    <div id="dlss-versions-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" data-target="dlss-versions-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ DLSS Enabler Sürümleri</h3>
+            <p
+                style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; margin-top: 10px; line-height: 1.5;">
+                Yüklü sürümler <code
+                    style="background: rgba(255,255,255,0.07); padding: 2px 6px; border-radius: 4px; font-size: 12px;">mods/dlssenabler/</code>
+                klasöründeki alt klasörlerden okunur.
+            </p>
+
+            <!-- Sürüm listesi -->
+            <div id="dlss-versions-list" style="display: flex; flex-direction: column; gap: 8px; min-height: 60px;">
+                <!-- JS tarafından doldurulur -->
+            </div>
+
+            <!-- Sağ altta buton -->
+            <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+                <button id="dlss-open-upload-btn" class="install-btn" style="width: auto; padding: 10px 24px;">
+                    Güncelle/Değiştir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DLSS Enabler ZIP Yükleme Modalı -->
+    <div id="dlss-upload-modal" class="modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <span class="close-modal" data-target="dlss-upload-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ Yeni Sürüm Yükle</h3>
+
+            <!-- Drag & Drop Alanı -->
+            <div id="dlss-dropzone" style="
+                border: 2px dashed rgba(255,255,255,0.2);
+                border-radius: 10px;
+                padding: 36px 20px;
+                text-align: center;
+                margin-top: 16px;
+                cursor: default;
+                transition: border-color 0.2s, background 0.2s;
+            ">
+                <div style="font-size: 28px; margin-bottom: 10px;">📦</div>
+                <p style="margin: 0 0 6px; font-size: 14px; color: var(--text-primary);">ZIP dosyasını buraya sürükleyin
+                </p>
+                <span style="font-size: 12px; color: var(--text-secondary);">Yalnızca .zip uzantılı dosyalar kabul
+                    edilir</span>
+            </div>
+
+            <!-- Yükleniyor durumu -->
+            <div id="dlss-upload-loading"
+                style="display: none; text-align: center; margin-top: 14px; font-size: 13px; color: var(--text-secondary);">
+                ⏳ Sürüm okunuyor...
+            </div>
+
+            <!-- Dosya bilgi alanı (sürükleme sonrası gösterilir) -->
+            <div id="dlss-upload-info"
+                style="display: none; margin-top: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                    <span style="color: var(--text-secondary);">Sürüm Versiyonu</span>
+                    <span id="dlss-upload-version-display"
+                        style="font-weight: bold; color: var(--accent-color);">—</span>
+                    <input id="dlss-upload-version-input" type="text" placeholder="Örn: 4.7.2"
+                        style="display: none; background: rgba(0,0,0,0.3); border: 1px solid var(--accent-color); color: white; padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 130px; text-align: center; outline: none;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                    <span style="color: var(--text-secondary);">Dosya Adı</span>
+                    <span id="dlss-upload-filename"
+                        style="font-size: 12px; color: var(--text-secondary); word-break: break-all; text-align: right; max-width: 280px;">—</span>
+                </div>
+            </div>
+
+            <!-- Hata mesajı -->
+            <div id="dlss-upload-error"
+                style="display: none; margin-top: 12px; padding: 10px 14px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; font-size: 13px; color: #ef4444; line-height: 1.5;">
+            </div>
+
+            <!-- YÜKLE butonu -->
+            <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button id="dlss-upload-install-btn" class="install-btn"
+                    style="width: auto; padding: 10px 28px; opacity: 0.4; cursor: not-allowed;" disabled>
+                    Yükle
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OptiScaler Versions Modal -->
+    <div id="optiscaler-versions-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" data-target="optiscaler-versions-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ OptiScaler Sürümleri</h3>
+            <p
+                style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
+                GitHub üzerinden çekilen en güncel 5 OptiScaler sürümü aşağıda listelenmiştir. Seçtiğiniz sürümü
+                indirebilirsiniz.
+            </p>
+
+            <div id="optiscaler-versions-loading"
+                style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                Sürümler aranıyor, lütfen bekleyin...
+            </div>
+
+            <div id="optiscaler-versions-container" style="display: none;">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Bir
+                    Sürüm Seçin:</label>
+                <select id="optiscaler-version-select" class="dlss-select-box"
+                    style="width: 100%; margin-bottom: 25px; padding: 12px; border-radius: 8px; font-size: 14px;"></select>
+
+                <div class="confirm-btn-group">
+                    <button id="optiscaler-download-btn" class="install-btn"
+                        style="width: 100%; font-weight: bold;">İndir ve Çıkart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OptiPatcher Versions Modal -->
+    <div id="optipatcher-versions-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" data-target="optipatcher-versions-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ OptiPatcher Sürümleri</h3>
+            <p
+                style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
+                GitHub üzerinden çekilen en güncel 5 OptiPatcher sürümü aşağıda listelenmiştir. Seçtiğiniz sürümü
+                indirebilirsiniz.
+            </p>
+
+            <div id="optipatcher-versions-loading"
+                style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                Sürümler aranıyor, lütfen bekleyin...
+            </div>
+
+            <div id="optipatcher-versions-container" style="display: none;">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Bir
+                    Sürüm Seçin:</label>
+                <select id="optipatcher-version-select" class="dlss-select-box"
+                    style="width: 100%; margin-bottom: 25px; padding: 12px; border-radius: 8px; font-size: 14px;"></select>
+
+                <div class="confirm-btn-group">
+                    <button id="optipatcher-download-btn" class="install-btn"
+                        style="width: 100%; font-weight: bold;">Yükle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FSR4 Files Versions Modal -->
+    <div id="fsr4-versions-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" data-target="fsr4-versions-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ FSR4 Files Sürümleri</h3>
+            <p
+                style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
+                Sunucu üzerinden çekilen FSR4 Files sürümleri aşağıda listelenmiştir. Seçtiğiniz sürümü
+                indirebilirsiniz.
+            </p>
+
+            <div id="fsr4-versions-loading" style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                Sürümler aranıyor, lütfen bekleyin...
+            </div>
+
+            <div id="fsr4-versions-container" style="display: none;">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Bir
+                    Sürüm Seçin:</label>
+                <select id="fsr4-version-select" class="dlss-select-box"
+                    style="width: 100%; margin-bottom: 25px; padding: 12px; border-radius: 8px; font-size: 14px;"></select>
+
+                <div class="confirm-btn-group">
+                    <button id="fsr4-download-btn" class="install-btn"
+                        style="width: 100%; font-weight: bold;">Yükle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streamline Installation Modal -->
+    <div id="streamline-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-modal" data-target="streamline-modal">&times;</span>
+            <div class="dlss-modal-body">
+                <!-- Left Side: Cover -->
+                <div class="dlss-modal-left">
+                    <div class="dlss-cover-wrapper">
+                        <img id="sl-game-cover" src="" alt="" class="dlss-game-img">
+                        <div id="sl-game-placeholder" class="dlss-placeholder" style="display:none;">🎮</div>
+                    </div>
+                    <div id="sl-game-name" class="dlss-game-title"></div>
+                </div>
+
+                <!-- Right Side: Options -->
+                <div class="dlss-modal-right">
+                    <h2 class="dlss-modal-title">Streamline Kurulumu</h2>
+                    <p class="dlss-modal-desc">
+                        Bu işlem, oyun içerisindeki Streamline (sl.*.dll) dosyalarını seçeceğiniz güncel/özel sürüm
+                        dosyalarıyla değiştirecektir. Orijinal dosyalarınız otomatik olarak yedeklenecektir.
+                    </p>
+
+                    <div class="dlss-version-field">
+                        <label for="sl-version">Streamline Sürümü:</label>
+                        <select id="sl-version" class="dlss-select-box"></select>
+                    </div>
+
+                    <div class="dlss-modal-footer" style="margin-top: 30px;">
+                        <button id="sl-auto-install-btn" class="install-btn dlss-install-action"
+                            style="background-color: #22c55e; width: 100%;">Otomatik Kur</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Update Modal -->
+    <div id="update-modal" class="modal">
+        <div class="modal-content large-modal">
+            <span class="close-modal" data-target="update-modal">&times;</span>
+            <div class="dlss-modal-body">
+                <!-- Left Side: Cover -->
+                <div class="dlss-modal-left">
+                    <div class="dlss-cover-wrapper">
+                        <img id="update-game-cover" src="" alt="" class="dlss-game-img">
+                        <div id="update-game-placeholder" class="dlss-placeholder" style="display:none;">🎮</div>
+                    </div>
+                    <div id="update-game-name" class="dlss-game-title"></div>
+                </div>
+
+                <!-- Right Side: Details -->
+                <div class="dlss-modal-right">
+                    <h2 class="dlss-modal-title">Mod Güncelleme</h2>
+                    <p class="dlss-modal-desc">
+                        Kurulu modları yönetin, sürüm değiştirin veya orijinal dosyaları geri yükleyin.
+                    </p>
+
+                    <hr class="dlss-divider"
+                        style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 20px 0;">
+
+                    <!-- DLSS Enabler Manage Section -->
+                    <div id="update-dlss-section"
+                        style="display: none; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <h3
+                            style="margin-top: 0; color: var(--accent-color); font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>✦ DLSS Enabler Durumu</span>
+                            <span class="utag utag-dlssEnabler" id="update-dlss-version-badge"
+                                style="font-size: 11px; padding: 2px 8px; background: #8b5cf6; color: white; border-radius: 4px;">Sürüm:
+                                -</span>
+                        </h3>
+                        <p
+                            style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">
+                            DLSS Enabler kuruludur. Aşağıdan yüklü olan sürümü değiştirebilir veya modu tamamen
+                            kaldırabilirsiniz.
+                        </p>
+
+                        <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px;">
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 11px; color: var(--text-secondary); font-weight: bold;">Sürüm
+                                    Değiştir:</label>
+                                <select id="update-dlss-version-select" class="dlss-select-box"
+                                    style="padding: 8px; font-size: 13px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary);"></select>
+                            </div>
+                            <button id="update-change-dlss-btn" class="install-btn"
+                                style="width: auto; padding: 8px 16px; font-size: 13px; border-radius: 4px; height: 38px;">Değiştir</button>
+                        </div>
+
+                        <button id="update-restore-dlss-btn" class="install-btn"
+                            style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                            DLSS Enabler Modunu Kaldır
+                        </button>
+                    </div>
+
+                    <!-- Streamline Manage Section -->
+                    <div id="update-streamline-section"
+                        style="display: none; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 15px; border-radius: 8px;">
+                        <h3
+                            style="margin-top: 0; color: var(--accent-color); font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>✦ Streamline Durumu</span>
+                            <span class="utag utag-dlss" id="update-sl-version-badge"
+                                style="font-size: 11px; padding: 2px 8px;">Sürüm: -</span>
+                        </h3>
+                        <p
+                            style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">
+                            Orijinal Streamline kütüphaneleri yedeklenmiştir. Aşağıdan sürüm değiştirebilir (yedeklere
+                            dokunulmaz) veya orijinal dosyaları geri yükleyebilirsiniz.
+                        </p>
+
+                        <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 20px;">
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                                <label style="font-size: 11px; color: var(--text-secondary); font-weight: bold;">Sürüm
+                                    Değiştir (Yedekleme Olmadan):</label>
+                                <select id="update-sl-version-select" class="dlss-select-box"
+                                    style="padding: 8px; font-size: 13px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: var(--text-primary);"></select>
+                            </div>
+                            <button id="update-change-sl-btn" class="install-btn"
+                                style="width: auto; padding: 8px 16px; font-size: 13px; border-radius: 4px; height: 38px;">Değiştir</button>
+                        </div>
+
+                        <button id="update-restore-sl-btn" class="install-btn"
+                            style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                            Streamline Dosyalarını Geri Yükle (Modu Kaldır)
+                        </button>
+                    </div>
+
+                    <!-- OptiScaler Manage Section -->
+                    <div id="update-opti-section"
+                        style="display: none; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                        <h3
+                            style="margin-top: 0; color: var(--accent-color); font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
+                            <span>✦ OptiScaler Durumu</span>
+                            <span class="utag utag-dlss" id="update-opti-version-badge"
+                                style="background: #f59e0b; color: white; border-radius: 4px; font-size: 11px; padding: 2px 8px;">Sürüm:
+                                -</span>
+                        </h3>
+                        <p
+                            style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5;">
+                            OptiScaler kuruludur. Modu tamamen kaldırmak için aşağıdaki butonu kullanabilirsiniz.
+                        </p>
+
+                        <button id="update-restore-opti-btn" class="install-btn"
+                            style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s;">
+                            OptiScaler Modunu Kaldır
+                        </button>
+                    </div>
+
+                    <!-- Empty state or other mods section if needed -->
+                    <div id="update-no-mods-section"
+                        style="display: none; padding: 20px; text-align: center; color: var(--text-secondary);">
+                        Bu oyunda yönetilebilecek mod bulunamadı.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content large-modal" style="width: 950px; max-width: 95%;">
+            <span class="close-modal" data-target="settings-modal">&times;</span>
+            <div class="dlss-modal-body">
+                <!-- Left Side: Cover & Tabs -->
+                <div class="dlss-modal-left">
+                    <div class="dlss-cover-wrapper">
+                        <img id="settings-game-cover" src="" alt="" class="dlss-game-img">
+                        <div id="settings-game-placeholder" class="dlss-placeholder" style="display:none;">🎮</div>
+                    </div>
+                    <div id="settings-game-name" class="dlss-game-title"></div>
+
+                    <!-- Tabs -->
+                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+                        <button id="tab-dlss-enabler" class="install-btn"
+                            style="background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.4); color: white; display: none;">DLSS
+                            Enabler</button>
+                    </div>
+                </div>
+
+                <!-- Right Side: Settings -->
+                <div class="dlss-modal-right" style="display: flex; flex-direction: column;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 class="dlss-modal-title" style="margin: 0;">Mod Ayarları (INI Editörü)</h2>
+                    </div>
+
+                    <div id="settings-warning-banner"
+                        style="margin-top: 15px; background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 10px 15px; border-radius: 4px; font-size: 13px; color: #fca5a5;">
+                        <strong style="color: #ef4444;">Uyarı:</strong> Oyun açıkken yapılan değişiklikler oyun yeniden
+                        başlatılana kadar geçerli olmaz.
+                    </div>
+
+                    <div id="settings-error-banner"
+                        style="display: none; margin-top: 15px; background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; padding: 10px 15px; border-radius: 4px; font-size: 13px; color: #fca5a5;">
+                    </div>
+
+                    <hr class="dlss-divider"
+                        style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 20px 0;">
+
+                    <div id="settings-content"
+                        style="flex: 1; overflow-y: auto; padding-right: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; gap: 20px;">
+                        <!-- Dinamik olarak doldurulacak -->
+                    </div>
+
+                    <div
+                        style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                        <button id="settings-save-btn" class="install-btn"
+                            style="width: auto; padding: 10px 30px; margin: 0; background-color: #22c55e; color: #fff;">Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info / Alert Modal — En son tanımlandı, diğer modalların DOM sırasında üstünde olur -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content" style="position: relative;">
+            <span class="close-modal" data-target="info-modal">&times;</span>
+            <h3 id="info-modal-title" style="margin-top: 0; color: var(--accent-color);">Bilgi</h3>
+            <p id="info-modal-message"
+                style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; white-space: pre-line;">
+            </p>
+            <div id="info-modal-progress"
+                style="display: none; position: absolute; bottom: 20px; left: 20px; font-size: 18px; font-weight: bold; color: var(--accent-color);">
+                %0</div>
+            <div class="confirm-btn-group">
+                <button id="info-modal-ok-btn" class="btn-confirm-no"
+                    style="background-color: var(--accent-color); color: white; border: none; padding: 8px 24px;">Tamam</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-tooltip" class="global-tooltip"
+        style="display: none; position: fixed; z-index: 10000; pointer-events: none;"></div>
+
+    <script type="module" src="renderer.js"></script>
+</body>
+
+</html>
