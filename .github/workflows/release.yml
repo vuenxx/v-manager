@@ -7,16 +7,18 @@ on:
 
 jobs:
   release:
-    runs-on: windows-latest
-
+    runs-on: windows-latest 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Uyarıyı kaldıran komut
+    
     steps:
-      - name: Kodu al
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Node.js kurulum (v20)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24' # Node sürümünü de güncelleyelim
           cache: 'npm'
 
       - name: Bağımlılıkları yükle
