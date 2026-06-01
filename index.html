@@ -222,9 +222,11 @@
                             <h3>Streamline</h3>
                         </div>
                         <div class="package-features">
-                            <p>NVIDIA'nın Streamline SDK kütüphanelerini (sl.*.dll) yönetmenizi ve güncellemenizi sağlar.</p>
+                            <p>NVIDIA'nın Streamline SDK kütüphanelerini (sl.*.dll) yönetmenizi ve güncellemenizi
+                                sağlar.</p>
                             <div class="package-links">
-                                <a href="#" class="external-link" data-url="https://github.com/NVIDIA-RTX/Streamline">GitHub</a>
+                                <a href="#" class="external-link"
+                                    data-url="https://github.com/NVIDIA-RTX/Streamline">GitHub</a>
                             </div>
                         </div>
                         <div class="package-actions">
@@ -268,8 +270,7 @@
                         </div>
 
                         <!-- Release Notes -->
-                        <div id="update-release-notes"
-                            style="background: rgba(0,0,0,0.25);
+                        <div id="update-release-notes" style="background: rgba(0,0,0,0.25);
                                    border: 1px solid rgba(255,255,255,0.06);
                                    border-radius: 8px;
                                    padding: 16px;
@@ -291,8 +292,7 @@
                             </div>
                             <div style="height: 8px; background: rgba(255,255,255,0.08);
                                         border-radius: 4px; overflow: hidden;">
-                                <div id="update-progress-bar"
-                                    style="height: 100%; width: 0%;
+                                <div id="update-progress-bar" style="height: 100%; width: 0%;
                                            background: var(--accent-color);
                                            transition: width 0.25s ease;
                                            border-radius: 4px;">
@@ -306,8 +306,7 @@
                                 style="display: none; width: auto; padding: 11px 26px;">
                                 ⬇️ Güncellemeyi İndir
                             </button>
-                            <button id="install-update-btn" class="install-btn"
-                                style="display: none; width: auto; padding: 11px 26px;
+                            <button id="install-update-btn" class="install-btn" style="display: none; width: auto; padding: 11px 26px;
                                        background: linear-gradient(135deg, #22c55e, #16a34a);">
                                 🚀 Kur ve Yeniden Başlat
                             </button>
@@ -334,7 +333,8 @@
                 <div class="compress-tabs-header">
                     <h2>Sıkıştır</h2>
                     <div class="compress-sub-nav">
-                        <button class="sub-nav-item active" data-sub-target="compress-tools">Sıkıştırma Araçları</button>
+                        <button class="sub-nav-item active" data-sub-target="compress-tools">Sıkıştırma
+                            Araçları</button>
                         <button class="sub-nav-item" data-sub-target="compress-db">Sıkıştırma DB</button>
                     </div>
                 </div>
@@ -928,25 +928,32 @@
 
                     <hr class="dlss-divider">
 
-                    <div class="opti-options-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 15px;">
+                    <div class="opti-options-grid"
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 15px;">
 
                         <!-- Left Column: Version & Injection Type -->
                         <div style="display: flex; flex-direction: column; gap: 20px;">
                             <!-- Version -->
                             <div class="opti-field">
-                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
-                                    <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">Sürüm</label>
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                    <label
+                                        style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">Sürüm</label>
                                 </div>
                                 <div id="opti-versions-loading"
                                     style="font-size: 13px; color: var(--text-secondary); padding: 10px 0;">Sürümler
                                     yükleniyor...</div>
-                                <select id="opti-version" class="opti-select" style="width: 100%; display: none;"></select>
+                                <select id="opti-version" class="opti-select"
+                                    style="width: 100%; display: none;"></select>
                             </div>
 
                             <!-- Injection Type -->
                             <div class="opti-field">
-                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
-                                    <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">Enjeksiyon Tipi</label>
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                    <label
+                                        style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">Enjeksiyon
+                                        Tipi</label>
                                 </div>
                                 <select id="opti-injection" class="opti-select" style="width: 100%;">
                                     <option value="dxgi.dll">dxgi.dll</option>
@@ -964,10 +971,15 @@
                         <div style="display: flex; flex-direction: column; gap: 20px;">
                             <!-- FSR4 INT8 Field -->
                             <div class="opti-field">
-                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
-                                        <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">FSR4 INT8</label>
-                                        <span style="cursor: help; color: var(--text-secondary); font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08);" title="FSR4 upscaling dosyalarını ve enjeksiyon modülünü yükleyerek oyunda FSR 4 desteği sağlar.">?</span>
+                                        <label
+                                            style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">FSR4
+                                            INT8</label>
+                                        <span
+                                            style="cursor: help; color: var(--text-secondary); font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08);"
+                                            title="FSR4 upscaling dosyalarını ve enjeksiyon modülünü yükleyerek oyunda FSR 4 desteği sağlar.">?</span>
                                     </div>
                                     <label class="scan-toggle-label" style="margin: 0;">
                                         <input type="checkbox" id="opti-install-fsr4">
@@ -975,17 +987,22 @@
                                     </label>
                                 </div>
                                 <div id="opti-fsr4-versions-loading"
-                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0; display: none;">Sürümler yükleniyor...</div>
+                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0; display: none;">
+                                    Sürümler yükleniyor...</div>
                                 <select id="opti-fsr4-version" class="opti-select"
                                     style="width: 100%; font-size: 14px; opacity: 0.5; pointer-events: none;"></select>
                             </div>
 
                             <!-- OptiPatcher Field -->
                             <div class="opti-field">
-                                <div style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
+                                <div
+                                    style="display: flex; align-items: center; justify-content: space-between; height: 28px; margin-bottom: 8px;">
                                     <div style="display: flex; align-items: center; gap: 6px;">
-                                        <label style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">OptiPatcher</label>
-                                        <span style="cursor: help; color: var(--text-secondary); font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08);" title="OptiScaler için ek asi eklentilerini otomatik yükler ve ini dosyasını yapılandırır. Uyumluluğu artırır.">?</span>
+                                        <label
+                                            style="font-size: 13px; color: var(--text-secondary); font-weight: 600; margin: 0;">OptiPatcher</label>
+                                        <span
+                                            style="cursor: help; color: var(--text-secondary); font-size: 11px; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.08);"
+                                            title="OptiScaler için ek asi eklentilerini otomatik yükler ve ini dosyasını yapılandırır. Uyumluluğu artırır.">?</span>
                                     </div>
                                     <label class="scan-toggle-label" style="margin: 0;">
                                         <input type="checkbox" id="opti-install-patcher">
@@ -993,7 +1010,8 @@
                                     </label>
                                 </div>
                                 <div id="opti-patcher-versions-loading"
-                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0; display: none;">Sürümler yükleniyor...</div>
+                                    style="font-size: 13px; color: var(--text-secondary); padding: 10px 0; display: none;">
+                                    Sürümler yükleniyor...</div>
                                 <select id="opti-patcher-version" class="opti-select"
                                     style="width: 100%; font-size: 14px; opacity: 0.5; pointer-events: none;"></select>
                             </div>
@@ -1125,7 +1143,7 @@
             <h3 style="margin-top: 0; color: var(--accent-color);">✦ OptiScaler Sürümleri</h3>
             <p
                 style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
-                GitHub üzerinden çekilen en güncel 5 OptiScaler sürümü aşağıda listelenmiştir. Seçtiğiniz sürümü
+                GitHub üzerinden çekilen en güncel OptiScaler sürümleri aşağıda listelenmiştir. Seçtiğiniz sürümü
                 indirebilirsiniz.
             </p>
 
@@ -1155,7 +1173,7 @@
             <h3 style="margin-top: 0; color: var(--accent-color);">✦ OptiPatcher Sürümleri</h3>
             <p
                 style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
-                GitHub üzerinden çekilen en güncel 5 OptiPatcher sürümü aşağıda listelenmiştir. Seçtiğiniz sürümü
+                GitHub üzerinden çekilen en güncel OptiPatcher sürümleri aşağıda listelenmiştir. Seçtiğiniz sürümü
                 indirebilirsiniz.
             </p>
 
