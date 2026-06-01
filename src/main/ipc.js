@@ -15,7 +15,6 @@ const uninstaller = require('./mods/uninstaller');
 const compressor = require('./mods/compressor');
 const analyser = require('./mods/analyser');
 const compressionDb = require('./mods/compressionDb');
-const compressionWatcher = require('./mods/compressionWatcher');
 const steamScanner = require('./mods/steamScanner');
 const iniEditor = require('./mods/iniEditor');
 const updater = require('./updater');
@@ -382,19 +381,6 @@ function registerIpcHandlers() {
         return await compressionDb.getDb();
     });
 
-    // Compression Watcher
-    ipcMain.handle('toggle-watch-folder', async (event, { folderPath, algorithm, enable }) => {
-        if (enable) {
-            compressionWatcher.watch(folderPath, algorithm);
-        } else {
-            compressionWatcher.unwatch(folderPath);
-        }
-        return compressionWatcher.getWatchedFolders();
-    });
-
-    ipcMain.handle('get-watched-folders', async () => {
-        return compressionWatcher.getWatchedFolders();
-    });
 
     // INI Editor
     ipcMain.handle('read-mod-ini', async (event, { game, mod }) => {

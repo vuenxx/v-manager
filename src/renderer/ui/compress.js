@@ -1,7 +1,6 @@
 let addedFolders = [];
 let selectedFolderIndex = -1;
 let compressionDbData = [];
-let watchedFolders = [];
 let isProcessing = false;
 
 function toggleProcessing(processing) {
@@ -9,14 +8,12 @@ function toggleProcessing(processing) {
     const selectFolderBtn = document.getElementById('select-folder-btn');
     const compressSelectedBtn = document.getElementById('compress-selected-btn');
     const uncompressSelectedBtn = document.getElementById('uncompress-selected-btn');
-    const watchCheckbox = document.getElementById('watch-folder-checkbox');
     const addedFoldersList = document.getElementById('added-folders-list');
     const methodBoxes = document.querySelectorAll('.method-box');
 
     if (selectFolderBtn) selectFolderBtn.disabled = processing;
     if (compressSelectedBtn) compressSelectedBtn.disabled = processing;
     if (uncompressSelectedBtn) uncompressSelectedBtn.disabled = processing;
-    if (watchCheckbox) watchCheckbox.disabled = processing;
     
     methodBoxes.forEach(box => {
         box.style.pointerEvents = processing ? 'none' : 'auto';
@@ -35,7 +32,6 @@ export async function initCompress() {
     const compressSelectedBtn = document.getElementById('compress-selected-btn');
     const uncompressSelectedBtn = document.getElementById('uncompress-selected-btn');
     const addedFoldersList = document.getElementById('added-folders-list');
-    const watchCheckbox = document.getElementById('watch-folder-checkbox');
 
     // Progress Listener
     window.electronAPI.onCompressionProgress((data) => {
@@ -77,7 +73,6 @@ export async function initCompress() {
                 content.style.display = content.id === targetId ? 'block' : 'none';
             });
             if (targetId === 'compress-db') loadCompressionDb();
-            if (targetId === 'compress-watch') loadWatchedFolders();
         });
     });
 
@@ -211,25 +206,11 @@ export async function initCompress() {
         });
     });
 
-    if (watchCheckbox) {
-        watchCheckbox.addEventListener('change', async () => {
-            if (selectedFolderIndex === -1 || isProcessing) return;
-            const folder = addedFolders[selectedFolderIndex];
-            watchedFolders = await window.electronAPI.toggleWatchFolder({
-                folderPath: folder.path,
-                algorithm: folder.method,
-                enable: watchCheckbox.checked
-            });
-        });
-    }
-
     // 6. DB Search
     const dbSearchInput = document.getElementById('db-search-input');
     if (dbSearchInput) {
         dbSearchInput.addEventListener('input', () => renderCompressionDb(dbSearchInput.value));
     }
-
-    watchedFolders = await window.electronAPI.getWatchedFolders();
 }
 
 async function addFolderToList(path) {
@@ -379,7 +360,6 @@ function updateDetailsView(folder) {
         }
     }
 
-    document.getElementById('watch-folder-checkbox').checked = watchedFolders.includes(folder.path);
     updateMethodUI(folder.method, folder);
 }
 
@@ -495,24 +475,3 @@ function renderDbResultItem(label, result) {
     `;
 }
 
-async function loadWatchedFolders() {
-    const container = document.getElementById('watched-folders-list');
-    if (!container) return;
-    container.innerHTML = '';
-    watchedFolders = await window.electronAPI.getWatchedFolders();
-    if (watchedFolders.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-secondary)">Henüz izlenen bir klasör yok.</p>';
-        return;
-    }
-    watchedFolders.forEach(folderPath => {
-        const name = folderPath.split(/[\\/]/).pop() || folderPath;
-        const card = document.createElement('div');
-        card.className = 'watch-card';
-        card.innerHTML = `<div class="watch-info"><span class="watch-name">${name}</span><span class="watch-path">${folderPath}</span></div><button class="unwatch-btn" data-path="${folderPath}">İzlemeyi Durdur</button>`;
-        card.querySelector('.unwatch-btn').addEventListener('click', async () => {
-            watchedFolders = await window.electronAPI.toggleWatchFolder({ folderPath: folderPath, enable: false });
-            loadWatchedFolders();
-        });
-        container.appendChild(card);
-    });
-}

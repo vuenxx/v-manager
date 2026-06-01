@@ -86,10 +86,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Compression DB
     getCompressionDb: () => ipcRenderer.invoke('get-compression-db'),
 
-    // Compression Watcher
-    toggleWatchFolder: (data) => ipcRenderer.invoke('toggle-watch-folder', data),
-    getWatchedFolders: () => ipcRenderer.invoke('get-watched-folders'),
-
     // YouTube RSS and External Link opening
     fetchYoutubeVideos: () => ipcRenderer.invoke('fetch-youtube-videos'),
     openExternalLink: (url) => ipcRenderer.send('open-external-link', url),
