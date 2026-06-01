@@ -302,6 +302,14 @@ function registerIpcHandlers() {
         return await streamline.restoreStreamline(gameName);
     });
 
+    ipcMain.handle('get-streamline-releases', async () => {
+        return await streamline.getStreamlineReleases();
+    });
+
+    ipcMain.handle('download-streamline-release', async (event, { tag, downloadUrl }) => {
+        return await streamline.downloadStreamlineRelease(event, { tag, downloadUrl });
+    });
+
     // OptiScaler
     ipcMain.handle('get-optiscaler-releases', async () => {
         return await optiScaler.getOptiScalerReleases();

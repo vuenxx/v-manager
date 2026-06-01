@@ -1,6 +1,6 @@
 {
   "name": "v-manager",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "V-Manager made by vuenxx",
   "main": "main.js",
   "repository": {
@@ -19,22 +19,10 @@
       "owner": "vuenxx",
       "repo": "v-manager"
     },
-    "asarUnpack": [
-      "node_modules/7zip-bin",
-      "node_modules/**/7zip-bin/**/*"
-    ],
     "extraResources": [
       {
         "from": "developer-games.json",
         "to": "developer-games.json"
-      },
-      {
-        "from": "mods/dlssenabler",
-        "to": "mods/dlssenabler"
-      },
-      {
-        "from": "mods/streamline",
-        "to": "mods/streamline"
       }
     ],
     "win": {
@@ -49,10 +37,9 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
-    "7zip-bin": "^5.2.0",
     "adm-zip": "^0.5.17",
     "electron-log": "^5.1.2",
     "electron-updater": "^6.8.3",
-    "node-7z": "^3.0.0"
+    "extract-zip": "^2.0.1"
   }
 }

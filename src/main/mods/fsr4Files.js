@@ -1,8 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
-const sevenBin = require('7zip-bin');
-const Seven = require('node-7z');
+const extract = require('extract-zip');
 
 const config = require('../config');
 
@@ -96,15 +95,8 @@ async function downloadFsr4Release(event, { name, downloadUrl }) {
             event.sender.send('fsr4-download-progress', { percent: 100, stage: 'extracting' });
         }
 
-        // Extract using node-7z
-        await new Promise((resolve, reject) => {
-            const myStream = Seven.extractFull(tempZipPath, targetDir, {
-                $bin: sevenBin.path7za
-            });
-
-            myStream.on('end', () => resolve());
-            myStream.on('error', (err) => reject(err));
-        });
+        // Extract using extract-zip
+        await extract(tempZipPath, { dir: targetDir });
 
         // Clean up temporary archive file
         try {

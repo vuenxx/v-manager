@@ -5,6 +5,7 @@ const windowManager = require('./window');
 const { initAutoUpdater } = require('./updater');
 
 app.whenReady().then(() => {
+    config.cleanOldModsFolder();
     config.loadExistingGames();
     config.loadBlacklist();
     ipc.registerIpcHandlers();

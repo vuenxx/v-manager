@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron');
+const extract = require('extract-zip');
 
 const config = require('../config');
 const utils = require('../utils');
@@ -608,11 +610,151 @@ async function installStreamline(game, version, targetDir) {
     }
 }
 
+async function getStreamlineReleases() {
+    try {
+        const response = await fetch('https://api.github.com/repos/NVIDIA-RTX/Streamline/releases', {
+            headers: { 'User-Agent': 'vuenxxFG' }
+        });
+        if (response.status === 403) {
+            throw new Error("GitHub limitine takıldınız, lütfen daha sonra tekrar deneyin.");
+        }
+        if (!response.ok) throw new Error(`GitHub API HTTP error: ${response.status}`);
+        const releases = await response.json();
+
+        return releases.slice(0, 5).map(r => {
+            const tag = r.tag_name;
+            const targetDir = path.join(config.streamlineModsPath, tag);
+            let installed = false;
+
+            if (fs.existsSync(targetDir)) {
+                try {
+                    const files = fs.readdirSync(targetDir);
+                    if (files.length > 0) {
+                        installed = true;
+                    }
+                } catch (e) {}
+            }
+
+            return {
+                name: r.name || r.tag_name,
+                tag: tag,
+                downloadUrl: r.assets.find(a => a.name.toLowerCase().endsWith('.zip'))?.browser_download_url,
+                installed: installed
+            };
+        });
+    } catch (e) {
+        console.error("Failed to fetch Streamline releases:", e);
+        return { error: e.message };
+    }
+}
+
+async function downloadStreamlineRelease(event, { tag, downloadUrl }) {
+    const tempZipPath = path.join(app.getPath('temp'), `streamline_${tag.replace(/[^a-z0-9.-]/gi, '_')}.zip`);
+    const tempExtractDir = path.join(app.getPath('temp'), `streamline_extract_${tag.replace(/[^a-z0-9.-]/gi, '_')}`);
+    const targetDir = path.join(config.streamlineModsPath, tag);
+
+    try {
+        if (!downloadUrl) throw new Error("İndirme linki bulunamadı.");
+
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+
+        const contentLength = +response.headers.get('Content-Length') || 0;
+        const reader = response.body.getReader();
+        let receivedLength = 0;
+        let chunks = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            receivedLength += value.length;
+            if (contentLength && event && event.sender && !event.sender.isDestroyed()) {
+                const percent = Math.round((receivedLength / contentLength) * 100);
+                event.sender.send('streamline-download-progress', { percent });
+            }
+        }
+
+        const buffer = Buffer.concat(chunks.map(c => Buffer.from(c)));
+        fs.writeFileSync(tempZipPath, buffer);
+
+        // Ensure temp extract directory is clean
+        if (fs.existsSync(tempExtractDir)) {
+            try {
+                fs.rmSync(tempExtractDir, { recursive: true, force: true });
+            } catch(e) {}
+        }
+        fs.mkdirSync(tempExtractDir, { recursive: true });
+
+        if (event && event.sender && !event.sender.isDestroyed()) {
+            event.sender.send('streamline-download-progress', { percent: 100, stage: 'extracting' });
+        }
+
+        // Extract using extract-zip to the temp folder
+        await extract(tempZipPath, { dir: tempExtractDir });
+
+        // Now, find the 'bin/x64' folder inside tempExtractDir recursively
+        let binX64Path = null;
+        function findBinX64(dir) {
+            const list = fs.readdirSync(dir, { withFileTypes: true });
+            for (const file of list) {
+                if (file.isDirectory()) {
+                    const fullPath = path.join(dir, file.name);
+                    const nameLow = file.name.toLowerCase();
+                    const parentNameLow = path.basename(dir).toLowerCase();
+                    if (nameLow === 'x64' && parentNameLow === 'bin') {
+                        binX64Path = fullPath;
+                        return;
+                    }
+                    findBinX64(fullPath);
+                    if (binX64Path) return;
+                }
+            }
+        }
+        findBinX64(tempExtractDir);
+
+        if (!binX64Path) {
+            throw new Error("SDK paketi içerisinde bin/x64 klasörü bulunamadı.");
+        }
+
+        // Ensure targetDir exists and is clean
+        if (fs.existsSync(targetDir)) {
+            fs.rmSync(targetDir, { recursive: true, force: true });
+        }
+        fs.mkdirSync(targetDir, { recursive: true });
+
+        // Copy everything inside binX64Path to targetDir
+        await utils.copyDir(binX64Path, targetDir);
+
+        // Clean up temporary files
+        try {
+            fs.unlinkSync(tempZipPath);
+            fs.rmSync(tempExtractDir, { recursive: true, force: true });
+        } catch (e) {
+            console.error("Failed to clean up temp streamline files:", e);
+        }
+
+        return { success: true, targetDir };
+    } catch (e) {
+        console.error("Streamline download error:", e);
+        
+        // Clean up temp files on error
+        try {
+            if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
+            if (fs.existsSync(tempExtractDir)) fs.rmSync(tempExtractDir, { recursive: true, force: true });
+        } catch (err) {}
+
+        return { success: false, error: e.message };
+    }
+}
+
 module.exports = {
     STREAMLINE_FILES,
     findStreamlineDir,
     restoreStreamline,
     getStreamlineVersions,
     checkStreamlineBackup,
-    installStreamline
+    installStreamline,
+    getStreamlineReleases,
+    downloadStreamlineRelease
 };

@@ -1,8 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
-const sevenBin = require('7zip-bin');
-const Seven = require('node-7z');
+const extract = require('extract-zip');
 
 const config = require('../config');
 const utils = require('../utils');
@@ -34,7 +33,7 @@ async function getOptiScalerReleases() {
             return {
                 name: r.name || r.tag_name,
                 tag: tag,
-                downloadUrl: r.assets.find(a => a.name.endsWith('.7z'))?.browser_download_url,
+                downloadUrl: r.assets.find(a => a.name.toLowerCase().endsWith('.zip'))?.browser_download_url,
                 installed: installed
             };
         });
@@ -59,7 +58,7 @@ async function downloadOptiScalerVersion(event, tag, downloadUrl) {
         } catch(e) {}
     }
 
-    const tempZipPath = path.join(app.getPath('temp'), `optiscaler_${tag.replace(/[^a-z0-9.-]/gi, '_')}.7z`);
+    const tempZipPath = path.join(app.getPath('temp'), `optiscaler_${tag.replace(/[^a-z0-9.-]/gi, '_')}.zip`);
 
     const zipResponse = await fetch(downloadUrl);
     if (!zipResponse.ok) throw new Error(`Download failed: ${zipResponse.status}`);
@@ -88,11 +87,8 @@ async function downloadOptiScalerVersion(event, tag, downloadUrl) {
     if (event && event.sender && !event.sender.isDestroyed()) {
         event.sender.send('optiscaler-download-progress', { percent: 100, stage: 'extracting' });
     }
-    await new Promise((resolve, reject) => {
-        const stream = Seven.extractFull(tempZipPath, targetDir, { $bin: sevenBin.path7za });
-        stream.on('end', resolve);
-        stream.on('error', reject);
-    });
+    // Extract using extract-zip
+    await extract(tempZipPath, { dir: targetDir });
 
     try { fs.unlinkSync(tempZipPath); } catch(e) {}
 
@@ -115,7 +111,7 @@ async function downloadOptiScalerRelease(event, { tag, downloadUrl }) {
             } catch(e) {}
         }
 
-        const tempZipPath = path.join(app.getPath('temp'), `optiscaler_${tag.replace(/[^a-z0-9.-]/gi, '_')}.7z`);
+        const tempZipPath = path.join(app.getPath('temp'), `optiscaler_${tag.replace(/[^a-z0-9.-]/gi, '_')}.zip`);
 
         const zipResponse = await fetch(downloadUrl);
         if (!zipResponse.ok) throw new Error(`Download failed: ${zipResponse.status}`);
@@ -148,14 +144,8 @@ async function downloadOptiScalerRelease(event, { tag, downloadUrl }) {
         if (event && event.sender && !event.sender.isDestroyed()) {
             event.sender.send('optiscaler-download-progress', { percent: 100, stage: 'extracting' });
         }
-        await new Promise((resolve, reject) => {
-            const myStream = Seven.extractFull(tempZipPath, targetDir, {
-                $bin: sevenBin.path7za
-            });
-
-            myStream.on('end', () => resolve());
-            myStream.on('error', (err) => reject(err));
-        });
+        // Extract using extract-zip
+        await extract(tempZipPath, { dir: targetDir });
 
         try {
             fs.unlinkSync(tempZipPath);

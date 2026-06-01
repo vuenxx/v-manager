@@ -44,6 +44,7 @@ export function initBaseModals() {
     const modModal = document.getElementById('mod-modal');
     const dlssModal = document.getElementById('dlss-modal');
     const streamlineModal = document.getElementById('streamline-modal');
+    const streamlineVersionsModal = document.getElementById('streamline-versions-modal');
     const optiscalerModal = document.getElementById('optiscaler-modal');
     const confirmModal = document.getElementById('confirm-modal');
     const manageModal = document.getElementById('manage-modal');
@@ -62,6 +63,7 @@ export function initBaseModals() {
         if (e.target === modModal) closeModal('mod-modal');
         if (e.target === dlssModal) closeModal('dlss-modal');
         if (e.target === streamlineModal) closeModal('streamline-modal');
+        if (e.target === streamlineVersionsModal) closeModal('streamline-versions-modal');
         if (e.target === optiscalerModal) closeModal('optiscaler-modal');
         if (e.target === confirmModal) closeModal('confirm-modal');
         if (e.target === manageModal) closeModal('manage-modal');

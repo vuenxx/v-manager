@@ -216,6 +216,21 @@
                             <button id="fsr4-versions-btn" class="install-btn">Sürümler</button>
                         </div>
                     </div>
+                    <!-- Package 5 -->
+                    <div class="package-card">
+                        <div class="package-header">
+                            <h3>Streamline</h3>
+                        </div>
+                        <div class="package-features">
+                            <p>NVIDIA'nın Streamline SDK kütüphanelerini (sl.*.dll) yönetmenizi ve güncellemenizi sağlar.</p>
+                            <div class="package-links">
+                                <a href="#" class="external-link" data-url="https://github.com/NVIDIA-RTX/Streamline">GitHub</a>
+                            </div>
+                        </div>
+                        <div class="package-actions">
+                            <button id="streamline-versions-btn" class="install-btn">Sürümler</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1195,6 +1210,36 @@
                 <div class="confirm-btn-group">
                     <button id="fsr4-download-btn" class="install-btn"
                         style="width: 100%; font-weight: bold;">Yükle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streamline Versions Modal -->
+    <div id="streamline-versions-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" data-target="streamline-versions-modal">&times;</span>
+            <h3 style="margin-top: 0; color: var(--accent-color);">✦ Streamline Sürümleri</h3>
+            <p
+                style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
+                GitHub üzerinden çekilen en güncel 5 Streamline sürümü aşağıda listelenmiştir. Seçtiğiniz sürümü
+                indirebilirsiniz.
+            </p>
+
+            <div id="streamline-versions-loading"
+                style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                Sürümler aranıyor, lütfen bekleyin...
+            </div>
+
+            <div id="streamline-versions-container" style="display: none;">
+                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block;">Bir
+                    Sürüm Seçin:</label>
+                <select id="streamline-version-select" class="dlss-select-box"
+                    style="width: 100%; margin-bottom: 25px; padding: 12px; border-radius: 8px; font-size: 14px;"></select>
+
+                <div class="confirm-btn-group">
+                    <button id="streamline-download-btn" class="install-btn"
+                        style="width: 100%; font-weight: bold;">İndir ve Çıkart</button>
                 </div>
             </div>
         </div>

@@ -48,6 +48,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkStreamlineBackup: (data) => ipcRenderer.invoke('check-streamline-backup', data),
     installStreamline: (data) => ipcRenderer.invoke('install-streamline', data),
     restoreStreamline: (data) => ipcRenderer.invoke('restore-streamline', data),
+    getStreamlineReleases: () => ipcRenderer.invoke('get-streamline-releases'),
+    downloadStreamlineRelease: (data) => ipcRenderer.invoke('download-streamline-release', data),
+    onStreamlineDownloadProgress: (callback) => ipcRenderer.on('streamline-download-progress', (_event, data) => callback(data)),
+    removeStreamlineProgressListeners: () => ipcRenderer.removeAllListeners('streamline-download-progress'),
 
     // OptiScaler IPCs
     getOptiScalerReleases: () => ipcRenderer.invoke('get-optiscaler-releases'),

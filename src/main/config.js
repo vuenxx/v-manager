@@ -3,9 +3,6 @@ const path = require('path');
 const fs = require('fs');
 
 const STEAMGRID_API_KEY = 'b89ed9f1ab39a34c3b8ea71d756403ce';
-const GAMES_FILE = path.join(app.getPath('userData'), 'games.json');
-const BLACKLIST_FILE = path.join(app.getPath('userData'), 'blacklist.json');
-const COVERS_DIR = path.join(app.getPath('userData'), 'covers');
 
 // Note that config.js is inside src/main, so __dirname is projectRoot/src/main.
 // In packaged builds, extraResources are placed under process.resourcesPath.
@@ -13,32 +10,43 @@ const projectRoot = app.isPackaged
     ? process.resourcesPath
     : path.resolve(__dirname, '..', '..');
 
-const modsPath = path.join(projectRoot, 'mods');
-const streamlineModsPath = path.join(modsPath, 'streamline');
+// Helper to lazily evaluate paths after app is ready
+function getGamesFile() { return path.join(app.getPath('userData'), 'games.json'); }
+function getBlacklistFile() { return path.join(app.getPath('userData'), 'blacklist.json'); }
+function getCoversDir() {
+    const dir = path.join(app.getPath('userData'), 'covers');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}
+function getModsPath() {
+    const dir = path.join(app.getPath('userData'), 'mods');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}
+function getStreamlineModsPath() {
+    const dir = path.join(getModsPath(), 'streamline');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}
+function getUserGamesFile() { return path.join(app.getPath('userData'), 'user-games.json'); }
+function getCustomFoldersFile() { return path.join(app.getPath('userData'), 'custom-folders.json'); }
+function getCustomSubfoldersStateFile() { return path.join(app.getPath('userData'), 'custom-subfolders-state.json'); }
 
-// New dual-layer path system
 const DEVELOPER_GAMES_FILE = path.join(projectRoot, 'developer-games.json');
-const USER_GAMES_FILE = path.join(app.getPath('userData'), 'user-games.json');
-const CUSTOM_FOLDERS_FILE = path.join(app.getPath('userData'), 'custom-folders.json');
-const CUSTOM_SUBFOLDERS_STATE_FILE = path.join(app.getPath('userData'), 'custom-subfolders-state.json');
 
-// Ensure directories exist
-if (!fs.existsSync(COVERS_DIR)) {
-    fs.mkdirSync(COVERS_DIR, { recursive: true });
-}
-if (!fs.existsSync(streamlineModsPath)) {
-    fs.mkdirSync(streamlineModsPath, { recursive: true });
+// Clean up old program-directory mods folder if it exists (run on app ready)
+function cleanOldModsFolder() {
+    const oldModsPath = path.join(projectRoot, 'mods');
+    if (fs.existsSync(oldModsPath)) {
+        try {
+            fs.rmSync(oldModsPath, { recursive: true, force: true });
+            console.log('[CONFIG] Old program mods folder cleaned up successfully.');
+        } catch (e) {
+            console.warn('[CONFIG] Failed to clean up old mods folder:', e.message);
+        }
+    }
 }
 
-console.log('--- FILE PATH CONFIGURATION ---');
-console.log('GAMES_FILE:', GAMES_FILE);
-console.log('BLACKLIST_FILE:', BLACKLIST_FILE);
-console.log('COVERS_DIR:', COVERS_DIR);
-console.log('DEVELOPER_GAMES_FILE:', DEVELOPER_GAMES_FILE);
-console.log('USER_GAMES_FILE:', USER_GAMES_FILE);
-console.log('CUSTOM_FOLDERS_FILE:', CUSTOM_FOLDERS_FILE);
-console.log('CUSTOM_SUBFOLDERS_STATE_FILE:', CUSTOM_SUBFOLDERS_STATE_FILE);
-console.log('-------------------------------');
 
 // Global state
 let existingGamesState = [];
@@ -83,8 +91,9 @@ function getDeveloperGames() {
 /** Load user-games.json (always read from disk — user may have changed it). */
 function getUserGames() {
     try {
-        if (fs.existsSync(USER_GAMES_FILE)) {
-            return JSON.parse(fs.readFileSync(USER_GAMES_FILE, 'utf-8'));
+        const file = getUserGamesFile();
+        if (fs.existsSync(file)) {
+            return JSON.parse(fs.readFileSync(file, 'utf-8'));
         }
     } catch (e) {
         console.error('[CONFIG] Could not read user-games.json:', e.message);
@@ -95,7 +104,8 @@ function getUserGames() {
 /** Persist user-games.json to disk. */
 function saveUserGames(data) {
     try {
-        fs.writeFileSync(USER_GAMES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        const file = getUserGamesFile();
+        fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8');
         console.log('[CONFIG] user-games.json saved.');
     } catch (e) {
         console.error('[CONFIG] Could not write user-games.json:', e.message);
@@ -273,9 +283,10 @@ function resolveActualGameRoot(gameName, chosenExePath) {
 // --- Existing game state management (unchanged) ---
 
 function loadExistingGames() {
-    if (fs.existsSync(GAMES_FILE)) {
+    const file = getGamesFile();
+    if (fs.existsSync(file)) {
         try {
-            const rawGames = JSON.parse(fs.readFileSync(GAMES_FILE, 'utf-8'));
+            const rawGames = JSON.parse(fs.readFileSync(file, 'utf-8'));
             if (Array.isArray(rawGames)) {
                 existingGamesState = rawGames;
                 // Re-populate favoriteNames from loaded games
@@ -293,9 +304,10 @@ function loadExistingGames() {
 }
 
 function loadBlacklist() {
-    if (fs.existsSync(BLACKLIST_FILE)) {
+    const file = getBlacklistFile();
+    if (fs.existsSync(file)) {
         try {
-            blacklistState = JSON.parse(fs.readFileSync(BLACKLIST_FILE, 'utf-8'));
+            blacklistState = JSON.parse(fs.readFileSync(file, 'utf-8'));
         } catch (e) {
             blacklistState = [];
         }
@@ -374,19 +386,22 @@ function saveGamesState() {
         deduplicateState();
         needsDedup = false;
     }
-    fs.writeFileSync(GAMES_FILE, JSON.stringify(existingGamesState, null, 2));
-    console.log(`[CONFIG] Game state written to ${GAMES_FILE}`);
+    const file = getGamesFile();
+    fs.writeFileSync(file, JSON.stringify(existingGamesState, null, 2));
+    console.log(`[CONFIG] Game state written to ${file}`);
 }
 
 function saveBlacklist() {
     console.log(`[CONFIG] Saving blacklist (${blacklistState.length} games)...`);
-    fs.writeFileSync(BLACKLIST_FILE, JSON.stringify(blacklistState, null, 2));
+    const file = getBlacklistFile();
+    fs.writeFileSync(file, JSON.stringify(blacklistState, null, 2));
 }
 
 function getCustomFolders() {
     try {
-        if (fs.existsSync(CUSTOM_FOLDERS_FILE)) {
-            return JSON.parse(fs.readFileSync(CUSTOM_FOLDERS_FILE, 'utf-8'));
+        const file = getCustomFoldersFile();
+        if (fs.existsSync(file)) {
+            return JSON.parse(fs.readFileSync(file, 'utf-8'));
         }
     } catch (e) {
         console.error('[CONFIG] Could not read custom-folders.json:', e.message);
@@ -396,7 +411,8 @@ function getCustomFolders() {
 
 function saveCustomFolders(folders) {
     try {
-        fs.writeFileSync(CUSTOM_FOLDERS_FILE, JSON.stringify(folders, null, 2), 'utf-8');
+        const file = getCustomFoldersFile();
+        fs.writeFileSync(file, JSON.stringify(folders, null, 2), 'utf-8');
         console.log('[CONFIG] custom-folders.json saved.');
     } catch (e) {
         console.error('[CONFIG] Could not write custom-folders.json:', e.message);
@@ -406,8 +422,9 @@ function saveCustomFolders(folders) {
 
 function getCustomSubfoldersState() {
     try {
-        if (fs.existsSync(CUSTOM_SUBFOLDERS_STATE_FILE)) {
-            return JSON.parse(fs.readFileSync(CUSTOM_SUBFOLDERS_STATE_FILE, 'utf-8'));
+        const file = getCustomSubfoldersStateFile();
+        if (fs.existsSync(file)) {
+            return JSON.parse(fs.readFileSync(file, 'utf-8'));
         }
     } catch (e) {
         console.error('[CONFIG] Could not read custom-subfolders-state.json:', e.message);
@@ -417,7 +434,8 @@ function getCustomSubfoldersState() {
 
 function saveCustomSubfoldersState(state) {
     try {
-        fs.writeFileSync(CUSTOM_SUBFOLDERS_STATE_FILE, JSON.stringify(state, null, 2), 'utf-8');
+        const file = getCustomSubfoldersStateFile();
+        fs.writeFileSync(file, JSON.stringify(state, null, 2), 'utf-8');
         console.log('[CONFIG] custom-subfolders-state.json saved.');
     } catch (e) {
         console.error('[CONFIG] Could not write custom-subfolders-state.json:', e.message);
@@ -427,13 +445,14 @@ function saveCustomSubfoldersState(state) {
 
 module.exports = {
     STEAMGRID_API_KEY,
-    GAMES_FILE,
-    BLACKLIST_FILE,
-    COVERS_DIR,
-    modsPath,
-    streamlineModsPath,
+    get GAMES_FILE() { return getGamesFile(); },
+    get BLACKLIST_FILE() { return getBlacklistFile(); },
+    get COVERS_DIR() { return getCoversDir(); },
+    get modsPath() { return getModsPath(); },
+    get streamlineModsPath() { return getStreamlineModsPath(); },
     DEVELOPER_GAMES_FILE,
-    USER_GAMES_FILE,
+    get USER_GAMES_FILE() { return getUserGamesFile(); },
+    cleanOldModsFolder,
     
     // Dual-layer path system
     normalizeGameKey,
