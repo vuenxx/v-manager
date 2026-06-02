@@ -2,6 +2,7 @@ import { state } from '../../state.js';
 import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
 import { renderGames, updateHomeStats } from '../games.js';
+import { t } from '../../i18n/i18n.js';
 
 const optiGameCover = document.getElementById('opti-game-cover');
 const optiGamePlaceholder = document.getElementById('opti-game-placeholder');
@@ -39,13 +40,13 @@ export async function openOptiModal() {
 
     // Already installed check
     if (state.currentSelectedGame.hasOptiscaler) {
-        showInfoModal('Uyarı! ⚠️', 'Bu oyuna halihazırda OptiScaler kurulu! Mod zaten kurulu.', true);
+        showInfoModal(t('opti.warningTitle'), t('opti.alreadyInstalled'), true);
         return;
     }
 
     // Conflict check
     if (state.currentSelectedGame.hasDlssEnabler) {
-        showInfoModal('Uyarı! ⚠️', 'Dikkat! Bu oyuna halihazırda DLSS Enabler kurulu, bu modun çakışmasına sebep olacaktır. Lütfen bu modu kurmadan önce DLSS Enabler\'ı kaldırın.', true);
+        showInfoModal(t('opti.warningTitle'), t('opti.conflictWarning'), true);
         return;
     }
 
@@ -64,7 +65,7 @@ export async function openOptiModal() {
     optiVersionSelect.style.display = 'none';
     optiVersionSelect.innerHTML = '';
     optiVersionsLoading.style.display = 'block';
-    optiVersionsLoading.textContent = 'Sürümler yükleniyor...';
+    optiVersionsLoading.textContent = t('opti.loadingVersions');
     optiVersionsLoading.style.color = 'var(--text-secondary)';
 
     // Reset FSR4 + OptiPatcher UI
@@ -104,7 +105,7 @@ export async function openOptiModal() {
         optiReleases.forEach((r, index) => {
             const opt = document.createElement('option');
             opt.value = r.tag;
-            opt.textContent = `${r.name} ${r.installed ? '(İndirilmiş)' : '(İnternetten İndirilecek)'}`;
+            opt.textContent = `${r.name} ${r.installed ? t('opti.downloaded') : t('opti.toDownload')}`;
             if (index === 0) opt.selected = true;
             optiVersionSelect.appendChild(opt);
         });
@@ -118,7 +119,7 @@ export async function openOptiModal() {
             fsr4Releases.forEach((r, index) => {
                 const opt = document.createElement('option');
                 opt.value = index;
-                opt.textContent = `${r.name} ${r.installed ? '(İndirilmiş)' : '(İnternetten İndirilecek)'}`;
+                opt.textContent = `${r.name} ${r.installed ? t('opti.downloaded') : t('opti.toDownload')}`;
                 optiFsr4VersionSelect.appendChild(opt);
             });
         }
@@ -129,14 +130,14 @@ export async function openOptiModal() {
             patcherReleases.forEach((r, index) => {
                 const opt = document.createElement('option');
                 opt.value = index;
-                opt.textContent = `${r.name} (${r.tag}) ${r.installed ? '(İndirilmiş)' : '(İnternetten İndirilecek)'}`;
+                opt.textContent = `${r.name} (${r.tag}) ${r.installed ? t('opti.downloaded') : t('opti.toDownload')}`;
                 optiPatcherVersionSelect.appendChild(opt);
             });
         }
 
     } catch(e) {
         optiVersionsLoading.style.display = 'block';
-        optiVersionsLoading.textContent = 'Sürümler yüklenirken hata: ' + e.message;
+        optiVersionsLoading.textContent = t('opti.loadError') + e.message;
         optiVersionsLoading.style.color = '#ef4444';
     }
 }
@@ -146,13 +147,13 @@ async function runOptiInstall(isAuto) {
     const injection = optiInjectionSelect.value;
     
     if (!selectedTag) {
-        showInfoModal('Hata', 'Lütfen bir OptiScaler sürümü seçin!', true);
+        showInfoModal(t('opti.errorTitle'), t('opti.selectVersion'), true);
         return;
     }
     
     const release = state.currentOptiReleases.find(r => r.tag === selectedTag);
     if (!release) {
-        showInfoModal('Hata', 'Seçilen sürüm detayları bulunamadı.', true);
+        showInfoModal(t('opti.errorTitle'), t('opti.releaseNotFound'), true);
         return;
     }
 
@@ -165,7 +166,7 @@ async function runOptiInstall(isAuto) {
         const idx = optiFsr4VersionSelect ? parseInt(optiFsr4VersionSelect.value) : -1;
         fsr4Release = (idx >= 0 && currentFsr4Releases[idx]) ? currentFsr4Releases[idx] : null;
         if (!fsr4Release) {
-            showInfoModal('Hata', 'FSR4 sürümü seçili ama veri bulunamadı. Lütfen tekrar deneyin.', true);
+            showInfoModal(t('opti.errorTitle'), t('opti.fsr4NoData'), true);
             return;
         }
     }
@@ -175,7 +176,7 @@ async function runOptiInstall(isAuto) {
         const idx = optiPatcherVersionSelect ? parseInt(optiPatcherVersionSelect.value) : -1;
         patcherRelease = (idx >= 0 && currentOptiPatcherReleases[idx]) ? currentOptiPatcherReleases[idx] : null;
         if (!patcherRelease) {
-            showInfoModal('Hata', 'OptiPatcher sürümü seçili ama veri bulunamadı. Lütfen tekrar deneyin.', true);
+            showInfoModal(t('opti.errorTitle'), t('opti.patcherNoData'), true);
             return;
         }
     }
@@ -190,7 +191,7 @@ async function runOptiInstall(isAuto) {
     closeModal('optiscaler-modal');
 
     const infoModalProgress = document.getElementById('info-modal-progress');
-    showInfoModal('İndiriliyor / Kuruluyor...', `OptiScaler ${release.tag} kuruluyor, lütfen bekleyin.\n\nSürüm indirilmemişse önce indirilip ardından oyuna kurulacaktır.`);
+    showInfoModal(t('opti.installingTitle'), `OptiScaler ${release.tag} ${t('opti.installingMsg')}`);
     if (infoModalProgress) {
         infoModalProgress.style.display = 'block';
         infoModalProgress.style.color = '';
@@ -212,7 +213,7 @@ async function runOptiInstall(isAuto) {
     window.electronAPI.onOptiscalerDownloadProgress((data) => {
         if (infoModalProgress) {
             if (data.stage === 'extracting') {
-                infoModalProgress.textContent = 'OptiScaler çıkartılıyor...';
+                infoModalProgress.textContent = `OptiScaler ${t('opti.extracting')}`;
             } else {
                 infoModalProgress.textContent = `OptiScaler: %${data.percent}`;
             }
@@ -228,7 +229,7 @@ async function runOptiInstall(isAuto) {
     window.electronAPI.onFsr4DownloadProgress((data) => {
         if (infoModalProgress) {
             if (data.stage === 'extracting') {
-                infoModalProgress.textContent = 'FSR4 çıkartılıyor...';
+                infoModalProgress.textContent = `FSR4 ${t('opti.extracting')}`;
             } else {
                 infoModalProgress.textContent = `FSR4: %${data.percent}`;
             }
@@ -256,34 +257,34 @@ async function runOptiInstall(isAuto) {
         closeModal('info-modal');
 
         if (result.success) {
-            let successMsg = `🎉 OptiScaler ${release.tag} başarıyla kuruldu!\n\nEnjeksiyon: ${injection}`;
+            let successMsg = `🎉 OptiScaler ${release.tag} ${t('opti.installSuccess')}\n\nEnjeksiyon: ${injection}`;
             if (result.optiPatcherInstalled) {
-                successMsg += `\n✅ OptiPatcher kuruldu ve OptiScaler.ini güncellendi.`;
+                successMsg += `\n${t('opti.patcherInstalled')}`;
             }
             if (result.fsr4Installed) {
-                successMsg += `\n✅ FSR4 dosyaları kopyalandı.`;
+                successMsg += `\n${t('opti.fsr4Installed')}`;
             }
             if (result.savedToUserGames) {
-                successMsg += `\n\n📌 Bu oyunun EXE yolu "Kullanıcı Oyun Yolları"na kaydedildi.\nBir dahaki seferde "Otomatik Kur" seçeneğini kullanabilirsiniz.`;
+                successMsg += `\n\n${t('opti.savedPath')}`;
             }
-            showInfoModal('Başarılı', successMsg);
+            showInfoModal(t('opti.successTitle'), successMsg);
             if (result.games) {
                 renderGames(result.games);
                 updateHomeStats();
             }
         } else {
-            showInfoModal('Hata', result.error, true);
+            showInfoModal(t('opti.errorTitle'), result.error, true);
         }
     } catch(e) {
         // Show red error in progress indicator, then switch to error modal
         if (infoModalProgress) {
             infoModalProgress.style.color = '#ef4444';
-            infoModalProgress.textContent = '❌ Kurulum Başarısız';
+            infoModalProgress.textContent = t('opti.installFailed');
         }
         await new Promise(r => setTimeout(r, 1500));
         if (infoModalProgress) infoModalProgress.style.display = 'none';
         closeModal('info-modal');
-        showInfoModal('Hata', 'Beklenmeyen hata: ' + e.message, true);
+        showInfoModal(t('opti.errorTitle'), t('opti.unexpectedError') + e.message, true);
     }
 }
 
@@ -321,12 +322,12 @@ export function initOptiListeners() {
     if (optiscalerVersionsBtn) {
         optiscalerVersionsBtn.addEventListener('click', async () => {
             if (state.isDownloadingOptiScaler) {
-                showInfoModal('İşlem Devam Ediyor', 'Zaten aktif bir OptiScaler indirme işlemi devam ediyor, lütfen onun tamamlanmasını bekleyin.', true);
+                showInfoModal(t('opti.busyTitle'), t('opti.standaloneBusy'), true);
                 return;
             }
             openModal('optiscaler-versions-modal');
             optiscalerVersionsLoading.style.display = 'block';
-            optiscalerVersionsLoading.textContent = 'Sürümler aranıyor, lütfen bekleyin...';
+            optiscalerVersionsLoading.textContent = t('opti.standaloneLoading');
             optiscalerVersionsLoading.style.color = 'var(--text-secondary)';
             optiscalerVersionsContainer.style.display = 'none';
             optiscalerVersionSelect.innerHTML = '';
@@ -341,7 +342,7 @@ export function initOptiListeners() {
                     const opt = document.createElement('option');
                     opt.value = index;
                     if (r.installed) {
-                        opt.textContent = `${r.name} (${r.tag}) - [YÜKLÜ]`;
+                        opt.textContent = `${r.name} (${r.tag}) - [${t('opti.installed').replace(/[\[\]]/g,'')}]`;
                         opt.style.color = '#22c55e';
                     } else {
                         opt.textContent = `${r.name} (${r.tag})`;
@@ -351,10 +352,10 @@ export function initOptiListeners() {
 
                 if (releases.length > 0) {
                     if (releases[0].installed) {
-                        optiscalerDownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                        optiscalerDownloadBtn.textContent = t('opti.alreadyDownloaded');
                         optiscalerDownloadBtn.style.backgroundColor = '#16a34a';
                     } else {
-                        optiscalerDownloadBtn.textContent = 'İndir ve Çıkart';
+                        optiscalerDownloadBtn.textContent = t('opti.downloadBtn');
                         optiscalerDownloadBtn.style.backgroundColor = '';
                     }
                 }
@@ -365,10 +366,10 @@ export function initOptiListeners() {
                         const release = state.currentOptiReleases[selectedIdx];
                         if (release) {
                             if (release.installed) {
-                                optiscalerDownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                                optiscalerDownloadBtn.textContent = t('opti.alreadyDownloaded');
                                 optiscalerDownloadBtn.style.backgroundColor = '#16a34a';
                             } else {
-                                optiscalerDownloadBtn.textContent = 'İndir ve Çıkart';
+                                optiscalerDownloadBtn.textContent = t('opti.downloadBtn');
                                 optiscalerDownloadBtn.style.backgroundColor = '';
                             }
                         }
@@ -378,7 +379,7 @@ export function initOptiListeners() {
                 optiscalerVersionsLoading.style.display = 'none';
                 optiscalerVersionsContainer.style.display = 'block';
             } catch(e) {
-                optiscalerVersionsLoading.textContent = 'Sürümler yüklenirken hata oluştu: ' + e.message;
+                optiscalerVersionsLoading.textContent = t('opti.standaloneLoadError') + e.message;
                 optiscalerVersionsLoading.style.color = '#ef4444';
             }
         });
@@ -397,7 +398,7 @@ export function initOptiListeners() {
             closeModal('optiscaler-versions-modal');
             
             const infoModalProgress = document.getElementById('info-modal-progress');
-            showInfoModal('İndiriliyor...', `OptiScaler ${release.tag} sürümü indiriliyor, lütfen bekleyin.\n\nBu işlem internet hızınıza göre zaman alabilir.`);
+            showInfoModal(t('opti.downloadingTitle'), `OptiScaler ${release.tag} ${t('opti.downloadingMsg')}`);
             if (infoModalProgress) {
                 infoModalProgress.style.display = 'block';
                 infoModalProgress.style.color = '';
@@ -410,7 +411,7 @@ export function initOptiListeners() {
             window.electronAPI.onOptiscalerDownloadProgress((data) => {
                 if (infoModalProgress) {
                     if (data.stage === 'extracting') {
-                        infoModalProgress.textContent = 'Çıkartılıyor...';
+                        infoModalProgress.textContent = t('opti.extractingShort');
                     } else {
                         infoModalProgress.textContent = `%${data.percent}`;
                     }
@@ -427,22 +428,22 @@ export function initOptiListeners() {
                 closeModal('info-modal');
                 if (result.success) {
                     if (result.alreadyExists) {
-                        showInfoModal('Başarılı', `✅ OptiScaler ${release.tag} zaten indirilmiş ve hazır durumdadır!`);
+                        showInfoModal(t('opti.successTitle'), `✅ OptiScaler ${release.tag} ${t('opti.alreadyExists')}`);
                     } else {
-                        showInfoModal('Başarılı', `✅ OptiScaler ${release.tag} başarıyla indirildi!`);
+                        showInfoModal(t('opti.successTitle'), `✅ OptiScaler ${release.tag} ${t('opti.downloadSuccess')}`);
                     }
                 } else {
-                    showInfoModal('Hata', 'İndirme sırasında hata oluştu:\n' + result.error, true);
+                    showInfoModal(t('opti.errorTitle'), t('opti.downloadError') + result.error, true);
                 }
             } catch(e) {
                 if (infoModalProgress) {
                     infoModalProgress.style.color = '#ef4444';
-                    infoModalProgress.textContent = '❌ İndirme Başarısız';
+                    infoModalProgress.textContent = t('opti.downloadFailed');
                 }
                 await new Promise(r => setTimeout(r, 1500));
                 if (infoModalProgress) infoModalProgress.style.display = 'none';
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Beklenmeyen hata:\n' + e.message, true);
+                showInfoModal(t('opti.errorTitle'), t('opti.unexpectedDownloadError') + e.message, true);
             } finally {
                 state.isDownloadingOptiScaler = false;
             }

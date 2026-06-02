@@ -17,9 +17,28 @@ import { initSettingsListeners as initModalSettingsListeners } from './ui/modals
 import { initDlssVersionListeners } from './ui/modals/dlssVersions.js';
 import { initVideos } from './ui/videos.js';
 import { initUpdatesTab } from './ui/updates-tab.js';
+import { initI18n, setLanguage, getCurrentLang, applyTranslations } from './i18n/i18n.js';
 
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // 0. i18n — must run before any UI renders
+    initI18n();
+
+    // Language select dropdown (top-right)
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) {
+        langSelect.value = getCurrentLang();
+        langSelect.addEventListener('change', () => {
+            setLanguage(langSelect.value);
+        });
+    }
+
+    // Re-render dynamic UI on language change
+    document.addEventListener('language-changed', () => {
+        // Re-render games list with fresh language strings
+        initGames();
+    });
+
     // 1. Core UI Navigation and Theme
     initNavigation();
     initTheme();

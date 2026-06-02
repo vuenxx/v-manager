@@ -3,6 +3,7 @@ import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
 import { renderGames, updateHomeStats } from '../games.js';
 import { runStreamlineInstall } from './streamline.js';
+import { t } from '../../i18n/i18n.js';
 
 const manageGameCover = document.getElementById('update-game-cover');
 const manageGamePlaceholder = document.getElementById('update-game-placeholder');
@@ -44,11 +45,11 @@ export async function openUpdateModal(game) {
     // 1. Render DLSS Enabler manage section if active
     if (game.hasDlssEnabler) {
         hasActiveMod = true;
-        manageDlssVersionBadge.textContent = `Sürüm: ${game.dlssEnablerVersion || 'Bilinmiyor'}`;
+        manageDlssVersionBadge.textContent = `${t('update.version')} ${game.dlssEnablerVersion || t('update.unknown')}`;
         manageDlssSection.style.display = 'block';
         
         // Populate versions in change dropdown
-        manageDlssVersionSelect.innerHTML = '<option value="" disabled selected>Yükleniyor...</option>';
+        manageDlssVersionSelect.innerHTML = `<option value="" disabled selected>${t('update.loadingVersions')}</option>`;
         try {
             const versions = await window.electronAPI.getDlssVersions();
             manageDlssVersionSelect.innerHTML = '';
@@ -69,11 +70,11 @@ export async function openUpdateModal(game) {
     // 2. Render Streamline manage section if active
     if (game.hasStreamline) {
         hasActiveMod = true;
-        manageSlVersionBadge.textContent = `Sürüm: ${game.streamlineVersion || 'Bilinmiyor'}`;
+        manageSlVersionBadge.textContent = `${t('update.version')} ${game.streamlineVersion || t('update.unknown')}`;
         manageStreamlineSection.style.display = 'block';
         
         // Populate versions in change dropdown
-        manageSlVersionSelect.innerHTML = '<option value="" disabled selected>Yükleniyor...</option>';
+        manageSlVersionSelect.innerHTML = `<option value="" disabled selected>${t('update.loadingVersions')}</option>`;
         try {
             const versions = await window.electronAPI.getStreamlineVersions();
             manageSlVersionSelect.innerHTML = '';
@@ -94,7 +95,7 @@ export async function openUpdateModal(game) {
     // 3. Render OptiScaler manage section if active
     if (game.hasOptiscaler) {
         hasActiveMod = true;
-        manageOptiVersionBadge.textContent = `Sürüm: ${game.optiscalerVersion || 'Bilinmiyor'}`;
+        manageOptiVersionBadge.textContent = `${t('update.version')} ${game.optiscalerVersion || t('update.unknown')}`;
         manageOptiSection.style.display = 'block';
     } else {
         manageOptiSection.style.display = 'none';
@@ -116,16 +117,16 @@ export function initUpdateListeners() {
         manageChangeDlssBtn.addEventListener('click', async () => {
             const version = manageDlssVersionSelect.value;
             if (!version) {
-                showInfoModal('Hata', 'Lütfen değiştirmek istediğiniz DLSS Enabler sürümünü seçin!', true);
+                showInfoModal(t('update.errorTitle'), t('update.changeDlssSelectError'), true);
                 return;
             }
             if (version === state.currentSelectedGame.dlssEnablerVersion) {
-                showInfoModal('Bilgi', 'Oyun zaten seçilen DLSS Enabler sürümüne sahip.');
+                showInfoModal(t('update.infoTitle'), t('update.changeDlssSameVersion'));
                 return;
             }
             
             closeModal('update-modal');
-            showInfoModal('Değiştiriliyor', 'DLSS Enabler sürümü güncelleniyor, lütfen bekleyin...');
+            showInfoModal(t('update.changeDlssTitle'), t('update.changeDlssMsg'));
             
             try {
                 let result;
@@ -144,17 +145,17 @@ export function initUpdateListeners() {
                 
                 closeModal('info-modal');
                 if (result.success) {
-                    showInfoModal('Başarılı', `🎉 DLSS Enabler sürümü başarıyla ${version} olarak güncellendi!`);
+                    showInfoModal(t('update.successTitle'), `🎉 ${t('update.changeDlssSuccess')} ${version}!`);
                     if (result.games) {
                         renderGames(result.games);
                         updateHomeStats();
                     }
                 } else {
-                    showInfoModal('Hata', 'Sürüm değiştirme başarısız oldu:\n' + result.error, true);
+                    showInfoModal(t('update.errorTitle'), t('update.changeDlssError') + result.error, true);
                 }
             } catch (e) {
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Sürüm değiştirme sırasında beklenmeyen bir hata oluştu:\n' + e.message, true);
+                showInfoModal(t('update.errorTitle'), t('update.changeDlssUnexpected') + e.message, true);
             }
         });
     }
@@ -163,7 +164,7 @@ export function initUpdateListeners() {
     if (manageRestoreDlssBtn) {
         manageRestoreDlssBtn.addEventListener('click', async () => {
             closeModal('update-modal');
-            showInfoModal('Kaldırılıyor', 'DLSS Enabler kaldırılıyor, lütfen bekleyin...');
+            showInfoModal(t('update.removeDlssTitle'), t('update.removeDlssMsg'));
             
             try {
                 const result = await window.electronAPI.uninstallMod({
@@ -178,13 +179,13 @@ export function initUpdateListeners() {
                 const deleted = result.deleted || [];
                 
                 if (deleted.length > 0) {
-                    let msg = `✅ DLSS Enabler başarıyla kaldırıldı!\n\nSilinen Dosyalar (${deleted.length}):\n` + deleted.map(f => `• ${f}`).join('\n');
+                    let msg = `✅ ${t('update.removeDlssSuccess')}\n\n${t('update.removeDlssDeleted')} (${deleted.length}):\n` + deleted.map(f => `• ${f}`).join('\n');
                     if (notFound > 0) {
-                        msg += `\n\nBulunamayan Dosyalar (${notFound})`;
+                        msg += `\n\n${t('update.removeDlssNotFound')} (${notFound})`;
                     }
-                    showInfoModal('Başarılı', msg);
+                    showInfoModal(t('update.successTitle'), msg);
                 } else {
-                    showInfoModal('Bilgi', 'Kaldırılacak dosya bulunamadı veya mod zaten yüklü değil.', true);
+                    showInfoModal(t('update.infoTitle'), t('update.removeDlssNone'), true);
                 }
                 
                 if (result.games) {
@@ -193,7 +194,7 @@ export function initUpdateListeners() {
                 }
             } catch (e) {
                 closeModal('info-modal');
-                showInfoModal('Hata', 'DLSS Enabler kaldırılırken beklenmeyen hata: ' + e.message, true);
+                showInfoModal(t('update.errorTitle'), t('update.removeDlssUnexpected') + e.message, true);
             }
         });
     }
@@ -203,16 +204,16 @@ export function initUpdateListeners() {
         manageChangeSlBtn.addEventListener('click', async () => {
             const version = manageSlVersionSelect.value;
             if (!version) {
-                showInfoModal('Hata', 'Lütfen değiştirmek istediğiniz Streamline sürümünü seçin!', true);
+                showInfoModal(t('update.errorTitle'), t('update.changeSlSelectError'), true);
                 return;
             }
             if (version === state.currentSelectedGame.streamlineVersion) {
-                showInfoModal('Bilgi', 'Oyun zaten seçilen Streamline sürümüne sahip.');
+                showInfoModal(t('update.infoTitle'), t('update.changeSlSameVersion'));
                 return;
             }
 
             // Rule: Prevent Streamline update if original version < 2.0
-            showInfoModal('Kontrol Ediliyor', 'Yol bilgileri doğrulanıyor...');
+            showInfoModal(t('update.checkingTitle'), t('update.checkingMsg'));
             try {
                 const isAuto = state.currentSelectedGame.source !== 'manual';
                 const check = await window.electronAPI.checkStreamlineBackup({
@@ -223,7 +224,7 @@ export function initUpdateListeners() {
                 
                 if (!check.success) {
                     closeModal('info-modal');
-                    showInfoModal('Hata', check.error, true);
+                    showInfoModal(t('update.errorTitle'), check.error, true);
                     return;
                 }
 
@@ -236,7 +237,7 @@ export function initUpdateListeners() {
                     if (compare < 0) {
                         closeModal('update-modal');
                         closeModal('info-modal');
-                        showInfoModal('DİKKAT!', `Bu oyun Streamline dosyalarının 2.0 altı versiyonunu (${originalVersion}) kullanıyor ve güncellerseniz hiçbir şekilde işe yaramayacak/hatta oyununuz bozulabilecektir.`, true);
+                        showInfoModal(t('update.slVersionWarningTitle'), `${t('update.slVersionWarningMsg')} (${originalVersion})`, true);
                         return;
                     }
                 }
@@ -249,7 +250,7 @@ export function initUpdateListeners() {
                 }, 100);
             } catch(e) {
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Doğrulama sırasında hata oluştu: ' + e.message, true);
+                showInfoModal(t('update.errorTitle'), t('update.checkError') + e.message, true);
             }
         });
     }
@@ -258,7 +259,7 @@ export function initUpdateListeners() {
     if (manageRestoreSlBtn) {
         manageRestoreSlBtn.addEventListener('click', async () => {
             closeModal('update-modal');
-            showInfoModal('Geri Yükleniyor', 'Orijinal Streamline dosyaları geri yükleniyor...');
+            showInfoModal(t('update.restoreSlTitle'), t('update.restoreSlMsg'));
             
             try {
                 const result = await window.electronAPI.restoreStreamline({
@@ -267,17 +268,17 @@ export function initUpdateListeners() {
                 
                 closeModal('info-modal');
                 if (result.success) {
-                    showInfoModal('Başarılı', '✅ Orijinal Streamline dosyaları başarıyla geri yüklendi!');
+                    showInfoModal(t('update.successTitle'), t('update.restoreSlSuccess'));
                     if (result.games) {
                         renderGames(result.games);
                         updateHomeStats();
                     }
                 } else {
-                    showInfoModal('Hata', result.error, true);
+                    showInfoModal(t('update.errorTitle'), result.error, true);
                 }
             } catch(e) {
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Geri yükleme sırasında beklenmeyen hata: ' + e.message, true);
+                showInfoModal(t('update.errorTitle'), t('update.restoreSlUnexpected') + e.message, true);
             }
         });
     }
@@ -286,7 +287,7 @@ export function initUpdateListeners() {
     if (manageRestoreOptiBtn) {
         manageRestoreOptiBtn.addEventListener('click', async () => {
             closeModal('update-modal');
-            showInfoModal('Kaldırılıyor', 'OptiScaler kaldırılıyor, lütfen bekleyin...');
+            showInfoModal(t('update.removeOptiTitle'), t('update.removeOptiMsg'));
             
             try {
                 const result = await window.electronAPI.uninstallMod({
@@ -298,17 +299,17 @@ export function initUpdateListeners() {
                 closeModal('info-modal');
                 
                 if (result.success) {
-                    showInfoModal('Başarılı', '✅ OptiScaler başarıyla kaldırıldı!');
+                    showInfoModal(t('update.successTitle'), t('update.removeOptiSuccess'));
                     if (result.games) {
                         renderGames(result.games);
                         updateHomeStats();
                     }
                 } else {
-                    showInfoModal('Hata', 'Kaldırma başarısız oldu:\n' + result.error, true);
+                    showInfoModal(t('update.errorTitle'), t('update.removeOptiError') + result.error, true);
                 }
             } catch (e) {
                 closeModal('info-modal');
-                showInfoModal('Hata', 'OptiScaler kaldırılırken beklenmeyen hata: ' + e.message, true);
+                showInfoModal(t('update.errorTitle'), t('update.removeOptiUnexpected') + e.message, true);
             }
         });
     }

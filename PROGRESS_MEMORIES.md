@@ -1,207 +1,177 @@
-# V-Manager — Progress Memories Agent
+# V-Manager — Progress Memories
 
-> Bu dosya projenin mevcut durumunu, mimarisini, tamamlanan işleri ve açık görevleri takip eder.
-> Her oturumun başında bu dosyayı oku; her önemli değişiklikte güncelle.
-
----
-
-## 📌 Proje Özeti
-
-**V-Manager** — Electron tabanlı bir Windows masaüstü uygulaması.  
-Steam, Epic Games ve manuel olarak eklenen oyunları tarayıp üç farklı grafik modunu (DLSS Enabler, OptiScaler, Streamline) oyunlara otomatik yükleyen / kaldıran bir mod yöneticisi.
-
-- **Platform:** Windows (Electron)  
-- **Dil:** JavaScript (Node.js / Electron main process)  
-- **Entry point:** `index.js` → `config.js` + `ipc.js` + `window.js`  
-- **Proje kökü:** `src/main/` içinde; `config.js`'deki `projectRoot` hesaplaması buna göre yapılıyor.
+## Proje Özeti
+Electron tabanlı bir Windows masaüstü uygulaması. Steam, Epic, GOG, EA, Ubisoft, Xbox gibi platformlardan oyunları tarar; DLSS Enabler, OptiScaler, Streamline gibi grafik modlarını oyunlara otomatik veya manuel olarak kurar/kaldırır. Oyun kapak fotoğraflarını SteamGridDB üzerinden çeker.
 
 ---
 
-## 🗂️ Dosya / Modül Haritası
+## Mimari
 
 ```
-index.js                 — App bootstrap; config.loadExistingGames(), ipc.registerIpcHandlers(), createWindow()
-config.js                — Global state (games, blacklist, favorites), dosya yolları, okuma/yazma fonksiyonları
-ipc.js                   — Tüm ipcMain handler'ları (renderer ↔ main köprüsü)
-scanner.js               — Steam / Epic / Registry / Manuel oyun tarama + detectUpscalers()
-utils.js                 — Dosya hash, versiyon okuma, resim indirme, oyun çalışıyor mu kontrolü
-window.js                — BrowserWindow oluşturma
-
+index.js           → Electron entry point
+config.js          → Global state, oyun/yol yönetimi, JSON okuma/yazma
+ipc.js             → Tüm IPC handler'ları (renderer ↔ main process köprüsü)
+scanner.js         → Oyun tarama motoru + upscaler tespiti
+updater.js         → electron-updater ile otomatik güncelleme
+utils.js           → Yardımcı fonksiyonlar (hash, indirme, versiyon okuma, vb.)
+window.js          → BrowserWindow oluşturma
 mods/
-  dlssEnabler.js         — DLSS Enabler sürümleri listeleme, seçme, yükleme (otomatik + manuel)
-  optiScaler.js          — GitHub Releases'den OptiScaler indirme/yükleme (7z, node-7z)
-  streamline.js          — Streamline DLL dosyalarını kopyalama, yedekleme, geri yükleme
-  uninstaller.js         — Üç modun kaldırma mantığı (dosya silme, state güncelleme)
-  analyser.js            — Oyun klasörü analizi
-  compressor.js          — Klasör sıkıştırma / açma
-  compressionDb.js       — Sıkıştırma veritabanı
-  compressionWatcher.js  — Sıkıştırma izleyici (watch/unwatch)
-  steamScanner.js        — Steam appId ↔ klasör eşleştirme
+  dlssEnabler.js   → DLSS Enabler kurulum/kaldırma/zip yönetimi
+  optiScaler.js    → OptiScaler kurulum/kaldırma
+  optiPatcher.js   → OptiPatcher (.asi) indirme
+  fsr4Files.js     → FSR4 DLL dosyaları indirme
+  streamline.js    → NVIDIA Streamline kurulum/yedekleme/geri yükleme
+  iniEditor.js     → INI dosyası okuma/yazma (dlss-enabler.ini, OptiScaler.ini)
+  analyser.js      → Klasör sıkıştırma analizi (CompactGUI portu, PowerShell)
+  compressor.js    → Windows compact.exe ile WOF/NTFS sıkıştırma
+  compressionDb.js → CompactGUI community veritabanından sıkıştırma oranları
+  steamScanner.js  → Steam kütüphane klasöründen AppID tespiti
+  uninstaller.js   → DLSS Enabler, OptiScaler, Streamline kaldırma
 ```
 
 ---
 
-## 🔑 Kritik Veri Yapıları
+## Çözülen Kritik Sorunlar (Koddan Çıkarılan Fix Etiketleri)
 
-### Oyun Nesnesi (`games.json` elemanı)
-```js
-{
-  name: String,
-  exePath: String,
-  source: 'steam' | 'epic' | 'registry' | 'manual',
-  cover: String | null,          // kapak görseli yolu (userData/covers/)
-  isFavorite: Boolean,
-  hasDlssEnabler: Boolean,
-  dlssEnablerVersion: String | null,
-  hasOptiscaler: Boolean,
-  optiscalerVersion: String | null,
-  optiscalerInjection: String | null,
-  hasStreamline: Boolean,
-  streamlineVersion: String | null,
-  streamlinePath: String | null,
-  upscalers: {
-    dlss: Boolean,
-    xess: Boolean,
-    fsr: Boolean,
-    dlssEnabler: Boolean,
-    optiscaler: Boolean,
-    streamline: Boolean
-  }
-}
-```
+### config.js
+- **FIX 5b** — `needsDedup` dirty flag eklendi: `deduplicateState()` her `saveGamesState()` çağrısında değil, yalnızca state gerçekten değiştiğinde çalışır. Performansı artırır.
 
-### Kalıcı Dosya Yolları (`config.js`)
-| Değişken | Yol |
-|---|---|
-| `GAMES_FILE` | `userData/games.json` |
-| `BLACKLIST_FILE` | `userData/blacklist.json` |
-| `COVERS_DIR` | `userData/covers/` |
-| `modsPath` | `projectRoot/mods/` |
-| `registeredGamesPath` | `projectRoot/list-of-registered-games.txt` |
-| `uninstallListPath` | `projectRoot/uninstall-list.txt` |
-| `streamlineModsPath` | `projectRoot/mods/streamline/` |
+### scanner.js
+- **FIX 5a** — Steam kurulum yolu artık Registry'den (`HKLM\SOFTWARE\WOW6432Node\Valve\Steam`) okunuyor; varsayılan `C:\Program Files (x86)\Steam` sadece fallback olarak kalıyor.
+
+### dlssEnabler.js
+- **FIX 2a** — `isSameGame()` fonksiyonundaki name-only ve startsWith subfolder eşleştirmeleri kaldırıldı; yanlış pozitif eşleşmelere yol açıyordu.
+- **FIX 2e** — Sürüm değiştirirken eski sürümün yeni sürümde olmayan "artık dosyaları" otomatik temizleniyor.
+- **FIX 2f** — DLSS Enabler kaldırılırken, kullanıcı aynı zamanda OptiScaler kuruluysa `OptiScaler.ini` silinmiyor.
+
+### optiScaler.js
+- **FIX 4a** — Kurulum sonrası injection DLL'lerinin OptiScaler'a ait olup olmadığı kontrol ediliyor (başka modların üzerine yazılması tespiti).
+- **FIX 4b** — `fs.renameSync` farklı sürücüler arasında çalışmıyor (`EXDEV`); fallback olarak copy + delete yapılıyor.
+- **FIX 4c** — `event.sender.isDestroyed()` kontrolü eklendi; pencere kapanmışken ilerleme eventi gönderilmiyor.
+- **FIX 4d** — "Zaten indirildi" kontrolü için klasörün varlığı değil, kritik dosyaların (`OptiScaler.dll`, `OptiScaler.ini`) varlığı kontrol ediliyor.
+- **FIX 4e** — `Licences` klasörü benzersiz dizinler listesinden çıkarıldı; GOG oyunlarının kendi lisans klasörleriyle çakışıyordu.
+
+### streamline.js
+- **FIX 3a** — Kopyalama hatası durumunda rollback mekanizması: yedeklenen dosyalar otomatik geri yükleniyor.
+- **FIX 3b** — Birden fazla Streamline klasörü bulunduğunda en derin değil en sığ olanı (ana binary klasörü) seçiliyor.
+- **FIX 3c** — Oyun güncellemesi tespit edildiğinde yedek silinirken `hasStreamline` ve ilgili state alanları da temizleniyor.
+- **FIX 3d** — Streamline versiyon tespiti için sadece `sl.common.dll` değil, birden fazla aday DLL deneniyor (`sl.interposer.dll`, `sl.dlss.dll`, `sl.reflex.dll`).
+- **FIX 3e** — `installStreamline()` fonksiyonundaki kullanılmayan `overwriteBackup` ve `skipBackup` parametreleri kaldırıldı.
+
+### uninstaller.js / optiScaler.js kaldırma
+- **FIX 4e** — `D3D12_OptiScaler` klasörü silinir ama `Licences` artık silinmiyor (generic isim, oyun klasörleriyle çakışır).
 
 ---
 
-## ✅ Tamamlanan Özellikler
+## Dual-Layer Oyun Yolu Sistemi
 
-### Tarama & Keşif
-- [x] Steam oyun tarama (`steamapps/common` okuma)
-- [x] Epic Games tarama
-- [x] Windows Registry tarama
-- [x] Manuel kayıtlı oyun tarama (`list-of-registered-games.txt`)
-- [x] `detectUpscalers()` — DLSS / XeSS / FSR / DLSS Enabler / OptiScaler / Streamline tespiti
-- [x] Sembolik link (reparse point) atlama
-- [x] Klasör öncelik / yoksay listesi sistemi (sınırsız derinlik, akıllı atlama)
-- [x] `deduplicateState()` — mod bilgilerini birleştirerek tekrarlı oyunları temizleme
+Mod kurucuların her oyun için doğru klasörü bulması için üç katmanlı öncelik sistemi:
 
-### Oyun Yönetimi
-- [x] `games.json` okuma/yazma
-- [x] Manuel oyun ekleme (dialog → `.exe` seçimi)
-- [x] Kara liste (blacklist) ekle/çıkar
-- [x] Favori toggle (kalıcı `favoriteNames` listesi)
-- [x] Cover görseli SteamGrid API üzerinden indirme
-- [x] Force refresh tarama (manuel oyunları koruyarak yeniden tara)
+1. **user-games.json** — Kullanıcının elle tanımladığı `game_root` + `exe_path` (en yüksek öncelik)
+2. **scan + developer-games.json** — Tarayıcıdan gelen yol + geliştirici tarafından tanımlanmış `exe_relative_path` birleşimi
+3. **scan only** — Tarayıcının bulduğu ham exePath
 
-### Mod: DLSS Enabler
-- [x] `mods/dlssenabler/` klasöründen sürüm listesi okuma
-- [x] `.exe` seçimi (launcher uyarısı mantığı mevcut)
-- [x] Manuel kurulum (`executeDlssInstall`)
-- [x] Otomatik kurulum (`autoInstallDlss`)
-- [x] Kaldırma: benzersiz dosyalar + enjeksiyon DLL'leri (description tabanlı)
-
-### Mod: OptiScaler
-- [x] GitHub Releases API'dan son 5 sürümü listeleme
-- [x] `.7z` indirme (`node-7z` + `7zip-bin`)
-- [x] Yükleme (`installOptiScaler`)
-- [x] "Zaten indirildi" kontrolü
-- [x] Kaldırma: benzersiz dosyalar + klasörler + enjeksiyon DLL'leri (isOptiScalerFile)
-
-### Mod: Streamline
-- [x] `findStreamlineDir()` — BFS ile sl.*.dll konumu bulma
-- [x] Yedekleme + kurulum (`installStreamline`)
-- [x] Geri yükleme (`restoreStreamline`) — .backup kontrolü, UAC/kilit try-catch koruması (EPERM), güvenli mod-only silme (games.json & sürüm paketi doğrulamalı) ve oyun güncellemelerini algılayan katı hash eşleştirme sistemi eklendi
-- [x] Eksik yolda yeniden tespit mekanizması
-- [x] Kurulum hedefi otomatik arama (findStreamlineDir) ve kullanıcı klasör seçici uyarısı / fallback sistemi (Manuel Kur arayüzden kaldırılarak entegre edildi), akıllı yedek atlama (dosya varsa yedekleme es geçilir, yoksa yedeklenir) ve onay ekranı baypası eklendi.
-
-### Sıkıştırma
-- [x] Klasör sıkıştırma / açma (`compressor.js`)
-- [x] Sıkıştırma veritabanı (`compressionDb.js`)
-- [x] İzleyici sistemi (`compressionWatcher.js`)
-- [x] Steam appId ↔ klasör eşleştirme (`steamScanner.js`)
-
-### IPC Katmanı
-- [x] Tüm handler'lar `ipc.js`'de kayıtlı
-- [x] `isScanning` flag ile çoklu tarama engeli
-- [x] Progress tracker (`{ total, current }`) tarama sırasında renderer'a iletiliyor
+`resolveActualGameRoot()` ise Binaries/Win64 gibi alt klasörlerin yanlışlıkla game_root olarak kaydedilmesini önleyen heuristik fonksiyon.
 
 ---
 
-## 🔧 Bilinen Sorunlar / Açık Görevler
+## Oyun Tarama Motoru (scanner.js)
 
-### Yüksek Öncelik
-- [ ] **`scan-complete` event eksikliği riski**: Tarama sırasında hata fırlarsa `finally` bloğu çalışıyor ama renderer'a hata mesajı iletilmiyor — hata durumu UI'a yansıtılmalı.
-- [ ] **`registerIpcHandlers` tekrar çağrısı**: Pencere yeniden oluşturulursa (`activate` eventi) handler'lar ikinci kez kaydedilebilir. IPC handler'lar için deregistration veya tek-seferlik guard eklenmeli.
-- [ ] **OptiScaler indirme ilerlemesi**: `downloadOptiScalerRelease` fonksiyonu `event` parametresi alıyor ama indirme yüzdesi renderer'a aktarılıyor mu kontrol edilmeli.
+### Desteklenen Platformlar
+- Steam (`.acf` manifest dosyaları, Registry'den kurulum yolu)
+- Epic Games (`.item` manifest dosyaları)
+- GOG, EA, Ubisoft, Xbox (Windows Registry `Uninstall` anahtarları)
+- Manuel kayıtlı oyunlar (`user-games.json`)
+- Custom scan klasörleri (kullanıcı tanımlı)
 
-### Orta Öncelik
-- [ ] **`deduplicateState()` performansı**: Her `saveGamesState()` çağrısında tekrar çalışıyor; büyük kütüphanelerde yavaşlayabilir — dirty flag ile optimize edilebilir.
-- [ ] **`list-of-registered-games.txt` format dayanıklılığı**: `parseRegisteredGames` basit INI parser; değer içinde `=` işareti olduğunda düzgün çalışıyor (`split('=').slice(1).join('=')`) — edge case testleri yazılmalı.
-- [ ] **Kapak görseli eksikliği**: Manuel eklenen oyunlarda `coverUrl: null` — SteamGrid'de isim araması yapılabilir.
-- [ ] **`analyser.js` dokümantasyonu eksik**: `analyze()` fonksiyonunun ne döndürdüğü belirsiz, IPC tarafında `analyze-folder` handler var ama kullanım senaryosu tanımlanmamış.
+### Upscaler Tespiti (`detectUpscalers`)
+Oyun klasöründe BFS (Breadth-First Search) ile:
+- **DLSS** → `nvngx_dlss.dll`, `nvngx_dlssg.dll`, `nvngx_dlssd.dll`
+- **XeSS** → `libxess.dll`, `xefx.dll`
+- **FSR** → `amd_fidelityfx_*.dll`, `ffx_fsr*.dll`
+- **DLSS Enabler** → injection DLL'lerin FileDescription'ına göre (`dlss enabler`)
+- **OptiScaler** → injection DLL'lerin FileDescription'ına göre (`optiscaler`)
+- **Streamline** → `sl.*.dll` pattern
 
-### Düşük Öncelik
-- [ ] **Windows dışı platform**: `isGameRunning` için `tasklist` kullanılıyor — macOS/Linux uyumluluğu yok (kasıtlı olabilir).
-- [ ] **`STEAMGRID_API_KEY` config.js içinde hardcoded** — environment variable veya ayrı secrets dosyasına taşınmalı.
-- [ ] **Test coverage sıfır** — En azından `deduplicateState`, `parseRegisteredGames`, `detectUpscalers` için unit testler yazılmalı.
-
----
-
-## 🔍 Önemli Tasarım Kararları
-
-| Karar | Neden |
-|---|---|
-| Sembolik linkler atlanıyor | Sonsuz döngü ve kullanıcı isteği |
-| OptiScaler tespiti "description" bazlı | DLL adı standart (`dxgi.dll` vb.) ama içerik OptiScaler'a özgü |
-| `deduplicateState` her kayıtta çalışır | Farklı kaynaklardan aynı oyunun tek kayıt olarak tutulması için |
-| `favoriteNames` ayrı liste olarak tutulur | Taramada oyun silinse bile favori bilgisi korunur |
-| `projectRoot` paketten farklı | `app.isPackaged` ile production/development ayrımı |
-| Streamline için backup mekanizması | Oyun güncellemeleri DLL'leri sıfırlayabilir |
+### Stale Cleanup (KURAL 5)
+Tarama tamamlandığında yalnızca taranan kaynak + disk kapsamındaki oyunlar temizlenir. Kapsam dışındaki oyunlara (farklı platform, farklı disk) dokunulmaz. Manuel eklenen oyunlar hiçbir zaman silinmez.
 
 ---
 
-## 📡 Dış API & Bağımlılıklar
+## Mod Kurulum Akışları
 
-| Servis / Paket | Kullanım |
-|---|---|
-| `SteamGrid API` | Oyun kapak görseli indirme (key: `config.STEAMGRID_API_KEY`) |
-| `GitHub API` | OptiScaler releases (`/repos/optiscaler/OptiScaler/releases`) |
-| `7zip-bin` + `node-7z` | OptiScaler `.7z` arşivi açma |
-| `electron` | BrowserWindow, ipcMain, dialog, app |
+### DLSS Enabler
+- `version.dll` kaynak dosyadan alınır, hedef klasöre `effectiveDllName` (dxgi.dll, winmm.dll vb.) ile kopyalanır
+- Conflict check: 3. parti modlarla çakışma tespiti
+- Antivirus bypass kontrolü: kopyalamadan 1.5sn sonra dosya hâlâ var mı?
+- Başarılı manuel kurulum sonrası otomatik `user-games.json` kaydı
+- ZIP'ten kurulum: `adm-zip` ile `version.dll` çıkartılır, sürüm PowerShell ile okunur
 
----
+### OptiScaler
+- GitHub Releases API üzerinden `.zip` veya `.7z` indirilir (`7zip-bin` ile çıkartılır)
+- `OptiScaler.dll` → kullanıcının seçtiği injection DLL ismine rename edilir
+- İsteğe bağlı: OptiPatcher (`.asi` → `plugins/`) ve FSR4 DLL'leri aynı kurulumda yapılabilir
+- `OptiScaler.ini` içinde `LoadAsiPlugins=true` otomatik set edilir (OptiPatcher için)
 
-## 🚀 Geliştirme Akışı
-
-```
-# Kurulum
-npm install
-
-# Geliştirme
-npm start            # Electron'u development modunda başlat
-
-# Paket
-npm run build        # app.isPackaged = true, projectRoot = execPath dizini
-```
+### Streamline
+- NVIDIA Streamline SDK'sından `bin/x64` içindeki whitelist'teki DLL'ler alınır
+- Kurulumdan önce orijinal dosyalar `.backup` uzantısıyla yedeklenir, hash'leri kaydedilir
+- Oyun güncelleme tespiti: aktif dosya hash'i ≠ backup hash ve ≠ mod hash → oyun güncellendi
+- Geri yükleme: `.backup` → orijinal isim, mod tarafından eklenen ve backup'ı olmayan dosyalar silinir
 
 ---
 
-## 📝 Bir Sonraki Oturum İçin Notlar
+## Sıkıştırma Sistemi
 
-_Bu bölüme oturum sonunda "bir sonraki seferde devam et" notları ekle._
-
-- [ ] ...
+- `analyser.js` → PowerShell script ile `GetCompressedFileSize` (Win32) + `WofIsExternalFile` API'leri kullanılarak NTFS/WOF/LXP/XPRESS/LZX sıkıştırma oranı hesaplanır (CompactGUI native port)
+- `compressor.js` → `compact.exe /C /S /EXE:XPRESS4K` (veya XPRESS8K/XPRESS16K/LZX) ile WOF sıkıştırma; `compact.exe /U /S /EXE` ile geri alma
+- `compressionDb.js` → CompactGUI community veritabanından oyun başına önerilen sıkıştırma oranları, 24 saatlik cache
 
 ---
 
-*Son güncelleme: İlk oluşturma — tüm dosyalar `main.zip` içindeki güncel halinden analiz edildi.*
+## INI Editörü (iniEditor.js)
+
+- `dlss-enabler.ini` ve `OptiScaler.ini` için okuma/yazma
+- Yorum satırları ve boşluklar korunur
+- CRLF / LF satır sonu formatı otomatik tespit ve koruma
+- Dosyada olmayan yeni key'ler ilgili section'ın sonuna eklenir
+- 4 aşamalı dosya bulma: kayıtlı mod yolu → exe yanı → recursive arama → fallback
+
+---
+
+## Otomatik Güncelleme (updater.js)
+
+- `electron-updater` ile GitHub Releases üzerinden güncelleme kontrolü
+- `autoDownload: false` — kullanıcı onayı zorunlu
+- Uygulama açılıştan 3sn sonra sessizce kontrol eder (sadece packaged build'de)
+- Development modunda sahte "güncel" yanıtı döner
+
+---
+
+## Önemli State Dosyaları (userData/)
+
+| Dosya | İçerik |
+|-------|--------|
+| `games.json` | Taranmış/eklenmiş tüm oyunlar + mod durumları |
+| `blacklist.json` | Kütüphaneden gizlenen oyun isimleri |
+| `user-games.json` | Kullanıcı tanımlı game_root + exe_path eşlemeleri |
+| `developer-games.json` | Geliştirici tanımlı exe_relative_path eşlemeleri (read-only) |
+| `custom-folders.json` | Kullanıcının eklediği özel tarama klasörleri |
+| `custom-subfolders-state.json` | Özel klasör alt dizinlerinin checkbox durumları |
+| `covers/` | İndirilen kapak fotoğrafları (SteamGridDB) |
+| `mods/` | İndirilen mod dosyaları (dlssenabler/, optiscaler/, streamline/ vb.) |
+
+---
+
+## Bilinen Özel Davranışlar / Dikkat Edilecekler
+
+- **Sembolik linkler** tarama ve upscaler tespitinde atlanır (sonsuz döngü önlemi)
+- **Launcher & redistributable filtreleme** — scanner.js'de kapsamlı isim/exe/path blacklist'i var; `isIgnoredGame()` ile kontrol edilir
+- **Deduplication** — Aynı oyunun birden fazla kaynaktan gelmesi durumunda mod durumu merge edilir, en bilgi yüklü kayıt korunur
+- **Drive filter** — Tarama belirli disklerle sınırlandırılabilir; manual oyunlar drive filter'dan muaf
+- **Cover yenileme** — `coversOnly: true` ile sadece eksik kapaklar SteamGridDB'den çekilir, mevcut kapaklar yeniden indirilmez
+- **app.isPackaged** — Updater ve bazı path'ler development/production'da farklı davranır
+- **SteamGridDB API key** — `config.js` içinde hardcoded (`b89ed9f1ab39a34c3b8ea71d756403ce`)
+- **FSR4 sunucusu** — GitHub değil, özel bir sunucudan (`http://190.92.151.212/fsr4files/`) çekiliyor
+- **YouTube RSS** — `UCCeWDMKoZfZSNOn0pRIGBcw` kanal ID'si için RSS feed çekiliyor (muhtemelen uygulama içi haberler)
+- **GitHub repo** — `vuenxx/v-manager` üzerinden release listesi çekiliyor

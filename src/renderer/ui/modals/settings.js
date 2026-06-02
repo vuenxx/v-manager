@@ -1,6 +1,7 @@
 import { state } from '../../state.js';
 import { openModal } from './base.js';
 import { DLSS_ENABLER_SCHEMA, OPTISCALER_FOCUSED_KEYS } from './iniSchema.js';
+import { t } from '../../i18n/i18n.js';
 
 let currentSettingsData = {};
 let currentActiveMod = null;
@@ -67,7 +68,7 @@ export function openSettingsModal(game) {
                 contentDiv.innerHTML = `
                     <div style="text-align: center; color: var(--text-secondary); padding: 30px;">
                         <div style="font-size: 32px; margin-bottom: 10px;">ℹ️</div>
-                        <div style="font-size: 14px;">Bu oyunda yapılandırılabilir mod bulunamadı.</div>
+                        <div style="font-size: 14px;">${t('modSettings.noMod')}</div>
                     </div>`;
             }
         }
@@ -108,7 +109,7 @@ async function loadModSettings(mod) {
     updateTabStyles(mod);
 
     const contentDiv = document.getElementById('settings-content');
-    contentDiv.innerHTML = '<div style="color:var(--text-secondary);">Yükleniyor...</div>';
+    contentDiv.innerHTML = `<div style="color:var(--text-secondary);">${t('modSettings.loading')}</div>`;
     hideError();
 
     try {
@@ -124,7 +125,7 @@ async function loadModSettings(mod) {
             contentDiv.innerHTML = `
                 <div style="text-align: center; color: var(--text-secondary); padding: 30px;">
                     <div style="font-size: 32px; margin-bottom: 10px;">⚠️</div>
-                    <div style="font-size: 14px;">Henüz INI dosyası oluşturulmadı.<br>Oyunu bir kez başlatırsanız dosya otomatik oluşacaktır.</div>
+                    <div style="font-size: 14px;">${t('modSettings.noIni')}</div>
                 </div>`;
             currentSettingsData = {};
             const saveBtn = document.getElementById('settings-save-btn');
@@ -150,7 +151,7 @@ async function loadModSettings(mod) {
         if (window.electronAPI && window.electronAPI.logToMain) {
             window.electronAPI.logToMain(`[RENDERER settings.js] error in loadModSettings: ${err.message}`);
         }
-        showError('INI dosyası okunurken hata oluştu: ' + err.message);
+        showError(t('modSettings.iniError') + err.message);
         contentDiv.innerHTML = '';
     }
 }
@@ -343,8 +344,8 @@ function createInputControl(section, key, currentValue, def) {
         select.className = 'dlss-select-box';
         select.style.cssText = 'padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:4px;width:100%;box-sizing:border-box;min-width:0;';
 
-        const optTrue  = document.createElement('option'); optTrue.value  = 'true';  optTrue.textContent  = 'Açık';
-        const optFalse = document.createElement('option'); optFalse.value = 'false'; optFalse.textContent = 'Kapalı';
+        const optTrue  = document.createElement('option'); optTrue.value  = 'true';  optTrue.textContent  = t('modSettings.toggleOn');
+        const optFalse = document.createElement('option'); optFalse.value = 'false'; optFalse.textContent = t('modSettings.toggleOff');
         select.appendChild(optTrue);
         select.appendChild(optFalse);
 
@@ -416,8 +417,8 @@ async function saveModSettings() {
     if (!game || !currentActiveMod) return;
 
     const btn     = document.getElementById('settings-save-btn');
-    const oldText = btn ? btn.textContent : 'Kaydet';
-    if (btn) { btn.textContent = 'Kaydediliyor...'; btn.disabled = true; }
+    const oldText = btn ? btn.textContent : t('modSettings.saveBtn');
+    if (btn) { btn.textContent = t('modSettings.savingBtn'); btn.disabled = true; }
     hideError();
 
     try {
@@ -425,7 +426,7 @@ async function saveModSettings() {
         if (result.success) {
             if (btn) {
                 btn.style.backgroundColor = '#10b981';
-                btn.textContent = 'Kaydedildi ✓';
+                btn.textContent = t('modSettings.savedBtn');
                 setTimeout(() => {
                     btn.style.backgroundColor = '#22c55e';
                     btn.textContent = oldText;
@@ -433,14 +434,14 @@ async function saveModSettings() {
                 }, 2000);
             }
         } else {
-            throw new Error(result.error || 'Bilinmeyen kaydetme hatası');
+            throw new Error(result.error || t('modSettings.unknownSaveError'));
         }
     } catch (err) {
         console.error('[RENDERER settings.js] error in saveModSettings:', err);
         if (window.electronAPI && window.electronAPI.logToMain) {
             window.electronAPI.logToMain(`[RENDERER settings.js] error in saveModSettings: ${err.message}`);
         }
-        showError('Kaydetme sırasında hata oluştu: ' + err.message);
+        showError(t('modSettings.saveError') + err.message);
         if (btn) { btn.textContent = oldText; btn.disabled = false; }
     }
 }

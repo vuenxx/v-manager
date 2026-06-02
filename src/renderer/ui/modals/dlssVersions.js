@@ -1,5 +1,6 @@
 import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
+import { t } from '../../i18n/i18n.js';
 
 // ── DOM Referansları ──────────────────────────────────────────────────────────
 const dlssVersionsBtn     = document.getElementById('dlss-versions-btn');
@@ -23,7 +24,7 @@ let _pendingVersion  = null;   // Otomatik okunan ya da manuel girilen sürüm
 // ── Yardımcı: Sürüm listesini doldur ─────────────────────────────────────────
 async function populateDlssVersionsList() {
     if (!dlssVersionsList) return;
-    dlssVersionsList.innerHTML = '<span style="font-size:13px; color:var(--text-secondary);">Yükleniyor...</span>';
+    dlssVersionsList.innerHTML = `<span style="font-size:13px; color:var(--text-secondary);">${t('update.loadingVersions')}</span>`;
 
     try {
         const versions = await window.electronAPI.getDlssVersions();
@@ -34,7 +35,7 @@ async function populateDlssVersionsList() {
                 <div style="font-size:13px; color:var(--text-secondary); padding:12px; text-align:center;
                             background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05);
                             border-radius:8px;">
-                    Henüz yüklü sürüm bulunamadı.
+                    ${t('dlss.noVersionsInstalled')}
                 </div>`;
             return;
         }
@@ -51,14 +52,14 @@ async function populateDlssVersionsList() {
                 <span style="font-weight:600; color:var(--text-primary);">📦 ${ver}</span>
                 <span style="font-size:11px; padding:2px 8px; border-radius:12px;
                              background:rgba(139,92,246,0.15); color:#a78bfa; font-weight:600;">
-                    Yüklü
+                    ${t('dlss.installedBadge')}
                 </span>`;
             dlssVersionsList.appendChild(row);
         });
     } catch (e) {
         dlssVersionsList.innerHTML = `
             <span style="font-size:13px; color:#ef4444;">
-                Sürümler yüklenirken hata: ${e.message}
+                ${t('dlss.loadVersionsError')}${e.message}
             </span>`;
     }
 }
@@ -84,7 +85,7 @@ function resetUploadModal() {
     dlssInstallBtn.disabled          = true;
     dlssInstallBtn.style.opacity     = '0.4';
     dlssInstallBtn.style.cursor      = 'not-allowed';
-    dlssInstallBtn.textContent       = 'Yükle';
+    dlssInstallBtn.textContent       = t('dlss.uploadBtn');
 }
 
 // ── Yardımcı: Hata göster ────────────────────────────────────────────────────
@@ -136,14 +137,14 @@ async function handleDrop(e) {
 
     // Sadece .zip kabul et
     if (!file.name.toLowerCase().endsWith('.zip')) {
-        showUploadError('Geçersiz dosya türü. Lütfen yalnızca .zip uzantılı dosya sürükleyin.');
+        showUploadError(t('dlss.invalidFileType'));
         return;
     }
 
     // Revizyon 1: Buffer yerine Electron'un verdiği native path'i kullan
     const filePath = file.path;
     if (!filePath) {
-        showUploadError('Dosya yolu alınamadı. Lütfen tekrar deneyin.');
+        showUploadError(t('dlss.filePathError'));
         return;
     }
 
@@ -160,7 +161,7 @@ async function handleDrop(e) {
         dlssUploadLoading.style.display = 'none';
 
         if (!result.success) {
-            showUploadError(result.error || 'ZIP dosyası işlenemedi.');
+            showUploadError(result.error || t('dlss.zipProcessError'));
             _pendingFilePath = null;
             return;
         }
@@ -187,7 +188,7 @@ async function handleDrop(e) {
         enableInstallBtn();
     } catch (err) {
         dlssUploadLoading.style.display = 'none';
-        showUploadError(`Beklenmeyen hata: ${err.message}`);
+        showUploadError(`${t('opti.unexpectedError')}${err.message}`);
         _pendingFilePath = null;
     }
 }
@@ -195,7 +196,7 @@ async function handleDrop(e) {
 // ── YÜKLE Butonu ─────────────────────────────────────────────────────────────
 async function handleInstall() {
     if (!_pendingFilePath) {
-        showUploadError('Dosya bilgisi kayboldu. Lütfen ZIP dosyasını tekrar sürükleyin.');
+        showUploadError(t('dlss.fileLostError'));
         return;
     }
 
@@ -203,12 +204,12 @@ async function handleInstall() {
     const version = _pendingVersion || dlssVersionInput.value.trim();
     if (!version) {
         dlssVersionInput.style.borderColor = '#ef4444';
-        dlssVersionInput.placeholder = 'Sürüm girilmedi!';
+        dlssVersionInput.placeholder = t('dlss.versionMissingPlaceholder');
         return;
     }
 
     // Buton → yükleniyor
-    dlssInstallBtn.textContent   = 'Yükleniyor...';
+    dlssInstallBtn.textContent   = t('update.loadingVersions');
     dlssInstallBtn.disabled      = true;
     dlssInstallBtn.style.cursor  = 'not-allowed';
     dlssInstallBtn.style.opacity = '0.6';
@@ -227,19 +228,19 @@ async function handleInstall() {
             resetUploadModal();
 
             showInfoModal(
-                'Başarılı ✓',
-                `Yeni sürüm/Varolan sürüm başarıyla güncellendi veya değiştirildi!\n\nSürüm: ${version}`
+                t('dlss.successTitle') + ' ✓',
+                `${t('dlss.uploadSuccessMsg')}${version}`
             );
         } else {
             // Revizyon 5: EPERM/EBUSY ve diğer hatalar burada gösterilir
-            showUploadError(result.error || 'Kurulum başarısız oldu.');
-            dlssInstallBtn.textContent   = 'Yükle';
+            showUploadError(result.error || t('dlss.uploadFailed'));
+            dlssInstallBtn.textContent   = t('dlss.uploadBtn');
             dlssInstallBtn.disabled      = false;
             dlssInstallBtn.style.opacity = '1';
         }
     } catch (err) {
-        showUploadError(`Beklenmeyen hata: ${err.message}`);
-        dlssInstallBtn.textContent   = 'Yükle';
+        showUploadError(`${t('opti.unexpectedError')}${err.message}`);
+        dlssInstallBtn.textContent   = t('dlss.uploadBtn');
         dlssInstallBtn.disabled      = false;
         dlssInstallBtn.style.opacity = '1';
     }

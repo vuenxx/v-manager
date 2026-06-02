@@ -2,6 +2,7 @@ import { state } from '../../state.js';
 import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
 import { renderGames, updateHomeStats } from '../games.js';
+import { t } from '../../i18n/i18n.js';
 
 const slVersionSelect = document.getElementById('sl-version');
 const slAutoInstallBtn = document.getElementById('sl-auto-install-btn');
@@ -31,12 +32,12 @@ export async function openStreamlineModal() {
     }
     
     // Load Streamline versions into select dropdown
-    slVersionSelect.innerHTML = '<option value="" disabled selected>Yükleniyor...</option>';
+    slVersionSelect.innerHTML = `<option value="" disabled selected>${t('streamline.loadingVersions')}</option>`;
     try {
         const versions = await window.electronAPI.getStreamlineVersions();
         slVersionSelect.innerHTML = '';
         if (versions.length === 0) {
-            slVersionSelect.innerHTML = '<option value="" disabled>Hiç versiyon bulunamadı (mods/streamline klasörünü kontrol edin)</option>';
+            slVersionSelect.innerHTML = `<option value="" disabled>${t('streamline.noVersions')}</option>`;
         } else {
             versions.forEach(v => {
                 const opt = document.createElement('option');
@@ -46,14 +47,14 @@ export async function openStreamlineModal() {
             });
         }
     } catch(e) {
-        slVersionSelect.innerHTML = '<option value="" disabled>Versiyonlar yüklenemedi</option>';
+        slVersionSelect.innerHTML = `<option value="" disabled>${t('streamline.loadError')}</option>`;
     }
     
     openModal('streamline-modal');
 }
 
 export async function runStreamlineInstall(game, version, targetDir, overwriteBackup = false, skipBackup = false) {
-    showInfoModal('Kuruluyor', 'Streamline dosyaları kopyalanıyor, lütfen bekleyin...');
+    showInfoModal(t('streamline.installingTitle'), t('streamline.installing'));
     try {
         const result = await window.electronAPI.installStreamline({
             game,
@@ -66,16 +67,16 @@ export async function runStreamlineInstall(game, version, targetDir, overwriteBa
         if (result.success) {
             closeModal('streamline-modal');
             closeModal('update-modal');
-            showInfoModal('Başarılı', `🎉 Streamline (${version}) başarıyla kuruldu!`);
+            showInfoModal(t('streamline.successTitle'), `🎉 Streamline (${version}) ${t('streamline.installSuccess')}`);
             if (result.games) {
                 renderGames(result.games);
                 updateHomeStats();
             }
         } else {
-            showInfoModal('Hata', 'Kurulum başarısız oldu:\n' + result.error, true);
+            showInfoModal(t('streamline.errorTitle'), t('streamline.installError') + result.error, true);
         }
     } catch(e) {
-        showInfoModal('Hata', 'Kurulum sırasında beklenmeyen bir hata oluştu:\n' + e.message, true);
+        showInfoModal(t('streamline.errorTitle'), t('streamline.unexpectedError') + e.message, true);
     }
 }
 
@@ -85,11 +86,11 @@ export function initStreamlineListeners() {
         slAutoInstallBtn.addEventListener('click', async () => {
             const version = slVersionSelect.value;
             if (!version) {
-                showInfoModal('Hata', 'Lütfen kurulacak bir Streamline sürümü seçin!', true);
+                showInfoModal(t('streamline.errorTitle'), t('streamline.selectVersion'), true);
                 return;
             }
             
-            showInfoModal('Kontrol Ediliyor', 'Yol bilgileri doğrulanıyor ve yedek kontrolü yapılıyor...');
+            showInfoModal(t('streamline.checkingTitle'), t('streamline.checkingPaths'));
             try {
                 const check = await window.electronAPI.checkStreamlineBackup({
                     game: state.currentSelectedGame,
@@ -97,7 +98,7 @@ export function initStreamlineListeners() {
                 });
                 
                 if (!check.success) {
-                    showInfoModal('Hata', check.error, true);
+                    showInfoModal(t('streamline.errorTitle'), check.error, true);
                     return;
                 }
                 
@@ -109,14 +110,14 @@ export function initStreamlineListeners() {
                 if (originalVersion && originalVersion !== '0.0.0.0') {
                     const compare = await window.electronAPI.compareVersions(originalVersion, '2.0.0.0');
                     if (compare < 0) {
-                        showInfoModal('DİKKAT!', `Bu oyun Streamline dosyalarının 2.0 altı versiyonunu (${originalVersion}) kullanıyor ve güncellerseniz hiçbir şekilde işe yaramayacak/hatta oyununuz bozulabilecektir.`, true);
+                        showInfoModal(t('streamline.versionWarningTitle'), `${t('streamline.versionWarningMsg')} (${originalVersion})`, true);
                         return;
                     }
                 }
 
                 await runStreamlineInstall(state.currentSelectedGame, version, check.targetDir, false, false);
             } catch(e) {
-                showInfoModal('Hata', 'Yol doğrulanırken hata oluştu: ' + e.message, true);
+                showInfoModal(t('streamline.errorTitle'), t('streamline.pathError') + e.message, true);
             }
         });
     }
@@ -125,12 +126,12 @@ export function initStreamlineListeners() {
     if (streamlineVersionsBtn) {
         streamlineVersionsBtn.addEventListener('click', async () => {
             if (state.isDownloadingStreamline) {
-                showInfoModal('İşlem Devam Ediyor', 'Zaten aktif bir Streamline indirme işlemi devam ediyor, lütfen onun tamamlanmasını bekleyin.', true);
+                showInfoModal(t('streamline.busyTitle'), t('streamline.busyMsg'), true);
                 return;
             }
             openModal('streamline-versions-modal');
             streamlineVersionsLoading.style.display = 'block';
-            streamlineVersionsLoading.textContent = 'Sürümler aranıyor, lütfen bekleyin...';
+            streamlineVersionsLoading.textContent = t('streamline.standaloneLoading');
             streamlineVersionsLoading.style.color = 'var(--text-secondary)';
             streamlineVersionsContainer.style.display = 'none';
             streamlineVersionSelect.innerHTML = '';
@@ -145,7 +146,7 @@ export function initStreamlineListeners() {
                     const opt = document.createElement('option');
                     opt.value = index;
                     if (r.installed) {
-                        opt.textContent = `${r.name} - [YÜKLÜ]`;
+                        opt.textContent = `${r.name} - [${t('streamline.installed').replace(/[\[\]]/g,'')}]`;
                         opt.style.color = '#22c55e';
                     } else {
                         opt.textContent = `${r.name}`;
@@ -156,10 +157,10 @@ export function initStreamlineListeners() {
                 if (releases.length > 0) {
                     const firstRelease = releases[0];
                     if (firstRelease.installed) {
-                        streamlineDownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                        streamlineDownloadBtn.textContent = t('streamline.alreadyDownloaded');
                         streamlineDownloadBtn.style.backgroundColor = '#16a34a';
                     } else {
-                        streamlineDownloadBtn.textContent = 'İndir ve Çıkart';
+                        streamlineDownloadBtn.textContent = t('streamline.downloadBtn');
                         streamlineDownloadBtn.style.backgroundColor = '';
                     }
                 }
@@ -171,10 +172,10 @@ export function initStreamlineListeners() {
                         const release = state.currentStreamlineReleases[selectedIdx];
                         if (release) {
                             if (release.installed) {
-                                streamlineDownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                                streamlineDownloadBtn.textContent = t('streamline.alreadyDownloaded');
                                 streamlineDownloadBtn.style.backgroundColor = '#16a34a';
                             } else {
-                                streamlineDownloadBtn.textContent = 'İndir ve Çıkart';
+                                streamlineDownloadBtn.textContent = t('streamline.downloadBtn');
                                 streamlineDownloadBtn.style.backgroundColor = '';
                             }
                         }
@@ -184,7 +185,7 @@ export function initStreamlineListeners() {
                 streamlineVersionsLoading.style.display = 'none';
                 streamlineVersionsContainer.style.display = 'block';
             } catch(e) {
-                streamlineVersionsLoading.textContent = 'Sürümler yüklenirken hata oluştu: ' + e.message;
+                streamlineVersionsLoading.textContent = t('streamline.standaloneLoadError') + e.message;
                 streamlineVersionsLoading.style.color = '#ef4444';
             }
         });
@@ -204,7 +205,7 @@ export function initStreamlineListeners() {
             closeModal('streamline-versions-modal');
             
             const infoModalProgress = document.getElementById('info-modal-progress');
-            showInfoModal('İndiriliyor...', `Streamline ${release.tag} sürümü indiriliyor, lütfen bekleyin.\n\nBu işlem internet hızınıza göre zaman alabilir.`);
+            showInfoModal(t('streamline.downloadingTitle'), `Streamline ${release.tag} ${t('streamline.downloadingMsg')}`);
             if (infoModalProgress) {
                 infoModalProgress.style.display = 'block';
                 infoModalProgress.style.color = '';
@@ -217,7 +218,7 @@ export function initStreamlineListeners() {
             window.electronAPI.onStreamlineDownloadProgress((data) => {
                 if (infoModalProgress) {
                     if (data.stage === 'extracting') {
-                        infoModalProgress.textContent = 'Çıkartılıyor...';
+                        infoModalProgress.textContent = t('streamline.extractingShort');
                     } else {
                         infoModalProgress.textContent = `%${data.percent}`;
                     }
@@ -233,27 +234,27 @@ export function initStreamlineListeners() {
                 if (result.success) {
                     if (infoModalProgress) infoModalProgress.style.display = 'none';
                     closeModal('info-modal');
-                    showInfoModal('Başarılı', `✅ Streamline ${release.tag} başarıyla indirildi!`);
+                    showInfoModal(t('streamline.successTitle'), `✅ Streamline ${release.tag} ${t('streamline.downloadSuccess')}`);
                 } else {
                     // UI tarafında indirme barının kırmızıya dönüp "Kurulum Başarısız" mesajı vermesi
                     if (infoModalProgress) {
                         infoModalProgress.style.color = '#ef4444';
-                        infoModalProgress.textContent = '❌ Kurulum Başarısız';
+                        infoModalProgress.textContent = t('streamline.downloadFailed');
                     }
                     await new Promise(r => setTimeout(r, 1500));
                     if (infoModalProgress) infoModalProgress.style.display = 'none';
                     closeModal('info-modal');
-                    showInfoModal('Hata', 'İndirme sırasında hata oluştu:\n' + result.error, true);
+                    showInfoModal(t('streamline.errorTitle'), t('streamline.downloadError') + result.error, true);
                 }
             } catch(e) {
                 if (infoModalProgress) {
                     infoModalProgress.style.color = '#ef4444';
-                    infoModalProgress.textContent = '❌ Kurulum Başarısız';
+                    infoModalProgress.textContent = t('streamline.downloadFailed');
                 }
                 await new Promise(r => setTimeout(r, 1500));
                 if (infoModalProgress) infoModalProgress.style.display = 'none';
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Beklenmeyen hata:\n' + e.message, true);
+                showInfoModal(t('streamline.errorTitle'), t('streamline.unexpectedDownloadError') + e.message, true);
             } finally {
                 state.isDownloadingStreamline = false;
                 if (window.electronAPI.removeStreamlineProgressListeners) {

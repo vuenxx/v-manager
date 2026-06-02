@@ -1,4 +1,5 @@
 import { showInfoModal } from './modals/info.js';
+import { t } from '../i18n/i18n.js';
 
 const path = window._nodePath; // Not available — we use string ops
 
@@ -22,7 +23,7 @@ export async function renderUserGamesUI() {
             listEl.innerHTML = `
                 <tr>
                     <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-secondary);">
-                        Henüz kullanıcı tanımlı oyun yolu bulunmuyor.
+                        ${t('settings.noUserGames')}
                     </td>
                 </tr>
             `;
@@ -41,7 +42,7 @@ export async function renderUserGamesUI() {
                 <td style="padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;">${info.game_root || '-'}</td>
                 <td style="padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;">${info.exe_path || '-'}</td>
                 <td style="padding: 12px; text-align: right;">
-                    <button class="blacklist-remove-btn delete-user-game-btn" data-key="${normKey}" style="padding: 4px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 4px; cursor: pointer; transition: background 0.2s;">Sil</button>
+                    <button class="blacklist-remove-btn delete-user-game-btn" data-key="${normKey}" style="padding: 4px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 4px; cursor: pointer; transition: background 0.2s;">${t('settings.deleteBtn')}</button>
                 </td>
             `;
 
@@ -72,7 +73,7 @@ async function renderDeveloperGamesUI() {
         const keys = Object.keys(data);
 
         if (keys.length === 0) {
-            listEl.innerHTML = `<tr><td colspan="3" style="padding: 12px; color: var(--text-secondary); text-align: center;">Geliştirici oyun tanımı bulunamadı.</td></tr>`;
+            listEl.innerHTML = `<tr><td colspan="3" style="padding: 12px; color: var(--text-secondary); text-align: center;">${t('settings.devGamesEmpty')}</td></tr>`;
             return;
         }
 
@@ -80,8 +81,8 @@ async function renderDeveloperGamesUI() {
             const info = data[normKey];
             const compatibility = info.compatibility || 'green';
             const tooltipText = compatibility === 'green'
-                ? 'DLSS Enabler ve Optiscaler bu oyun ile tam uyumludur.'
-                : 'Bu oyuna sadece Optiscaler uyumludur.';
+                ? t('settings.tooltipGreen')
+                : t('settings.tooltipYellow');
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid rgba(255,255,255,0.04)';
@@ -239,7 +240,7 @@ export function initSettingsListeners() {
             const exePath = exeInp ? exeInp.value.trim() : '';
 
             if (!gameName || !gameRoot) {
-                showInfoModal("Hata", "Lütfen Oyun Adı ve Ana Klasör alanlarını doldurun!", true);
+                showInfoModal(t('dlss.errorTitle'), t('settings.fillRequired'), true);
                 return;
             }
 
@@ -257,10 +258,10 @@ export function initSettingsListeners() {
                 if (exeHint) exeHint.style.display = 'none';
 
                 renderUserGamesUI();
-                showInfoModal("Başarılı", `🎉 "${gameName}" için kullanıcı yolu başarıyla kaydedildi!`);
+                showInfoModal(t('dlss.successTitle'), `🎉 "${gameName}" ${t('settings.saveSuccess')}`);
             } catch (e) {
                 window.electronAPI.logToMain(`ERROR in saveUserGame: ${e.message}`);
-                showInfoModal("Hata", "Yol kaydedilirken hata oluştu: " + e.message, true);
+                showInfoModal(t('dlss.errorTitle'), t('settings.saveError') + e.message, true);
             }
         });
     }
@@ -275,10 +276,10 @@ export function initSettingsListeners() {
             const isVisible = devContainer.style.display !== 'none';
             if (isVisible) {
                 devContainer.style.display = 'none';
-                toggleDevBtn.textContent = 'Listeyi Göster';
+                toggleDevBtn.textContent = t('settings.showList');
             } else {
                 devContainer.style.display = 'block';
-                toggleDevBtn.textContent = 'Listeyi Gizle';
+                toggleDevBtn.textContent = t('settings.hideList');
                 if (!devLoaded) {
                     await renderDeveloperGamesUI();
                     devLoaded = true;

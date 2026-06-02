@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n.js';
+
 export function initVideos() {
     // Listen for tab activation to load the videos automatically
     document.addEventListener('tab-activated', (e) => {
@@ -37,7 +39,7 @@ async function loadVideos() {
         loading.style.display = 'none';
 
         for (let entry of entries) {
-            const title = entry.getElementsByTagName('title')[0]?.textContent || 'Başlıksız Video';
+            const title = entry.getElementsByTagName('title')[0]?.textContent || t('videos.untitled');
             
             // Extract YouTube Video ID
             const videoId = entry.getElementsByTagName('yt:videoId')[0]?.textContent || 

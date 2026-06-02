@@ -2,6 +2,7 @@ import { state } from '../state.js';
 import { closeModal } from './modals/base.js';
 import { renderGames, updateHomeStats } from './games.js';
 import { switchTab } from './navigation.js';
+import { t } from '../i18n/i18n.js';
 
 // Get elements helpers to ensure they exist before use
 const getBlacklistContainer = () => document.getElementById('blacklist-container');
@@ -27,7 +28,7 @@ export async function renderBlacklistUI() {
     blacklistContainerEl.innerHTML = '';
 
     if (blacklist.length === 0) {
-        blacklistContainerEl.innerHTML = '<div style="padding: 12px 16px; color: var(--text-secondary); text-align: center; font-size: 14px;">Kara listeniz boş.</div>';
+        blacklistContainerEl.innerHTML = `<div style="padding: 12px 16px; color: var(--text-secondary); text-align: center; font-size: 14px;">${t('settings.emptyBlacklist')}</div>`;
         return;
     }
 
@@ -46,7 +47,7 @@ export async function renderBlacklistUI() {
         
         item.innerHTML = `
             <div class="blacklist-item-name">${gameName}</div>
-            <button class="blacklist-remove-btn">Kaldır</button>
+            <button class="blacklist-remove-btn">${t('settings.blacklistRemove')}</button>
         `;
 
         const btn = item.querySelector('.blacklist-remove-btn');
@@ -64,9 +65,9 @@ export async function renderBlacklistUI() {
         paginationEl.className = 'pagination-controls';
         
         paginationEl.innerHTML = `
-            <button class="page-btn prev-btn" ${state.currentBlacklistPage === 1 ? 'disabled' : ''}>Önceki</button>
-            <div class="page-info">Sayfa ${state.currentBlacklistPage} / ${totalPages}</div>
-            <button class="page-btn next-btn" ${state.currentBlacklistPage === totalPages ? 'disabled' : ''}>Sonraki</button>
+            <button class="page-btn prev-btn" ${state.currentBlacklistPage === 1 ? 'disabled' : ''}>${t('settings.prev')}</button>
+            <div class="page-info">${t('settings.page')} ${state.currentBlacklistPage} ${t('settings.of')} ${totalPages}</div>
+            <button class="page-btn next-btn" ${state.currentBlacklistPage === totalPages ? 'disabled' : ''}>${t('settings.next')}</button>
         `;
 
         const prevBtn = paginationEl.querySelector('.prev-btn');
@@ -105,7 +106,7 @@ export function initBlacklistListeners() {
                 
                 const gamesContainer = document.getElementById('games-container');
                 if (gamesContainer && gamesContainer.children.length === 0) {
-                    gamesContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Hiç oyun bulunamadı.</p>';
+                    gamesContainer.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
                 }
                 
                 if (blacklistContainerEl && blacklistContainerEl.classList.contains('active')) {
@@ -125,7 +126,7 @@ export function initBlacklistListeners() {
                 
                 const gamesContainer = document.getElementById('games-container');
                 if (gamesContainer && gamesContainer.children.length === 0) {
-                    gamesContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Hiç oyun bulunamadı.</p>';
+                    gamesContainer.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
                 }
                 
                 if (blacklistContainerEl && blacklistContainerEl.classList.contains('active')) {
@@ -147,10 +148,10 @@ export function initBlacklistListeners() {
         toggleBlacklistBtn.addEventListener('click', () => {
             const isActive = blacklistContainerEl.classList.toggle('active');
             if (isActive) {
-                toggleBlacklistBtn.textContent = 'Kara Listeyi Gizle';
+                toggleBlacklistBtn.textContent = t('settings.hideBlacklist');
                 renderBlacklistUI();
             } else {
-                toggleBlacklistBtn.textContent = 'Kara Listeyi Göster';
+                toggleBlacklistBtn.textContent = t('settings.showBlacklist');
             }
         });
     }

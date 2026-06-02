@@ -1,5 +1,6 @@
 import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
+import { t } from '../../i18n/i18n.js';
 
 const optipatcherVersionsBtn = document.getElementById('optipatcher-versions-btn');
 const optipatcherVersionsModal = document.getElementById('optipatcher-versions-modal');
@@ -15,12 +16,12 @@ export function initOptiPatcherListeners() {
     if (optipatcherVersionsBtn) {
         optipatcherVersionsBtn.addEventListener('click', async () => {
             if (isDownloading) {
-                showInfoModal('İşlem Devam Ediyor', 'Zaten aktif bir OptiPatcher indirme işlemi devam ediyor, lütfen onun tamamlanmasını bekleyin.', true);
+                showInfoModal(t('opti.busyTitle'), t('opti.patcherBusyMsg'), true);
                 return;
             }
             openModal('optipatcher-versions-modal');
             optipatcherVersionsLoading.style.display = 'block';
-            optipatcherVersionsLoading.textContent = 'Sürümler aranıyor, lütfen bekleyin...';
+            optipatcherVersionsLoading.textContent = t('opti.standaloneLoading');
             optipatcherVersionsLoading.style.color = 'var(--text-secondary)';
             optipatcherVersionsContainer.style.display = 'none';
             optipatcherVersionSelect.innerHTML = '';
@@ -35,7 +36,7 @@ export function initOptiPatcherListeners() {
                     const opt = document.createElement('option');
                     opt.value = index;
                     if (r.installed) {
-                        opt.textContent = `${r.name} (${r.tag}) - [YÜKLÜ]`;
+                        opt.textContent = `${r.name} (${r.tag}) - ${t('opti.installed')}`;
                         opt.style.color = '#22c55e'; // Green for installed
                     } else {
                         opt.textContent = `${r.name} (${r.tag})`;
@@ -46,10 +47,10 @@ export function initOptiPatcherListeners() {
                 // Update download button state initially based on the first selected release
                 if (releases.length > 0) {
                     if (releases[0].installed) {
-                        optipatcherDownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                        optipatcherDownloadBtn.textContent = t('opti.alreadyDownloaded');
                         optipatcherDownloadBtn.style.backgroundColor = '#16a34a';
                     } else {
-                        optipatcherDownloadBtn.textContent = 'Yükle';
+                        optipatcherDownloadBtn.textContent = t('opti.patcherInstallBtn');
                         optipatcherDownloadBtn.style.backgroundColor = ''; // Reset to default CSS
                     }
                 }
@@ -61,10 +62,10 @@ export function initOptiPatcherListeners() {
                         const release = currentReleases[selectedIdx];
                         if (release) {
                             if (release.installed) {
-                                optipatcherDownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                                optipatcherDownloadBtn.textContent = t('opti.alreadyDownloaded');
                                 optipatcherDownloadBtn.style.backgroundColor = '#16a34a';
                             } else {
-                                optipatcherDownloadBtn.textContent = 'Yükle';
+                                optipatcherDownloadBtn.textContent = t('opti.patcherInstallBtn');
                                 optipatcherDownloadBtn.style.backgroundColor = ''; // Reset to default CSS
                             }
                         }
@@ -74,7 +75,7 @@ export function initOptiPatcherListeners() {
                 optipatcherVersionsLoading.style.display = 'none';
                 optipatcherVersionsContainer.style.display = 'block';
             } catch(e) {
-                optipatcherVersionsLoading.textContent = 'Sürümler yüklenirken hata oluştu: ' + e.message;
+                optipatcherVersionsLoading.textContent = t('opti.standaloneLoadError') + e.message;
                 optipatcherVersionsLoading.style.color = '#ef4444';
             }
         });
@@ -93,7 +94,7 @@ export function initOptiPatcherListeners() {
             closeModal('optipatcher-versions-modal');
             
             const infoModalProgress = document.getElementById('info-modal-progress');
-            showInfoModal('İndiriliyor...', `OptiPatcher ${release.tag} sürümü indiriliyor, lütfen bekleyin.\n\nBu işlem internet hızınıza göre zaman alabilir.`);
+            showInfoModal(t('opti.downloadingTitle'), `OptiPatcher ${release.tag} ${t('opti.patcherDownloadingMsg')}`);
             if (infoModalProgress) {
                 infoModalProgress.style.display = 'block';
                 infoModalProgress.textContent = '%0';
@@ -124,16 +125,16 @@ export function initOptiPatcherListeners() {
                 
                 closeModal('info-modal');
                 if (result.success) {
-                    showInfoModal('Başarılı', `✅ OptiPatcher ${release.tag} başarıyla indirildi!`);
+                    showInfoModal(t('opti.successTitle'), `✅ OptiPatcher ${release.tag} ${t('opti.patcherDownloadSuccess')}`);
                 } else {
-                    showInfoModal('Hata', 'İndirme sırasında hata oluştu:\n' + result.error, true);
+                    showInfoModal(t('opti.errorTitle'), t('opti.patcherDownloadError') + result.error, true);
                 }
             } catch(e) {
                 if (infoModalProgress) {
                     infoModalProgress.style.display = 'none';
                 }
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Beklenmeyen hata:\n' + e.message, true);
+                showInfoModal(t('opti.errorTitle'), t('opti.unexpectedDownloadError') + e.message, true);
             } finally {
                 isDownloading = false;
             }

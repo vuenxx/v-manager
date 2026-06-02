@@ -4,6 +4,7 @@ import { showConfirmModal } from './blacklist.js';
 import { openUpdateModal } from './modals/update.js';
 import { openSettingsModal } from './modals/settings.js';
 import { showInfoModal } from './modals/info.js';
+import { t } from '../i18n/i18n.js';
 
 // Get elements helper to ensure they exist before use
 const getGamesContainer = () => document.getElementById('games-container');
@@ -52,7 +53,7 @@ export function createGameCard(game) {
     }
 
     // Define source label
-    let sourceLabel = 'Manuel';
+    let sourceLabel = t('games.sourceManual');
     if (game.source === 'steam') sourceLabel = 'Steam';
     else if (game.source === 'epic') sourceLabel = 'Epic Games';
     else if (game.source === 'gog') sourceLabel = 'GOG';
@@ -60,7 +61,7 @@ export function createGameCard(game) {
     else if (game.source === 'ubisoft') sourceLabel = 'Ubisoft';
     else if (game.source === 'rockstar') sourceLabel = 'Rockstar';
     else if (game.source === 'xbox') sourceLabel = 'Xbox';
-    else if (game.source === 'registry') sourceLabel = 'Kurulu Uygulama';
+    else if (game.source === 'registry') sourceLabel = t('games.sourceRegistry');
     // 'manual' already handled as default above
 
     card.innerHTML = `
@@ -70,11 +71,11 @@ export function createGameCard(game) {
             ${modTagsHtml}
             <div class="game-cover-overlay">
                 <div class="game-actions-wrapper">
-                    <button class="mod-install-btn" data-game="${game.name}">Modu Kur</button>
-                    ${(game.hasDlssEnabler || game.hasStreamline || game.hasOptiscaler) ? `<button class="mod-manage-btn" data-game="${game.name}">Değiştir / Kaldır</button>` : ''}
-                    ${(game.hasDlssEnabler || game.hasOptiscaler) ? `<button class="mod-settings-btn" data-game="${game.name}">Modu Yönet</button>` : ''}
+                    <button class="mod-install-btn" data-game="${game.name}">${t('games.installMod')}</button>
+                    ${(game.hasDlssEnabler || game.hasStreamline || game.hasOptiscaler) ? `<button class="mod-manage-btn" data-game="${game.name}">${t('games.manageMod')}</button>` : ''}
+                    ${(game.hasDlssEnabler || game.hasOptiscaler) ? `<button class="mod-settings-btn" data-game="${game.name}">${t('games.modSettings')}</button>` : ''}
                 </div>
-                <button class="remove-game-btn" data-game="${game.name}">❌ Listeden Kaldır</button>
+                <button class="remove-game-btn" data-game="${game.name}">${t('games.removeGame')}</button>
             </div>
         </div>
         <div class="game-info">
@@ -152,8 +153,8 @@ export function createGameCard(game) {
                 const devGameInfo = devGames[normKey];
                 const compatibility = devGameInfo.compatibility || 'green';
                 const tooltipText = compatibility === 'green'
-                    ? 'DLSS Enabler ve Optiscaler bu oyun ile tam uyumludur.'
-                    : 'Bu oyuna sadece Optiscaler uyumludur.';
+                    ? t('settings.tooltipGreen')
+                    : t('settings.tooltipYellow');
 
                 const badgeContainer = document.createElement('div');
                 badgeContainer.className = 'verified-badge-container';
@@ -227,9 +228,9 @@ export function renderGames(games) {
     const loadingVisible = loading && (loading.style.display !== 'none') && loading.style.display !== '';
     if (filteredGames.length === 0 && !loadingVisible) {
         if (query) {
-            container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Aranan kriterlere uygun oyun bulunamadı.</p>';
+            container.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGamesSearch')}</p>`;
         } else {
-            container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">Hiç oyun bulunamadı.</p>';
+            container.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
         }
         return;
     }
@@ -297,7 +298,7 @@ export async function initGames() {
         if (!games || games.length === 0) {
             if (loading) {
                 loading.style.display = 'block';
-                loading.textContent = 'Oyunlar taranıyor, lütfen bekleyin...';
+                loading.textContent = t('games.scanningShort');
             }
             if (container) container.innerHTML = '';
             window.electronAPI.startScan();
@@ -336,7 +337,7 @@ export function initGamesListeners() {
         try {
             const folders = await window.electronAPI.getCustomFolders();
             if (folders.length === 0) {
-                listEl.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 10px;">Henüz klasör eklenmedi.</div>';
+                listEl.innerHTML = `<div style="color: var(--text-secondary); font-size: 13px; text-align: center; padding: 10px;">${t('scan.noFolders')}</div>`;
                 return;
             }
 
@@ -376,7 +377,7 @@ export function initGamesListeners() {
 
         // Sürücü listesini temizle ve yükleniyor göster
         const drivesList = document.getElementById('scan-drives-list');
-        if (drivesList) drivesList.innerHTML = '<div class="scan-drives-loading">Sürücüler yükleniyor...</div>';
+        if (drivesList) drivesList.innerHTML = `<div class="scan-drives-loading">${t('scan.drivesLoading')}</div>`;
 
         // İsteğe bağlı klasörleri yükle
         renderCustomFoldersList();
@@ -406,7 +407,7 @@ export function initGamesListeners() {
             }
         } catch (e) {
             console.error('Sürücüler alınamadı:', e);
-            if (drivesList) drivesList.innerHTML = '<div class="scan-drives-loading" style="color:#ef4444;">Sürücüler alınamadı</div>';
+            if (drivesList) drivesList.innerHTML = `<div class="scan-drives-loading" style="color:#ef4444;">${t('scan.drivesError')}</div>`;
         }
     }
 
@@ -463,7 +464,7 @@ export function initGamesListeners() {
 
             // Progress bar'ı ve modal durumlarını sıfırla
             const progressTitle = document.getElementById('scan-progress-title');
-            if (progressTitle) progressTitle.textContent = 'Oyunlar Taranıyor';
+            if (progressTitle) progressTitle.textContent = t('games.scanTitle');
 
             const runningArea = document.getElementById('scan-progress-running-area');
             if (runningArea) runningArea.style.display = 'block';
@@ -482,7 +483,7 @@ export function initGamesListeners() {
             const progressStatus = document.getElementById('scan-progress-status');
             if (progressBar) progressBar.style.width = '0%';
             if (progressPercent) progressPercent.textContent = '0%';
-            if (progressStatus) progressStatus.textContent = coversOnly ? 'Eksik kapaklar aranıyor...' : 'Hazırlanıyor...';
+            if (progressStatus) progressStatus.textContent = coversOnly ? t('games.coverSearchLabel') : t('games.preparingLabel');
 
             openModal('scan-progress-modal');
 
@@ -493,7 +494,7 @@ export function initGamesListeners() {
                 if (container) container.innerHTML = '';
                 if (loading) {
                     loading.style.display = 'block';
-                    loading.textContent = 'Tarama devam ediyor...';
+                    loading.textContent = t('games.scanningProgress');
                 }
             }
 
@@ -519,7 +520,7 @@ export function initGamesListeners() {
 
             // Reset modal UI to scan running view
             const progressTitle = document.getElementById('scan-progress-title');
-            if (progressTitle) progressTitle.textContent = 'Oyunlar Ekleniyor';
+            if (progressTitle) progressTitle.textContent = t('games.addingGames');
 
             const runningArea = document.getElementById('scan-progress-running-area');
             if (runningArea) runningArea.style.display = 'block';
@@ -532,7 +533,7 @@ export function initGamesListeners() {
             const progressStatus = document.getElementById('scan-progress-status');
             if (progressBar) progressBar.style.width = '0%';
             if (progressPercent) progressPercent.textContent = '0%';
-            if (progressStatus) progressStatus.textContent = 'Seçilen oyunlar listeye aktarılıyor...';
+            if (progressStatus) progressStatus.textContent = t('games.addingToList');
 
             try {
                 const updatedGames = await window.electronAPI.saveCustomSubfoldersList(currentSubfoldersList);
@@ -541,7 +542,7 @@ export function initGamesListeners() {
                 closeModal('scan-progress-modal');
             } catch (e) {
                 console.error('Error saving custom subfolders:', e);
-                showInfoModal('Hata', 'Kayıt sırasında hata oluştu: ' + e.message, true);
+                showInfoModal(t('dlss.errorTitle'), t('games.saveError') + e.message, true);
             } finally {
                 state.isScanning = false;
                 if (sortSelectEl) sortSelectEl.disabled = false;
@@ -565,7 +566,7 @@ export function initGamesListeners() {
 
         if (progressBar) progressBar.style.width = `${percent}%`;
         if (progressPercent) progressPercent.textContent = `${percent}%`;
-        if (progressStatus) progressStatus.textContent = 'Dosyalar analiz ediliyor...';
+        if (progressStatus) progressStatus.textContent = t('games.analyzingFiles');
     });
 
     // Handle Sort Change
@@ -642,7 +643,7 @@ export function initGamesListeners() {
             } catch (e) {
                 window.electronAPI.logToMain(`Manual add general ERROR: ${e.message}`);
                 console.error("Manual add error:", e);
-                showInfoModal("Hata", "Klasör seçilirken bir hata oluştu.", true);
+                showInfoModal(t('dlss.errorTitle'), t('games.folderError'), true);
             }
         });
     }
@@ -710,7 +711,7 @@ export function initGamesListeners() {
             const loading = getLoadingEl();
             if (loading) {
                 loading.style.display = 'block';
-                loading.textContent = `${gameName} ekleniyor ve kapak indiriliyor...`;
+                loading.textContent = `${gameName} ${t('games.modInstalling')}`;
             }
 
             try {
@@ -725,11 +726,11 @@ export function initGamesListeners() {
                 if (loading) loading.style.display = 'none';
                 renderGames(updatedGames || []);
                 updateHomeStats();
-                showInfoModal("Başarılı", `🎉 ${gameName} başarıyla eklendi!`);
+                showInfoModal(t('dlss.successTitle'), `🎉 ${gameName} ${t('games.addSuccess')}`);
             } catch (e) {
                 window.electronAPI.logToMain(`saveManualGame ERROR: ${e.message}`);
                 if (loading) loading.style.display = 'none';
-                showInfoModal("Hata", "Oyun eklenirken bir hata oluştu: " + e.message, true);
+                showInfoModal(t('dlss.errorTitle'), t('games.addError') + e.message, true);
             }
 
             pendingManualResult = null;
@@ -795,7 +796,7 @@ export function initGamesListeners() {
             if (!coversOnly && customFolders && customFolders.length > 0) {
                 const listEl = document.getElementById('scan-custom-results-list');
                 if (listEl) {
-                    listEl.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 10px;">Sonuçlar yükleniyor...</div>';
+                    listEl.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 10px;">${t('games.resultsLoading')}</div>`;
 
                     // Show results area & adjust modal width
                     const progressModal = document.getElementById('scan-progress-modal');

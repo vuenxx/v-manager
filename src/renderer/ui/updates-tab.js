@@ -7,6 +7,8 @@
  * Sürüm geçmişi: GitHub Releases API'den tüm sürümleri çeker ve gösterir.
  */
 
+import { t, getCurrentLang } from '../i18n/i18n.js';
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 export function initUpdatesTab() {
@@ -33,7 +35,7 @@ function _setupButtonListeners() {
         try {
             await window.electronAPI.checkForUpdatesManual();
         } catch (e) {
-            _setState('error', e.message || 'Bilinmeyen hata');
+            _setState('error', e.message || t('updates.unknownError'));
         }
     });
 
@@ -86,7 +88,7 @@ async function _loadReleaseHistory() {
     // Yükleniyor göstergesi
     container.innerHTML = `
         <div style="text-align:center; padding: 20px; color: var(--text-secondary); font-size: 13px;">
-            🔄 Sürüm geçmişi yükleniyor...
+            🔄 ${t('updates.historyLoading')}
         </div>`;
 
     try {
@@ -95,14 +97,14 @@ async function _loadReleaseHistory() {
         if (!releases || releases.length === 0) {
             container.innerHTML = `
                 <div style="color: var(--text-secondary); font-size: 13px; padding: 10px 0;">
-                    Sürüm geçmişi bulunamadı.
+                    ${t('updates.historyEmpty')}
                 </div>`;
             return;
         }
 
         container.innerHTML = releases.map((r, i) => {
             const date = r.published_at
-                ? new Date(r.published_at).toLocaleDateString('tr-TR', {
+                ? new Date(r.published_at).toLocaleDateString(getCurrentLang() === 'tr' ? 'tr-TR' : 'en-US', {
                     year: 'numeric', month: 'long', day: 'numeric'
                   })
                 : '';
@@ -115,7 +117,7 @@ async function _loadReleaseHistory() {
                     <div class="release-history-header">
                         <div style="display:flex; align-items:center; gap: 10px; flex-wrap:wrap;">
                             <span class="release-version-tag">${_escSafe(r.tag_name)}</span>
-                            ${isLatest ? '<span class="utag utag-dlssEnabler" style="font-size:11px;">En Güncel</span>' : ''}
+                             ${isLatest ? `<span class="utag utag-dlssEnabler" style="font-size:11px;" data-i18n="updates.latestBadge">${t('updates.latestBadge')}</span>` : ''}
                             ${isPrerelease ? '<span class="utag" style="font-size:11px; background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3);">Pre-release</span>' : ''}
                             ${r.name && r.name !== r.tag_name ? `<span class="release-title">${_escSafe(r.name)}</span>` : ''}
                         </div>
@@ -124,7 +126,7 @@ async function _loadReleaseHistory() {
                     ${r.body ? `
                     <div class="release-notes-body">
                         ${_markdownToHtml(r.body)}
-                    </div>` : '<p style="margin:8px 0 0; font-size:13px; color:var(--text-secondary);">Değişiklik notu eklenmemiş.</p>'}
+                    </div>` : `<p style="margin:8px 0 0; font-size:13px; color:var(--text-secondary);">${t('updates.noChangeNotes')}</p>`}
                 </div>`;
         }).join('');
 
@@ -132,7 +134,7 @@ async function _loadReleaseHistory() {
         console.error('[UpdatesTab] Release geçmişi yüklenemedi:', err);
         container.innerHTML = `
             <div style="color: var(--text-secondary); font-size: 13px; padding: 10px 0;">
-                ⚠️ Sürüm geçmişi yüklenirken hata oluştu. İnternet bağlantınızı kontrol edin.
+                ⚠️ ${t('updates.historyError')}
             </div>`;
     }
 }
@@ -169,24 +171,24 @@ function _setState(state, data = null, isLatest = false) {
         case 'idle':
             statusIcon.textContent = isLatest ? '✅' : '⏸️';
             statusMsg.textContent  = isLatest
-                ? 'En güncel sürümü kullanıyorsunuz.'
-                : 'Güncelleme kontrolü yapılmadı.';
-            checkBtn.textContent = 'Güncelleme Kontrol Et';
+                ? t('updates.isLatest')
+                : t('updates.notChecked');
+            checkBtn.textContent = t('updates.checkBtn');
             statusCard.classList.add(isLatest ? 'status-latest' : 'status-idle');
             break;
 
         case 'checking':
             statusIcon.textContent = '🔄';
-            statusMsg.textContent  = 'Sunucu kontrol ediliyor...';
-            checkBtn.textContent   = 'Kontrol ediliyor...';
+            statusMsg.textContent  = t('updates.checking');
+            checkBtn.textContent   = t('updates.checkingBtn');
             checkBtn.disabled      = true;
             statusCard.classList.add('status-checking');
             break;
 
         case 'available':
             statusIcon.textContent = '🔔';
-            statusMsg.textContent  = `Yeni sürüm mevcut: v${data?.version}`;
-            checkBtn.textContent   = 'Tekrar Kontrol Et';
+            statusMsg.textContent  = `${t('updates.newVersionMsg')} v${data?.version}`;
+            checkBtn.textContent   = t('updates.retryBtn');
             statusCard.classList.add('status-available');
             newVerBadge.textContent        = `v${data?.version ?? ''}`;
             // HTML olarak render et (electron-updater HTML döner)
@@ -197,7 +199,7 @@ function _setState(state, data = null, isLatest = false) {
 
         case 'downloading':
             statusIcon.textContent     = '⬇️';
-            statusMsg.textContent      = 'Güncelleme indiriliyor...';
+            statusMsg.textContent      = t('updates.downloading');
             checkBtn.disabled          = true;
             statusCard.classList.add('status-downloading');
             newVerBlock.style.display  = 'block';
@@ -208,7 +210,7 @@ function _setState(state, data = null, isLatest = false) {
 
         case 'downloaded':
             statusIcon.textContent     = '✅';
-            statusMsg.textContent      = 'Güncelleme indirildi — kuruluma hazır.';
+            statusMsg.textContent      = t('updates.downloaded');
             checkBtn.disabled          = true;
             statusCard.classList.add('status-downloaded');
             newVerBlock.style.display  = 'block';
@@ -220,8 +222,8 @@ function _setState(state, data = null, isLatest = false) {
 
         case 'error':
             statusIcon.textContent = '❌';
-            statusMsg.textContent  = `Hata: ${data ?? 'Bilinmeyen hata'}`;
-            checkBtn.textContent   = 'Tekrar Dene';
+            statusMsg.textContent  = `${t('updates.error')} ${data ?? t('updates.unknownError')}`;
+            checkBtn.textContent   = t('updates.retryBtn');
             statusCard.classList.add('status-error');
             break;
     }
@@ -252,7 +254,7 @@ function _updateProgressBar(percent, bytesPerSec) {
  * Dizi gelirse (multi-release) son elemanı al.
  */
 function _renderNotes(notes) {
-    if (!notes) return '<p style="color:var(--text-secondary);">Değişiklik notları mevcut değil.</p>';
+    if (!notes) return `<p style="color:var(--text-secondary);">${t('updates.noNotes')}</p>`;
 
     // Dizi formatında gelebilir [{ version, note }]
     if (Array.isArray(notes)) {

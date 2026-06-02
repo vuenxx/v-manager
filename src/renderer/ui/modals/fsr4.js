@@ -1,5 +1,6 @@
 import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
+import { t } from '../../i18n/i18n.js';
 
 const fsr4VersionsBtn = document.getElementById('fsr4-versions-btn');
 const fsr4VersionsModal = document.getElementById('fsr4-versions-modal');
@@ -15,12 +16,12 @@ export function initFsr4Listeners() {
     if (fsr4VersionsBtn) {
         fsr4VersionsBtn.addEventListener('click', async () => {
             if (isDownloading) {
-                showInfoModal('İşlem Devam Ediyor', 'Zaten aktif bir FSR4 Files indirme işlemi devam ediyor, lütfen onun tamamlanmasını bekleyin.', true);
+                showInfoModal(t('opti.busyTitle'), t('opti.fsr4BusyMsg'), true);
                 return;
             }
             openModal('fsr4-versions-modal');
             fsr4VersionsLoading.style.display = 'block';
-            fsr4VersionsLoading.textContent = 'Sürümler aranıyor, lütfen bekleyin...';
+            fsr4VersionsLoading.textContent = t('opti.standaloneLoading');
             fsr4VersionsLoading.style.color = 'var(--text-secondary)';
             fsr4VersionsContainer.style.display = 'none';
             fsr4VersionSelect.innerHTML = '';
@@ -35,7 +36,7 @@ export function initFsr4Listeners() {
                     const opt = document.createElement('option');
                     opt.value = index;
                     if (r.installed) {
-                        opt.textContent = `${r.name} - [YÜKLÜ]`;
+                        opt.textContent = `${r.name} - ${t('opti.installed')}`;
                         opt.style.color = '#22c55e'; // Green for installed
                     } else {
                         opt.textContent = r.name;
@@ -46,10 +47,10 @@ export function initFsr4Listeners() {
                 // Update download button state initially based on the first selected release
                 if (releases.length > 0) {
                     if (releases[0].installed) {
-                        fsr4DownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                        fsr4DownloadBtn.textContent = t('opti.alreadyDownloaded');
                         fsr4DownloadBtn.style.backgroundColor = '#16a34a';
                     } else {
-                        fsr4DownloadBtn.textContent = 'Yükle';
+                        fsr4DownloadBtn.textContent = t('opti.patcherInstallBtn');
                         fsr4DownloadBtn.style.backgroundColor = ''; // Reset to default CSS
                     }
                 }
@@ -61,10 +62,10 @@ export function initFsr4Listeners() {
                         const release = currentReleases[selectedIdx];
                         if (release) {
                             if (release.installed) {
-                                fsr4DownloadBtn.textContent = 'Zaten Yüklü (Yeniden İndir)';
+                                fsr4DownloadBtn.textContent = t('opti.alreadyDownloaded');
                                 fsr4DownloadBtn.style.backgroundColor = '#16a34a';
                             } else {
-                                fsr4DownloadBtn.textContent = 'Yükle';
+                                fsr4DownloadBtn.textContent = t('opti.patcherInstallBtn');
                                 fsr4DownloadBtn.style.backgroundColor = ''; // Reset to default CSS
                             }
                         }
@@ -74,7 +75,7 @@ export function initFsr4Listeners() {
                 fsr4VersionsLoading.style.display = 'none';
                 fsr4VersionsContainer.style.display = 'block';
             } catch(e) {
-                fsr4VersionsLoading.textContent = 'Sürümler yüklenirken hata oluştu: ' + e.message;
+                fsr4VersionsLoading.textContent = t('opti.standaloneLoadError') + e.message;
                 fsr4VersionsLoading.style.color = '#ef4444';
             }
         });
@@ -93,7 +94,7 @@ export function initFsr4Listeners() {
             closeModal('fsr4-versions-modal');
             
             const infoModalProgress = document.getElementById('info-modal-progress');
-            showInfoModal('İndiriliyor...', `FSR4 Files ${release.name} sürümü indiriliyor, lütfen bekleyin.\n\nBu işlem internet hızınıza göre zaman alabilir.`);
+            showInfoModal(t('opti.downloadingTitle'), `FSR4 Files ${release.name} ${t('opti.fsr4DownloadingMsg')}`);
             if (infoModalProgress) {
                 infoModalProgress.style.display = 'block';
                 infoModalProgress.textContent = '%0';
@@ -108,7 +109,7 @@ export function initFsr4Listeners() {
             window.electronAPI.onFsr4DownloadProgress((data) => {
                 if (infoModalProgress) {
                     if (data.stage === 'extracting') {
-                        infoModalProgress.textContent = 'Çıkartılıyor...';
+                        infoModalProgress.textContent = t('opti.extractingShort');
                     } else {
                         infoModalProgress.textContent = `%${data.percent}`;
                     }
@@ -128,16 +129,16 @@ export function initFsr4Listeners() {
                 
                 closeModal('info-modal');
                 if (result.success) {
-                    showInfoModal('Başarılı', `✅ FSR4 Files ${release.name} başarıyla indirildi ve çıkartıldı!`);
+                    showInfoModal(t('opti.successTitle'), `✅ FSR4 Files ${release.name} ${t('opti.fsr4DownloadSuccess')}`);
                 } else {
-                    showInfoModal('Hata', 'İndirme/Çıkarma sırasında hata oluştu:\n' + result.error, true);
+                    showInfoModal(t('opti.errorTitle'), t('opti.fsr4DownloadError') + result.error, true);
                 }
             } catch(e) {
                 if (infoModalProgress) {
                     infoModalProgress.style.display = 'none';
                 }
                 closeModal('info-modal');
-                showInfoModal('Hata', 'Beklenmeyen hata:\n' + e.message, true);
+                showInfoModal(t('opti.errorTitle'), t('opti.unexpectedError') + e.message, true);
             } finally {
                 isDownloading = false;
             }

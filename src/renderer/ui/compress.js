@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n.js';
 let addedFolders = [];
 let selectedFolderIndex = -1;
 let compressionDbData = [];
@@ -49,12 +50,12 @@ export async function initCompress() {
                     const percent = Math.min(99, Math.round((window._compCount / window._compTotal) * 100));
                     progressText.textContent = `%${percent}`;
                     progressBar.style.width = `${percent}%`;
-                    statusText.textContent = `${window._compCount} / ${window._compTotal} dosya işlendi`;
+                    statusText.textContent = `${window._compCount} / ${window._compTotal} ${t('compress.filesProcessed')}`;
                 }
             } else if (data.progress.includes('files within') || data.progress.includes('directories are compressed')) {
                 progressText.textContent = '%100';
                 progressBar.style.width = '100%';
-                statusText.textContent = 'Tamamlandı';
+                statusText.textContent = t('compress.completed');
             }
         }
     });
@@ -131,10 +132,10 @@ export async function initCompress() {
                     algorithm: folder.method
                 });
                 if (result.success) {
-                    alert('Sıkıştırma tamamlandı!');
+                    alert(t('compress.compressDone'));
                 }
             } catch (e) {
-                alert('Hata: ' + e.message);
+                alert(t('compress.genericError') + e.message);
             } finally {
                 toggleProcessing(false);
                 const progressContainer = document.getElementById('realtime-progress-container');
@@ -175,10 +176,10 @@ export async function initCompress() {
             try {
                 const result = await window.electronAPI.runUncompression({ folderPath: folder.path });
                 if (result.success) {
-                    alert('Sıkıştırma geri alındı!');
+                    alert(t('compress.uncompressDone'));
                 }
             } catch (e) {
-                alert('Hata: ' + e.message);
+                alert(t('compress.genericError') + e.message);
             } finally {
                 toggleProcessing(false);
                 const progressContainer = document.getElementById('realtime-progress-container');
@@ -218,7 +219,7 @@ async function addFolderToList(path) {
     const newFolder = {
         name: name,
         path: path,
-        size: 'İnceleniyor...',
+        size: t('compress.analyzing'),
         fileCount: '...',
         method: 'XPRESS4K',
         isCompressed: false,
@@ -235,7 +236,7 @@ async function addFolderToList(path) {
 
 async function refreshFolderState(folder) {
     folder.isAnalyzing = true;
-    folder.size = 'İnceleniyor...';
+    folder.size = t('compress.analyzing');
     renderFolderList();
     updateDetailsView(folder);
 
@@ -261,7 +262,7 @@ async function refreshFolderState(folder) {
     } catch (e) {
         console.error('Analysis error:', e);
         folder.isAnalyzing = false;
-        folder.size = 'Hata';
+        folder.size = t('compress.error');
     }
 }
 
@@ -307,7 +308,7 @@ function selectFolder(index) {
 function updateDetailsView(folder) {
     document.getElementById('detail-folder-name').textContent = folder.name;
     document.getElementById('detail-folder-path').textContent = folder.path;
-    document.getElementById('detail-folder-size').textContent = folder.isAnalyzing ? 'İnceleniyor...' : folder.size;
+    document.getElementById('detail-folder-size').textContent = folder.isAnalyzing ? t('compress.analyzing') : folder.size;
     document.getElementById('detail-file-count').textContent = folder.isAnalyzing ? '...' : folder.fileCount;
 
     const compressBtn = document.getElementById('compress-selected-btn');
@@ -316,11 +317,11 @@ function updateDetailsView(folder) {
     if (folder.isAnalyzing) {
         compressBtn.disabled = true;
         uncompressBtn.style.display = 'none';
-        compressBtn.textContent = 'Analiz Ediliyor...';
+        compressBtn.textContent = t('compress.analyzing2');
     } else {
         compressBtn.disabled = false;
         if (folder.isCompressed) {
-            compressBtn.textContent = `Yeniden Sıkıştır (Oran: ${folder.compressionRatio}:1)`;
+            compressBtn.textContent = `${t('compress.reCompress')} (${folder.compressionRatio}:1)`;
             uncompressBtn.style.display = 'block';
 
             // Update Statistics Bar
@@ -349,7 +350,7 @@ function updateDetailsView(folder) {
                 document.getElementById('compression-saved-percent').textContent = '%' + savedPercent;
             }
         } else {
-            compressBtn.textContent = 'Seçilen Klasörü Sıkıştır';
+            compressBtn.textContent = t('compress.compressBtn');
             uncompressBtn.style.display = 'none';
             const statsSection = document.getElementById('compression-stats-section');
             const methodSection = document.getElementById('compression-method-section');
@@ -393,16 +394,16 @@ function updateMethodUI(selectedMethod, folder = null) {
                 const beforeStr = formatBytes(currentUncompressedBytes, 1);
                 const afterStr = formatBytes(estCompressedBytes, 1);
 
-                infoEl.innerHTML = `%${savedPercent} beklenen tasarruf<br><span style="font-size:10px; opacity:0.8;">${beforeStr} ➔ ${afterStr}</span>`;
+                infoEl.innerHTML = `%${savedPercent} ${t('compress.expectedSaving')}<br><span style="font-size:10px; opacity:0.8;">${beforeStr} ➔ ${afterStr}</span>`;
             } else {
-                infoEl.textContent = 'Veri yok';
+                infoEl.textContent = t('compress.noData');
             }
         } else {
             // Default labels
-            if (method === 'XPRESS4K') infoEl.textContent = '%21 sıkıştırma oranı';
-            else if (method === 'XPRESS8K') infoEl.textContent = 'Daha fazla tasarruf';
-            else if (method === 'XPRESS16K') infoEl.textContent = 'Yüksek tasarruf';
-            else if (method === 'LZX') infoEl.textContent = 'Maksimum tasarruf';
+            if (method === 'XPRESS4K') infoEl.textContent = t('compress.x4kInfo');
+            else if (method === 'XPRESS8K') infoEl.textContent = t('compress.x8kInfo');
+            else if (method === 'XPRESS16K') infoEl.textContent = t('compress.x16kInfo');
+            else if (method === 'LZX') infoEl.textContent = t('compress.lzxInfo');
         }
     });
 }
@@ -410,7 +411,7 @@ function updateMethodUI(selectedMethod, folder = null) {
 async function loadCompressionDb() {
     const container = document.getElementById('db-cards-container');
     if (compressionDbData.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-secondary);">Veritabanı yükleniyor...</div>';
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-secondary);">${t('compress.dbLoading')}</div>`;
         compressionDbData = await window.electronAPI.getCompressionDb();
     }
     renderCompressionDb();
@@ -426,7 +427,7 @@ function renderCompressionDb(query = '') {
     ).slice(0, 100);
 
     if (filtered.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-secondary);">Oyun bulunamadı.</div>';
+        container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-secondary);">${t('compress.dbNoGame')}</div>`;
         return;
     }
 

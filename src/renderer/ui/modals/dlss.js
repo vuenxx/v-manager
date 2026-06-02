@@ -2,6 +2,7 @@ import { state } from '../../state.js';
 import { openModal, closeModal } from './base.js';
 import { showInfoModal } from './info.js';
 import { renderGames, updateHomeStats } from '../games.js';
+import { t } from '../../i18n/i18n.js';
 
 const dlssGameCover = document.getElementById('dlss-game-cover');
 const dlssGamePlaceholder = document.getElementById('dlss-game-placeholder');
@@ -19,7 +20,7 @@ export async function openDlssModal() {
 
     // Symmetric conflict check: if OptiScaler is already installed
     if (state.currentSelectedGame.hasOptiscaler) {
-        showInfoModal('Uyarı! ⚠️', 'Bu oyuna halihazırda OptiScaler kurulu, bu modun çakışmasına sebep olacaktır. Lütfen bu modu kurmadan önce OptiScaler’ı kaldırın.', true);
+        showInfoModal(t('dlss.warningTitle'), t('dlss.conflictWarning'), true);
         return;
     }
 
@@ -48,18 +49,18 @@ export async function openDlssModal() {
         } else {
             const opt = document.createElement('option');
             opt.value = "";
-            opt.textContent = "Sürüm bulunamadı";
+            opt.textContent = t('dlss.noVersions');
             dlssVersionSelect.appendChild(opt);
         }
     } catch (e) {
-        dlssVersionSelect.innerHTML = '<option value="">Hata</option>';
+        dlssVersionSelect.innerHTML = `<option value="">${t('dlss.error')}</option>`;
     }
 
     openModal('dlss-modal');
 }
 
 export async function runUnifiedInstall(exePath, dlssVersion, dllName) {
-    showInfoModal('Kuruluyor', 'Kurulum yapılıyor, lütfen bekleyin...');
+    showInfoModal(t('dlss.installTitle'), t('dlss.installing'));
     try {
         // Install DLSS Enabler
         let dlssResult;
@@ -80,21 +81,21 @@ export async function runUnifiedInstall(exePath, dlssVersion, dllName) {
         
         closeModal('info-modal');
         if (dlssResult.success) {
-            let successMsg = `🎉 DLSS Enabler (${dlssVersion}) başarıyla kuruldu!`;
+            let successMsg = `🎉 DLSS Enabler (${dlssVersion}) ${t('dlss.installSuccess')}`;
             if (dlssResult.savedToUserGames) {
-                successMsg += `\n\n📌 Bu oyunun EXE yolu "Kullanıcı Oyun Yolları"na kaydedildi.\nBir dahaki seferde "Otomatik Kur" seçeneğini kullanabilirsiniz.`;
+                successMsg += `\n\n${t('dlss.installSavedPath')}`;
             }
-            showInfoModal('Başarılı', successMsg);
+            showInfoModal(t('dlss.successTitle'), successMsg);
             if (dlssResult.games) {
                 renderGames(dlssResult.games);
                 updateHomeStats();
             }
         } else {
-            showInfoModal('Hata', 'DLSS Enabler kurulumu başarısız oldu:\n' + dlssResult.error, true);
+            showInfoModal(t('dlss.errorTitle'), t('dlss.installError') + dlssResult.error, true);
         }
     } catch(e) {
         closeModal('info-modal');
-        showInfoModal('Hata', 'Kurulum sırasında beklenmeyen bir hata oluştu:\n' + e.message, true);
+        showInfoModal(t('dlss.errorTitle'), t('dlss.unexpectedError') + e.message, true);
     }
 }
 
@@ -125,7 +126,7 @@ export function initDlssListeners() {
         dlssInstallBtn.addEventListener('click', async () => {
             const version = dlssVersionSelect.value;
             if (!version) {
-                showInfoModal("Hata", "Lütfen bir sürüm seçin!", true);
+                showInfoModal(t('dlss.errorTitle'), t('dlss.selectVersion'), true);
                 return;
             }
 
@@ -141,7 +142,7 @@ export function initDlssListeners() {
                 openModal('dlss-confirm-modal');
             } catch (e) {
                 closeModal('info-modal');
-                showInfoModal("Hata", `Hata oluştu: ${e.message}`, true);
+                showInfoModal(t('dlss.errorTitle'), `${t('dlss.genericError')}${e.message}`, true);
             }
         });
     }
@@ -150,7 +151,7 @@ export function initDlssListeners() {
         dlssAutoInstallBtn.addEventListener('click', async () => {
             const version = dlssVersionSelect.value;
             if (!version) {
-                showInfoModal("Hata", "Lütfen bir sürüm seçin!", true);
+                showInfoModal(t('dlss.errorTitle'), t('dlss.selectVersion'), true);
                 return;
             }
 
@@ -169,8 +170,8 @@ export function initDlssListeners() {
 
                 if (!hasValidExe) {
                     showInfoModal(
-                        "Yol Tanımı Eksik",
-                        `Bu oyun ("${state.currentSelectedGame.name}") için geçerli bir EXE yolu belirlenemedi.\n\nOtomatik kurulum yapabilmek için lütfen:\n• Ayarlar → "Kullanıcı Oyun Yolları" bölümünden oyunun ana klasörünü ve EXE yolunu tanımlayın, \n\nveya "Manuel Kur" seçeneğini kullanın.`,
+                        t('dlss.pathMissing'),
+                        `"${state.currentSelectedGame.name}" ${t('dlss.pathMissingMsg')}`,
                         true
                     );
                     return;
@@ -184,7 +185,7 @@ export function initDlssListeners() {
                 openModal('dlss-confirm-modal');
             } catch(e) {
                 closeModal('info-modal');
-                showInfoModal("Hata", "Yol kontrol edilirken hata oluştu: " + e.message, true);
+                showInfoModal(t('dlss.errorTitle'), t('dlss.pathCheckError') + e.message, true);
             }
         });
     }
