@@ -285,11 +285,6 @@ function _markdownToHtml(md) {
 
     let html = _escSafe(md);
 
-    // Başlıklar
-    html = html.replace(/^### (.+)$/gm, '<h4 class="rn-h4">$1</h4>');
-    html = html.replace(/^## (.+)$/gm,  '<h3 class="rn-h3">$1</h3>');
-    html = html.replace(/^# (.+)$/gm,   '<h2 class="rn-h2">$1</h2>');
-
     // Bold & italic
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.+?)\*/g,     '<em>$1</em>');
@@ -297,36 +292,111 @@ function _markdownToHtml(md) {
     // Inline code
     html = html.replace(/`([^`]+)`/g, '<code class="rn-code">$1</code>');
 
-    // Checkbox liste öğeleri
-    html = html.replace(/^- \[x\] (.+)$/gm, '<li class="rn-li rn-li-done">✅ $1</li>');
-    html = html.replace(/^- \[ \] (.+)$/gm, '<li class="rn-li rn-li-open">⬜ $1</li>');
-
-    // Normal liste öğeleri (- veya *)
-    html = html.replace(/^[-*] (.+)$/gm, '<li class="rn-li">$1</li>');
-
-    // Ardışık <li>'leri <ul> ile sar
-    html = html.replace(/(<li class="rn-li[^"]*">[^]*?<\/li>\n?)+/g, (match) => `<ul class="rn-ul">${match}</ul>`);
-
     // Link
     html = html.replace(/\[(.+?)\]\((.+?)\)/g,
         '<a class="rn-link" href="#" onclick="event.preventDefault(); window.electronAPI.openExternalLink(\'$2\')">$1</a>');
 
-    // Yatay çizgi
-    html = html.replace(/^---$/gm, '<hr class="rn-hr">');
+    // Normalize newlines and split into lines
+    const lines = html.replace(/\r\n/g, '\n').split('\n');
+    
+    const blocks = [];
+    let currentBlock = null;
 
-    // Paragraf (boş satırla ayrılmış bloklar)
-    html = html
-        .split(/\n{2,}/)
-        .map(block => {
-            block = block.trim();
-            if (!block) return '';
-            // Zaten HTML tag içeriyorsa sarmadan bırak
-            if (/^<(h[2-4]|ul|hr|div)/.test(block)) return block;
-            return `<p class="rn-p">${block.replace(/\n/g, '<br>')}</p>`;
-        })
-        .join('\n');
+    for (let line of lines) {
+        const trimmed = line.trim();
+        
+        // 1. Heading
+        if (trimmed.startsWith('### ')) {
+            if (currentBlock) { blocks.push(currentBlock); currentBlock = null; }
+            blocks.push({ type: 'h4', text: trimmed.substring(4) });
+            continue;
+        }
+        if (trimmed.startsWith('## ')) {
+            if (currentBlock) { blocks.push(currentBlock); currentBlock = null; }
+            blocks.push({ type: 'h3', text: trimmed.substring(3) });
+            continue;
+        }
+        if (trimmed.startsWith('# ')) {
+            if (currentBlock) { blocks.push(currentBlock); currentBlock = null; }
+            blocks.push({ type: 'h2', text: trimmed.substring(2) });
+            continue;
+        }
 
-    return html;
+        // 2. Horizontal Rule
+        if (trimmed === '---') {
+            if (currentBlock) { blocks.push(currentBlock); currentBlock = null; }
+            blocks.push({ type: 'hr' });
+            continue;
+        }
+
+        // 3. List Item
+        const checkboxDoneMatch = line.match(/^(\s*)[-*]\s+\[x\]\s+(.+)$/i);
+        const checkboxOpenMatch = line.match(/^(\s*)[-*]\s+\[ \]\s+(.+)$/i);
+        const normalListMatch = line.match(/^(\s*)[-*]\s+(.+)$/);
+
+        if (checkboxDoneMatch || checkboxOpenMatch || normalListMatch) {
+            let text = '';
+            let checkboxClass = '';
+            if (checkboxDoneMatch) {
+                text = '✅ ' + checkboxDoneMatch[2];
+                checkboxClass = ' rn-li-done';
+            } else if (checkboxOpenMatch) {
+                text = '⬜ ' + checkboxOpenMatch[2];
+                checkboxClass = ' rn-li-open';
+            } else {
+                text = normalListMatch[2];
+            }
+
+            if (currentBlock && currentBlock.type !== 'ul') {
+                blocks.push(currentBlock);
+                currentBlock = null;
+            }
+            if (!currentBlock) {
+                currentBlock = { type: 'ul', items: [] };
+            }
+            currentBlock.items.push({ text, checkboxClass });
+            continue;
+        }
+
+        // 4. Empty Line / Spacer
+        if (trimmed === '') {
+            if (currentBlock) {
+                blocks.push(currentBlock);
+                currentBlock = null;
+            }
+            continue;
+        }
+
+        // 5. Paragraph text
+        if (currentBlock && currentBlock.type !== 'p') {
+            blocks.push(currentBlock);
+            currentBlock = null;
+        }
+        if (!currentBlock) {
+            currentBlock = { type: 'p', lines: [] };
+        }
+        currentBlock.lines.push(line);
+    }
+
+    if (currentBlock) {
+        blocks.push(currentBlock);
+    }
+
+    // Render blocks to HTML
+    return blocks.map(block => {
+        if (block.type === 'h4') return `<h4 class="rn-h4">${block.text}</h4>`;
+        if (block.type === 'h3') return `<h3 class="rn-h3">${block.text}</h3>`;
+        if (block.type === 'h2') return `<h2 class="rn-h2">${block.text}</h2>`;
+        if (block.type === 'hr') return '<hr class="rn-hr">';
+        if (block.type === 'ul') {
+            const listHtml = block.items.map(item => `<li class="rn-li${item.checkboxClass}">${item.text}</li>`).join('\n');
+            return `<ul class="rn-ul">\n${listHtml}\n</ul>`;
+        }
+        if (block.type === 'p') {
+            return `<p class="rn-p">${block.lines.join('<br>')}</p>`;
+        }
+        return '';
+    }).join('\n');
 }
 
 /** HTML özel karakterlerini kaçırır (XSS önlemi — linklerin URL'si hariç kullanılır) */
