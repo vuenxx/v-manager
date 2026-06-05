@@ -18,9 +18,12 @@ const streamlineVersionsContainer = document.getElementById('streamline-versions
 const streamlineVersionSelect = document.getElementById('streamline-version-select');
 const streamlineDownloadBtn = document.getElementById('streamline-download-btn');
 
+// Stores GitHub releases fetched when the install modal opens
+let _slGithubReleases = [];
+
 export async function openStreamlineModal() {
     if (!state.currentSelectedGame) return;
-    
+
     slGameName.textContent = state.currentSelectedGame.name;
     if (state.currentSelectedGame.cover) {
         slGameCover.src = state.currentSelectedGame.cover;
@@ -30,26 +33,41 @@ export async function openStreamlineModal() {
         slGameCover.style.display = 'none';
         slGamePlaceholder.style.display = 'flex';
     }
-    
-    // Load Streamline versions into select dropdown
+
+    // Fetch GitHub Releases to populate install dropdown
     slVersionSelect.innerHTML = `<option value="" disabled selected>${t('streamline.loadingVersions')}</option>`;
+    slVersionSelect.disabled = true;
+    slAutoInstallBtn.disabled = true;
+    _slGithubReleases = [];
+
     try {
-        const versions = await window.electronAPI.getStreamlineVersions();
+        const releases = await window.electronAPI.getStreamlineReleases();
+        if (releases.error) throw new Error(releases.error);
+
+        _slGithubReleases = releases;
         slVersionSelect.innerHTML = '';
-        if (versions.length === 0) {
+
+        if (releases.length === 0) {
             slVersionSelect.innerHTML = `<option value="" disabled>${t('streamline.noVersions')}</option>`;
         } else {
-            versions.forEach(v => {
+            releases.forEach((r, idx) => {
                 const opt = document.createElement('option');
-                opt.value = v;
-                opt.textContent = v;
+                opt.value = idx;
+                if (r.installed) {
+                    opt.textContent = `${r.name} ✓`;
+                    opt.style.color = '#22c55e';
+                } else {
+                    opt.textContent = r.name;
+                }
                 slVersionSelect.appendChild(opt);
             });
+            slVersionSelect.disabled = false;
+            slAutoInstallBtn.disabled = false;
         }
     } catch(e) {
         slVersionSelect.innerHTML = `<option value="" disabled>${t('streamline.loadError')}</option>`;
     }
-    
+
     openModal('streamline-modal');
 }
 
@@ -84,27 +102,96 @@ export function initStreamlineListeners() {
     // Auto-install Streamline click
     if (slAutoInstallBtn) {
         slAutoInstallBtn.addEventListener('click', async () => {
-            const version = slVersionSelect.value;
-            if (!version) {
+            const selectedIdx = slVersionSelect.value;
+            if (selectedIdx === '' || selectedIdx == null) {
                 showInfoModal(t('streamline.errorTitle'), t('streamline.selectVersion'), true);
                 return;
             }
-            
+
+            const release = _slGithubReleases[selectedIdx];
+            if (!release) {
+                showInfoModal(t('streamline.errorTitle'), t('streamline.selectVersion'), true);
+                return;
+            }
+
+            const version = release.tag;
+
+            // Step 1: If release not locally downloaded yet, download it first
+            if (!release.installed) {
+                if (!release.downloadUrl) {
+                    showInfoModal(t('streamline.errorTitle'), 'Bu sürüm için indirme bağlantısı bulunamadı.', true);
+                    return;
+                }
+
+                const infoModalProgress = document.getElementById('info-modal-progress');
+                showInfoModal(t('streamline.downloadingTitle'), `Streamline ${version} ${t('streamline.downloadingMsg')}`);
+                if (infoModalProgress) {
+                    infoModalProgress.style.display = 'block';
+                    infoModalProgress.style.color = '';
+                    infoModalProgress.textContent = '%0';
+                }
+
+                if (window.electronAPI.removeStreamlineProgressListeners) {
+                    window.electronAPI.removeStreamlineProgressListeners();
+                }
+                window.electronAPI.onStreamlineDownloadProgress((data) => {
+                    if (infoModalProgress) {
+                        if (data.stage === 'extracting') {
+                            infoModalProgress.textContent = t('streamline.extractingShort');
+                        } else if (data.stage && data.stage.startsWith('retry')) {
+                            const attempt = data.stage.replace('retry', '');
+                            infoModalProgress.textContent = `↻ Tekrar deneniyor... (${attempt}/3)`;
+                            infoModalProgress.style.color = '#f59e0b';
+                        } else {
+                            infoModalProgress.style.color = '';
+                            infoModalProgress.textContent = `%${data.percent}`;
+                        }
+                    }
+                });
+
+                try {
+                    const dlResult = await window.electronAPI.downloadStreamlineRelease({
+                        tag: release.tag,
+                        downloadUrl: release.downloadUrl
+                    });
+
+                    if (infoModalProgress) infoModalProgress.style.display = 'none';
+
+                    if (!dlResult.success) {
+                        closeModal('info-modal');
+                        showInfoModal(t('streamline.errorTitle'), t('streamline.downloadError') + dlResult.error, true);
+                        return;
+                    }
+                    // Mark as installed in our local cache so re-opening the modal reflects it
+                    release.installed = true;
+                } catch(dlErr) {
+                    if (infoModalProgress) infoModalProgress.style.display = 'none';
+                    closeModal('info-modal');
+                    showInfoModal(t('streamline.errorTitle'), t('streamline.unexpectedDownloadError') + dlErr.message, true);
+                    return;
+                } finally {
+                    if (window.electronAPI.removeStreamlineProgressListeners) {
+                        window.electronAPI.removeStreamlineProgressListeners();
+                    }
+                }
+            }
+
+            // Step 2: Check Streamline target directory
             showInfoModal(t('streamline.checkingTitle'), t('streamline.checkingPaths'));
             try {
                 const check = await window.electronAPI.checkStreamlineBackup({
                     game: state.currentSelectedGame,
                     isAuto: true
                 });
-                
+
                 if (!check.success) {
                     showInfoModal(t('streamline.errorTitle'), check.error, true);
                     return;
                 }
-                
+
                 // Rule: Prevent Streamline update if original version < 2.0
-                const originalVersion = (check.backupExists && check.backupVersion && check.backupVersion !== '0.0.0.0') 
-                    ? check.backupVersion 
+                const originalVersion = (check.backupExists && check.backupVersion && check.backupVersion !== '0.0.0.0')
+                    ? check.backupVersion
                     : check.currentVersion;
 
                 if (originalVersion && originalVersion !== '0.0.0.0') {

@@ -665,29 +665,77 @@ async function downloadStreamlineRelease(event, { tag, downloadUrl }) {
     const tempExtractDir = path.join(app.getPath('temp'), `streamline_extract_${tag.replace(/[^a-z0-9.-]/gi, '_')}`);
     const targetDir = path.join(config.streamlineModsPath, tag);
 
+    const MAX_RETRIES = 3;
+    const TIMEOUT_MS = 120000; // 2 dakika timeout
+
     try {
         if (!downloadUrl) throw new Error("İndirme linki bulunamadı.");
 
-        const response = await fetch(downloadUrl);
-        if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+        let buffer = null;
+        let lastError = null;
 
-        const contentLength = +response.headers.get('Content-Length') || 0;
-        const reader = response.body.getReader();
-        let receivedLength = 0;
-        let chunks = [];
+        // Retry loop
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                console.log(`[STREAMLINE-DOWNLOAD] İndirme denemesi ${attempt}/${MAX_RETRIES}: ${downloadUrl}`);
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            receivedLength += value.length;
-            if (contentLength && event && event.sender && !event.sender.isDestroyed()) {
-                const percent = Math.round((receivedLength / contentLength) * 100);
-                event.sender.send('streamline-download-progress', { percent });
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                    console.warn(`[STREAMLINE-DOWNLOAD] Timeout: ${TIMEOUT_MS}ms aşıldı (deneme ${attempt})`);
+                }, TIMEOUT_MS);
+
+                let response;
+                try {
+                    response = await fetch(downloadUrl, { signal: controller.signal });
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+
+                if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+
+                const contentLength = +response.headers.get('Content-Length') || 0;
+                const reader = response.body.getReader();
+                let receivedLength = 0;
+                const chunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    receivedLength += value.length;
+                    if (contentLength && event && event.sender && !event.sender.isDestroyed()) {
+                        const percent = Math.round((receivedLength / contentLength) * 100);
+                        event.sender.send('streamline-download-progress', { percent });
+                    }
+                }
+
+                buffer = Buffer.concat(chunks.map(c => Buffer.from(c)));
+                lastError = null;
+                break; // Başarılı, döngüden çık
+
+            } catch (fetchErr) {
+                lastError = fetchErr;
+                const isAborted = fetchErr.name === 'AbortError';
+                const errMsg = isAborted ? `Zaman aşımı (${TIMEOUT_MS / 1000}s)` : fetchErr.message;
+                console.warn(`[STREAMLINE-DOWNLOAD] Deneme ${attempt} başarısız: ${errMsg}`);
+
+                if (attempt < MAX_RETRIES) {
+                    const waitMs = attempt * 2000; // 2s, 4s bekleme
+                    console.log(`[STREAMLINE-DOWNLOAD] ${waitMs}ms sonra tekrar deneniyor...`);
+                    // İlerleme çubuğuna retry mesajı gönder
+                    if (event && event.sender && !event.sender.isDestroyed()) {
+                        event.sender.send('streamline-download-progress', { percent: 0, stage: `retry${attempt}` });
+                    }
+                    await new Promise(r => setTimeout(r, waitMs));
+                }
             }
         }
 
-        const buffer = Buffer.concat(chunks.map(c => Buffer.from(c)));
+        if (!buffer) {
+            throw lastError || new Error("İndirme başarısız oldu.");
+        }
+
         fs.writeFileSync(tempZipPath, buffer);
 
         // Ensure temp extract directory is clean
@@ -761,7 +809,7 @@ async function downloadStreamlineRelease(event, { tag, downloadUrl }) {
         return { success: true, targetDir };
     } catch (e) {
         console.error("Streamline download error:", e);
-        
+
         // Clean up temp files on error
         try {
             if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
@@ -771,6 +819,9 @@ async function downloadStreamlineRelease(event, { tag, downloadUrl }) {
         return { success: false, error: e.message };
     }
 }
+
+
+
 
 module.exports = {
     STREAMLINE_FILES,
