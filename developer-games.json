@@ -46,5 +46,8 @@
   "dying-light-the-beast": {
     "exe_relative_path": "ph_ft/work/bin/x64/DyingLightGame_TheBeast_x64_rwdi.exe",
     "compatibility": "green"
-  }
+  },
+  "only-climb-better-together": {
+  "exe_relative_path": "Only Climb Better Together\onlyclimbtogether\Binaries\Win64\onlyclimbtogether-Win64-Shipping.exe",
+  "compatibility" : "yellow" 
 }
