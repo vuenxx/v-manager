@@ -1,3 +1,8 @@
+Copyright (C) 2026 Berkay Küçükbekar. All Rights Reserved. (Tüm Hakları Saklıdır.)
+This software and its source code are proprietary. Unauthorized copying, 
+modification, distribution, or creation of derivative works via any medium 
+is strictly prohibited.
+
 # 🎮 V-Manager
 
 <p align="center">
@@ -7,7 +12,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge&logo=windows" alt="Platform: Windows" />
   <img src="https://img.shields.io/badge/Framework-Electron-activegreen?style=for-the-badge&logo=electron" alt="Framework: Electron" />
-  <img src="https://img.shields.io/badge/License-ISC-orange?style=for-the-badge" alt="License: ISC" />
+  <img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="License: Proprietary" />
   <img src="https://img.shields.io/badge/Status-Early%20Access%20%2F%20Erken%20Eri%C5%9Fim-purple?style=for-the-badge" alt="Status: Early Access" />
 </p>
 
@@ -130,9 +135,11 @@ Uygulamanın temel modülleri ve görevleri şu şekildedir:
 
 ---
 
-### 🔑 Lisans ve Katkıda Bulunma
+### 🔑 Lisans ve Geri Bildirim
 
-Bu proje **ISC Lisansı** altında lisanslanmıştır. Katkıda bulunmak için lütfen bir Pull Request (PR) açın veya karşılaştığınız hataları Issues sekmesinden bildirin.
+Bu yazılım ve kaynak kodları tescillidir (Proprietary). Berkay Küçükbekar'ın yazılı izni olmaksızın kopyalanması, değiştirilmesi, dağıtılması veya herhangi bir ortamda türetilmiş eserler oluşturulması kesinlikle yasaktır. Tüm hakları saklıdır.
+
+Karşılaştığınız hataları veya önerilerinizi **Issues** sekmesinden bildirebilirsiniz.
 
 ---
 
@@ -242,9 +249,11 @@ The core modules of the application and their responsibilities:
 
 ---
 
-### 🔑 License & Contributing
+### 🔑 License & Feedback
 
-This project is licensed under the **ISC License**. To contribute, please open a Pull Request (PR) or report bugs via the Issues tab.
+This software and its source code are proprietary. Unauthorized copying, modification, distribution, or creation of derivative works via any medium is strictly prohibited. Copyright (C) 2026 Berkay Küçükbekar. All Rights Reserved.
+
+You can report bugs or suggestions via the **Issues** tab.
 
 ---
 <p align="center">Made with ❤️ by <a href="https://github.com/vuenxx">vuenxx</a></p>

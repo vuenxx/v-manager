@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer, shell } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
     getGames: () => ipcRenderer.invoke('get-games'),
+    launchGame: (game) => ipcRenderer.invoke('launch-game', game),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     startScan: (scanSettings) => ipcRenderer.send('start-scan', scanSettings),
     onGameFound: (callback) => { ipcRenderer.removeAllListeners('game-found'); ipcRenderer.on('game-found', (_event, game) => callback(game)); },
@@ -80,6 +81,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // INI Editor IPCs
     readModIni: (game, mod) => ipcRenderer.invoke('read-mod-ini', { game, mod }),
     writeModIni: (game, mod, data) => ipcRenderer.invoke('write-mod-ini', { game, mod, data }),
+
+    // Mod Presets IPCs
+    readModPresets: (mod) => ipcRenderer.invoke('mod-presets:read', { mod }),
+    writeModPresets: (mod, presets) => ipcRenderer.invoke('mod-presets:write', { mod, presets }),
 
     // Folder selection
     selectFolder: () => ipcRenderer.invoke('select-folder'),

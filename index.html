@@ -57,12 +57,33 @@
                 </div>
             </header>
 
-            <!-- Tab Contents -->
             <div class="tab-content active" id="home">
-                <div class="dashboard-welcome">
-                    <h2 data-i18n="home.title">V-Manager Kontrol Paneli</h2>
-                    <p data-i18n="home.subtitle">Uygulama durumunu izleyin, kurulu modlarınızı yönetin ve yeni
-                        içeriklere hızlıca erişin.</p>
+
+                <!-- Info & Warnings Section -->
+                <div class="dashboard-section-title" style="margin-top: 0;">
+                    <h3 data-i18n="home.infoSectionTitle">Önemli Bilgilendirme & Uyarılar</h3>
+                </div>
+
+                <div class="info-warning-container">
+                    <!-- Anti-Cheat Warning Card -->
+                    <div class="info-warning-card warning-card">
+                        <div class="card-icon">⚠️</div>
+                        <div class="card-body">
+                            <h4 data-i18n="home.warningTitle">Anti-Cheat (Hile Koruma) Uyarısı</h4>
+                            <p data-i18n="home.warningDesc" data-i18n-html>League of Legends, CS2 gibi hile koruma
+                                sistemine sahip oyunlara bu modları kurmamanız önerilir.</p>
+                        </div>
+                    </div>
+
+                    <!-- Frame Generation Info Card -->
+                    <div class="info-warning-card info-card">
+                        <div class="card-icon">💡</div>
+                        <div class="card-body">
+                            <h4 data-i18n="home.supportTitle">Desteklenen Oyunlar & Gereksinimler</h4>
+                            <p data-i18n="home.supportDesc" data-i18n-html>Modların çalışması için oyunun resmi olarak
+                                Frame Generation desteği olmalıdır.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="stats-container">
@@ -130,6 +151,7 @@
                         <button class="promo-action-btn" data-i18n="home.promoVideosBtn">Videoları İzle ➔</button>
                     </div>
                 </div>
+
             </div>
 
             <div class="tab-content" id="games">
@@ -159,6 +181,15 @@
                 <p data-i18n="games.subtitle">Sisteminizde yüklü olan oyunlar aşağıda listelenmektedir. Yıldız
                     simgesiyle favorilerinizi başa
                     tutturabilirsiniz.</p>
+
+                <div class="platform-tags-container">
+                    <button class="platform-tag-btn" data-platform="steam">STEAM</button>
+                    <button class="platform-tag-btn" data-platform="epic">EPIC GAMES</button>
+                    <button class="platform-tag-btn" data-platform="gog">GOG</button>
+                    <button class="platform-tag-btn" data-platform="xbox">XBOX</button>
+                    <button class="platform-tag-btn" data-platform="ea">EA</button>
+                    <button class="platform-tag-btn" data-platform="ubisoft">UBISOFT</button>
+                </div>
 
                 <div id="loading-games"
                     style="display: none; text-align: center; padding: 40px; color: var(--text-secondary);"
@@ -216,27 +247,31 @@
                             <h3>OptiPatcher</h3>
                         </div>
                         <div class="package-features">
-                            <p>OptiScaler için yamalar ve ek uyumluluk geliştirmeleri sunar.</p>
+                            <p data-i18n="mods.optiPatcherDesc">OptiScaler için yamalar ve ek uyumluluk geliştirmeleri
+                                sunar.</p>
                             <div class="package-links">
-                                <a href="#" class="external-link"
-                                    data-url="https://github.com/optiscaler/OptiPatcher">GitHub</a>
+                                <a href="#" class="external-link" data-url="https://github.com/optiscaler/OptiPatcher"
+                                    data-i18n="mods.github">GitHub</a>
                             </div>
                         </div>
                         <div class="package-actions">
-                            <button id="optipatcher-versions-btn" class="install-btn">Sürümler</button>
+                            <button id="optipatcher-versions-btn" class="install-btn"
+                                data-i18n="mods.versionsBtn">Sürümler</button>
                         </div>
                     </div>
                     <!-- Package 4 -->
                     <div class="package-card">
                         <div class="package-header">
-                            <h3>FSR4 Dosyaları</h3>
+                            <h3 data-i18n="mods.fsr4Title">FSR4 Dosyaları</h3>
                         </div>
                         <div class="package-features">
-                            <p>FSR4 modu için gerekli arşiv ve kütüphane dosyalarını sağlar.</p>
+                            <p data-i18n="mods.fsr4Desc">FSR4 modu için gerekli arşiv ve kütüphane dosyalarını sağlar.
+                            </p>
                             <div class="package-links"></div>
                         </div>
                         <div class="package-actions">
-                            <button id="fsr4-versions-btn" class="install-btn">Sürümler</button>
+                            <button id="fsr4-versions-btn" class="install-btn"
+                                data-i18n="mods.versionsBtn">Sürümler</button>
                         </div>
                     </div>
                     <!-- Package 5 -->
@@ -245,15 +280,17 @@
                             <h3>Streamline</h3>
                         </div>
                         <div class="package-features">
-                            <p>NVIDIA'nın Streamline SDK kütüphanelerini (sl.*.dll) yönetmenizi ve güncellemenizi
+                            <p data-i18n="mods.streamlineDesc">NVIDIA'nın Streamline SDK kütüphanelerini (sl.*.dll)
+                                yönetmenizi ve güncellemenizi
                                 sağlar.</p>
                             <div class="package-links">
-                                <a href="#" class="external-link"
-                                    data-url="https://github.com/NVIDIA-RTX/Streamline">GitHub</a>
+                                <a href="#" class="external-link" data-url="https://github.com/NVIDIA-RTX/Streamline"
+                                    data-i18n="mods.github">GitHub</a>
                             </div>
                         </div>
                         <div class="package-actions">
-                            <button id="streamline-versions-btn" class="install-btn">Sürümler</button>
+                            <button id="streamline-versions-btn" class="install-btn"
+                                data-i18n="mods.versionsBtn">Sürümler</button>
                         </div>
                     </div>
                 </div>
@@ -756,6 +793,40 @@
                 </div>
                 <p data-i18n="freeGames.subtitle">GamerPower tarafından listelenen ve şu an ücretsiz olan güncel oyunlar
                     ile fırsatlar.</p>
+
+                <!-- Search & Filters Container -->
+                <div class="free-games-filters-container"
+                    style="display: flex; gap: 12px; align-items: center; margin-bottom: 20px; margin-top: 15px; flex-wrap: wrap;">
+                    <!-- Search Input -->
+                    <div class="game-search-wrapper" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+                        <input type="text" id="free-games-search-input" data-i18n-placeholder="games.searchPlaceholder"
+                            placeholder="Oyunlarda ara..." class="game-search-input">
+                        <span class="game-search-icon">🔍</span>
+                        <button id="free-games-search-clear" class="game-search-clear"
+                            style="display: none;">&times;</button>
+                    </div>
+
+                    <!-- Platform Filter Dropdown -->
+                    <select id="free-games-platform-select" class="opti-select"
+                        style="padding: 10px 14px; font-size: 13px; height: 42px; border-radius: 8px;">
+                        <option value="all" data-i18n="freeGames.filterAll">Tüm Platformlar</option>
+                        <option value="pc">PC</option>
+                        <option value="steam">Steam</option>
+                        <option value="epic-games-store">Epic Games</option>
+                        <option value="gog">GOG</option>
+                        <option value="ubisoft">Ubisoft</option>
+                        <option value="origin">Origin</option>
+                        <option value="itch.io">Itch.io</option>
+                        <option value="playstation4">PlayStation 4</option>
+                        <option value="playstation5">PlayStation 5</option>
+                        <option value="xbox-one">Xbox One</option>
+                        <option value="xbox-series-xs">Xbox Series X|S</option>
+                        <option value="nintendo-switch">Nintendo Switch</option>
+                        <option value="android">Android</option>
+                        <option value="ios">iOS</option>
+                        <option value="vr">VR</option>
+                    </select>
+                </div>
 
                 <div id="free-games-loading" style="text-align: center; padding: 40px; color: var(--text-secondary);"
                     data-i18n="freeGames.loading">
@@ -1435,15 +1506,15 @@
         </div>
     </div>
 
-    <!-- FSR4 Files Versions Modal -->
+    <!-- FSR4 File Versions Modal -->
     <div id="fsr4-versions-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal" data-target="fsr4-versions-modal">&times;</span>
-            <h3 style="margin-top: 0; color: var(--accent-color);" data-i18n="opti.fsr4Title">✦ FSR4 Files Sürümleri
+            <h3 style="margin-top: 0; color: var(--accent-color);" data-i18n="opti.fsr4Title">✦ FSR4 Sürümleri
             </h3>
             <p data-i18n="opti.fsr4Desc"
                 style="font-size: 14px; line-height: 1.6; color: var(--text-secondary); margin-top: 15px; margin-bottom: 20px;">
-                Sunucu üzerinden çekilen FSR4 Files sürümleri aşağıda listelenmiştir. Seçtiğiniz sürümü
+                Sunucu üzerinden çekilen FSR4 sürümleri aşağıda listelenmiştir. Seçtiğiniz sürümü
                 indirebilirsiniz.
             </p>
 
@@ -1664,7 +1735,7 @@
     <!-- Settings Modal -->
     <div id="settings-modal" class="modal">
         <div class="modal-content large-modal" style="width: 950px; max-width: 95%;">
-            <span class="close-modal" data-target="settings-modal">&times;</span>
+            <span class="close-modal modal-close" data-target="settings-modal">&times;</span>
             <div class="dlss-modal-body">
                 <!-- Left Side: Cover & Tabs -->
                 <div class="dlss-modal-left">
@@ -1705,15 +1776,37 @@
                         style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 20px 0;">
 
                     <div id="settings-content"
-                        style="flex: 1; overflow-y: auto; padding-right: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; gap: 20px;">
+                        style="flex: 1; overflow-y: auto; padding-right: 10px; padding-bottom: 70px; display: block;">
                         <!-- Dinamik olarak doldurulacak -->
                     </div>
 
-                    <div
-                        style="display: flex; justify-content: flex-end; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
-                        <button id="settings-save-btn" class="install-btn" data-i18n="modSettings.saveBtn"
-                            style="width: auto; padding: 10px 30px; margin: 0; background-color: #22c55e; color: #fff;">Kaydet</button>
-                    </div>
+                    <!-- Floating Kaydet Butonu — settings-modal içinde sağ alt köşe -->
+                    <button id="settings-save-btn" class="install-btn" style="
+                            position: fixed;
+                            bottom: 28px;
+                            right: 36px;
+                            z-index: 10000;
+                            display: none;
+                            align-items: center;
+                            gap: 8px;
+                            padding: 12px 28px;
+                            background: linear-gradient(135deg, #22c55e, #16a34a);
+                            color: white;
+                            border: none;
+                            border-radius: 12px;
+                            font-size: 14px;
+                            font-weight: 700;
+                            box-shadow: 0 4px 20px rgba(34,197,94,0.4);
+                            cursor: pointer;
+                            transition: all 0.2s;
+                            width: auto;
+                            margin: 0;
+                        "
+                        onmouseenter="this.style.transform='scale(1.05)';this.style.boxShadow='0 6px 28px rgba(34,197,94,0.55)'"
+                        onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(34,197,94,0.4)'">
+                        <span>💾</span>
+                        <span class="save-btn-text" data-i18n="modSettings.saveBtn">Kaydet</span>
+                    </button>
                 </div>
             </div>
         </div>

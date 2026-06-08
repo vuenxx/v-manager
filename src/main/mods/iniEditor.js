@@ -237,12 +237,10 @@ function readIni(filePath) {
 function writeIni(filePath, newData) {
     let content = '';
     let lineEnding = '\r\n'; // Windows için varsayılan
-    // M-11: Track whether the original file had a BOM so we can restore it
     let hasBom = false;
     
     if (fs.existsSync(filePath)) {
         content = fs.readFileSync(filePath, 'utf8');
-        // M-11: Detect BOM presence before stripping
         hasBom = content.startsWith('\uFEFF');
         if (hasBom) content = content.slice(1);
         lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
@@ -256,86 +254,102 @@ function writeIni(filePath, newData) {
             }
             newContent += lineEnding;
         }
-        // M-11: New files get a BOM for PowerShell/Windows compatibility
         fs.writeFileSync(filePath, '\uFEFF' + newContent, 'utf8');
         return true;
     }
     
     const lines = content.split(lineEnding);
-    let currentSection = null;
+    let currentSection = null;      // parsed from file
+    let schemaSectionKey = null;    // matching key in newData (case-insensitive)
+    
+    // writtenKeys will track which sections/keys in newData have been written
+    // Structure: { schemaSectionKey: Set(schemaKey) }
     const writtenKeys = {};
+    for (const sec of Object.keys(newData)) {
+        writtenKeys[sec] = new Set();
+    }
+    
     const outputLines = [];
     
     for (let i = 0; i < lines.length; i++) {
         const rawLine = lines[i];
         const trimmed = rawLine.trim();
         
-        // Yeni bir section'a geçmeden önce veya dosya sonuna gelmeden önce
-        // önceki section'da şemada olup da dosyada olmayan yeni eklenmiş key'leri yaz.
+        // Section header check
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-            if (currentSection && newData[currentSection]) {
-                for (const [k, v] of Object.entries(newData[currentSection])) {
-                    if (!writtenKeys[currentSection].has(k)) {
+            // Before leaving the previous section, write any of its keys that weren't in the file
+            if (schemaSectionKey && newData[schemaSectionKey]) {
+                for (const [k, v] of Object.entries(newData[schemaSectionKey])) {
+                    if (!writtenKeys[schemaSectionKey].has(k)) {
                         outputLines.push(`${k}=${v}`);
-                        writtenKeys[currentSection].add(k);
+                        writtenKeys[schemaSectionKey].add(k);
                     }
                 }
             }
             
             currentSection = trimmed.substring(1, trimmed.length - 1).trim();
-            outputLines.push(rawLine); // Section başlığını aynen ekle
-            if (!writtenKeys[currentSection]) {
-                writtenKeys[currentSection] = new Set();
-            }
+            // Find if this section exists in newData case-insensitively
+            schemaSectionKey = Object.keys(newData).find(sec => sec.toLowerCase() === currentSection.toLowerCase()) || null;
+            
+            outputLines.push(rawLine);
             continue;
         }
         
-        // Key=Value satırı yakalama
-        if (currentSection && newData[currentSection] !== undefined) {
+        // Key=Value check
+        if (schemaSectionKey && newData[schemaSectionKey] !== undefined) {
             if (trimmed && !trimmed.startsWith(';') && !trimmed.startsWith('#')) {
                 const eqIndex = trimmed.indexOf('=');
                 if (eqIndex !== -1) {
                     const key = trimmed.substring(0, eqIndex).trim();
-                    if (newData[currentSection].hasOwnProperty(key)) {
-                        const newVal = newData[currentSection][key];
-                        // Mevcut satırdaki boşlukları vb. korumak için indent bul
+                    // Find if this key exists in the schema's section case-insensitively
+                    const schemaKey = Object.keys(newData[schemaSectionKey]).find(k => k.toLowerCase() === key.toLowerCase());
+                    
+                    if (schemaKey) {
+                        const newVal = newData[schemaSectionKey][schemaKey];
                         const indent = rawLine.substring(0, rawLine.indexOf(key));
-                        outputLines.push(`${indent}${key}=${newVal}`);
-                        writtenKeys[currentSection].add(key);
-                        continue; // Eski satırı atlayıp yeni modifiye satırı ekledik
+                        // Overwrite using the schema key name to ensure correct casing
+                        outputLines.push(`${indent}${schemaKey}=${newVal}`);
+                        writtenKeys[schemaSectionKey].add(schemaKey);
+                        continue;
                     }
                 }
             }
         }
         
-        // Değişmeyen satırları aynen kopyala (yorumlar, boş satırlar, vs.)
         outputLines.push(rawLine);
     }
     
-    // Döngü bittiğinde en son açık kalan section'a yeni key'leri ekle
-    if (currentSection && newData[currentSection]) {
-        for (const [k, v] of Object.entries(newData[currentSection])) {
-            if (!writtenKeys[currentSection].has(k)) {
+    // Write remaining keys of the last section
+    if (schemaSectionKey && newData[schemaSectionKey]) {
+        for (const [k, v] of Object.entries(newData[schemaSectionKey])) {
+            if (!writtenKeys[schemaSectionKey].has(k)) {
                 outputLines.push(`${k}=${v}`);
-                writtenKeys[currentSection].add(k);
+                writtenKeys[schemaSectionKey].add(k);
             }
         }
     }
     
-    // Dosyada hiç bulunmayan tamamen yeni section'lar ve içindeki key'ler
+    // Write completely new sections from newData
     for (const [section, keys] of Object.entries(newData)) {
-        if (!writtenKeys[section]) {
-            if (outputLines.length > 0 && outputLines[outputLines.length - 1] !== '') {
-                outputLines.push('');
+        const keysNotWritten = Object.keys(keys).filter(k => !writtenKeys[section].has(k));
+        if (keysNotWritten.length > 0) {
+            // Check if the section was matched with any parsed section
+            const wasSectionMatched = Object.keys(writtenKeys).some(sec => sec.toLowerCase() === section.toLowerCase() && (writtenKeys[sec].size > 0 || content.toLowerCase().includes(`[${section.toLowerCase()}]`)));
+            
+            if (!wasSectionMatched) {
+                if (outputLines.length > 0 && outputLines[outputLines.length - 1] !== '') {
+                    outputLines.push('');
+                }
+                outputLines.push(`[${section}]`);
             }
-            outputLines.push(`[${section}]`);
-            for (const [k, v] of Object.entries(keys)) {
-                outputLines.push(`${k}=${v}`);
+            
+            for (const k of keysNotWritten) {
+                outputLines.push(`${k}=${keys[k]}`);
+                writtenKeys[section].add(k);
             }
         }
     }
     
-    // M-11: Re-apply BOM if the original file had one
     const finalContent = (hasBom ? '\uFEFF' : '') + outputLines.join(lineEnding);
     fs.writeFileSync(filePath, finalContent, 'utf8');
     return true;

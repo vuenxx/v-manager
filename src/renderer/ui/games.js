@@ -71,6 +71,7 @@ export function createGameCard(game) {
             ${modTagsHtml}
             <div class="game-cover-overlay">
                 <div class="game-actions-wrapper">
+                    <button class="game-launch-btn" data-game="${game.name}"> ${t('games.launchGame')}</button>
                     <button class="mod-install-btn" data-game="${game.name}">${t('games.installMod')}</button>
                     ${(game.hasDlssEnabler || game.hasStreamline || game.hasOptiscaler) ? `<button class="mod-manage-btn" data-game="${game.name}">${t('games.manageMod')}</button>` : ''}
                     ${(game.hasDlssEnabler || game.hasOptiscaler) ? `<button class="mod-settings-btn" data-game="${game.name}">${t('games.modSettings')}</button>` : ''}
@@ -86,6 +87,25 @@ export function createGameCard(game) {
             ${upscalerHtml}
         </div>
     `;
+
+    // Bind Launch Game button
+    const launchBtn = card.querySelector('.game-launch-btn');
+    if (launchBtn) {
+        launchBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (window.electronAPI && window.electronAPI.launchGame) {
+                try {
+                    const result = await window.electronAPI.launchGame(game);
+                    if (!result.success) {
+                        showInfoModal(t('dlss.errorTitle'), result.error || 'Oyun başlatılamadı.', true);
+                    }
+                } catch (err) {
+                    console.error("Game launch error:", err);
+                    showInfoModal(t('dlss.errorTitle'), err.message || 'Oyun başlatılırken bir hata oluştu.', true);
+                }
+            }
+        });
+    }
 
     // Bind favorite button
     const favoriteBtn = card.querySelector('.favorite-btn');
@@ -215,11 +235,13 @@ export function renderGames(games) {
 
     const searchInput = document.getElementById('game-search-input');
     const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const activePlatform = state.activePlatformFilter;
 
-    let filteredGames = games;
-    if (query) {
-        filteredGames = games.filter(game => game.name.toLowerCase().includes(query));
-    }
+    const filteredGames = games.filter(game => {
+        const matchesSearch = query ? game.name.toLowerCase().includes(query) : true;
+        const matchesPlatform = activePlatform ? (game.source || '').toLowerCase() === activePlatform : true;
+        return matchesSearch && matchesPlatform;
+    });
 
     container.innerHTML = '';
 
@@ -898,6 +920,26 @@ export function initGamesListeners() {
                 setTimeout(() => searchInput.focus(), 50); // slight timeout to allow transition/rendering
             }
         }
+    });
+
+    // Platform tags filter listeners
+    const platformBtns = document.querySelectorAll('.platform-tag-btn');
+    platformBtns.forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const platform = btn.dataset.platform;
+            
+            if (state.activePlatformFilter === platform) {
+                state.activePlatformFilter = null;
+                btn.classList.remove('active');
+            } else {
+                platformBtns.forEach(b => b.classList.remove('active'));
+                state.activePlatformFilter = platform;
+                btn.classList.add('active');
+            }
+            
+            const games = await window.electronAPI.getGames();
+            renderGames(games);
+        });
     });
 
     // Global keyboard shortcut to focus search bar (Ctrl + F or Cmd + F)

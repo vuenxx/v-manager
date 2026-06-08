@@ -481,7 +481,7 @@ body {
 /* Games Grid & Cards */
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 20px;
     margin-top: 20px;
 }
@@ -553,6 +553,7 @@ body {
 }
 
 /* ---- Game Card Overlay Buttons ---- */
+.game-launch-btn,
 .remove-game-btn,
 .mod-install-btn,
 .mod-uninstall-btn,
@@ -574,6 +575,18 @@ body {
     justify-content: center;
     gap: 8px;
     letter-spacing: 0.3px;
+}
+
+.game-launch-btn {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    border-color: rgba(14, 165, 233, 0.2);
+}
+
+.game-launch-btn:hover {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    border-color: rgba(14, 165, 233, 0.4);
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.35);
 }
 
 .mod-install-btn {
@@ -683,7 +696,7 @@ body {
     cursor: pointer;
 }
 
-.remove-game-btn:active, .mod-install-btn:active {
+.game-launch-btn:active, .remove-game-btn:active, .mod-install-btn:active {
     transform: scale(0.95);
 }
 
@@ -2792,4 +2805,198 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     .developer-links {
         justify-content: center;
     }
+}
+
+/* ---- Home Info & Warnings Section ---- */
+.info-warning-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 15px;
+    margin-bottom: 25px;
+}
+
+@media (max-width: 900px) {
+    .info-warning-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.info-warning-card {
+    background: rgba(255, 255, 255, 0.015);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+}
+
+.info-warning-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 4px 0 0 4px;
+}
+
+/* Warning Card (Anti-Cheat) Styling */
+.info-warning-card.warning-card::before {
+    background: linear-gradient(to bottom, #ef4444, #b91c1c);
+}
+
+.info-warning-card.warning-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.02) 0%, rgba(0, 0, 0, 0) 100%);
+    border-color: rgba(239, 68, 68, 0.08);
+}
+
+.info-warning-card.warning-card:hover {
+    border-color: rgba(239, 68, 68, 0.25);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0.01) 100%);
+    box-shadow: 0 8px 30px rgba(239, 68, 68, 0.05);
+    transform: translateY(-2px);
+}
+
+/* Info Card (Frame Generation) Styling */
+.info-warning-card.info-card::before {
+    background: linear-gradient(to bottom, var(--accent-color, #10b981), #047857);
+}
+
+.info-warning-card.info-card {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(0, 0, 0, 0) 100%);
+    border-color: rgba(16, 185, 129, 0.08);
+}
+
+.info-warning-card.info-card:hover {
+    border-color: rgba(16, 185, 129, 0.25);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0.01) 100%);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.05);
+    transform: translateY(-2px);
+}
+
+.info-warning-card .card-icon {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.info-warning-card.warning-card .card-icon {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+}
+
+.info-warning-card.info-card .card-icon {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    color: #a7f3d0;
+}
+
+.info-warning-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.info-warning-card .card-body h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.info-warning-card.warning-card .card-body h4 {
+    color: #fca5a5;
+}
+
+.info-warning-card.info-card .card-body h4 {
+    color: #a7f3d0;
+}
+
+.info-warning-card .card-body p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.info-warning-card .card-body p a {
+    color: var(--accent-color, #10b981);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px dashed rgba(16, 185, 129, 0.4);
+    transition: all 0.2s ease;
+}
+
+.info-warning-card .card-body p a:hover {
+    color: white;
+    border-bottom-color: white;
+}
+
+/* Platform Tags Styles */
+.platform-tags-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.platform-tag-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    letter-spacing: 0.8px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    min-width: 120px;
+}
+
+.platform-tag-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.platform-tag-btn:active {
+    transform: translateY(0);
+}
+
+/* Dark theme active state with Razer green glow */
+[data-theme="dark"] .platform-tag-btn.active {
+    background: rgba(68, 214, 44, 0.08);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    box-shadow: 0 0 12px rgba(68, 214, 44, 0.15);
+    text-shadow: 0 0 8px rgba(68, 214, 44, 0.15);
+}
+
+/* Light theme active state with blue glow */
+.platform-tag-btn.active {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
 }

@@ -150,9 +150,10 @@ async function checkConflicts(targetDir) {
                 descLow.includes('version checking and file installation libraries') ||
                 descLow.includes('process status helper');
 
-            if (!isOurMod && !isWindowsSystemDll) {
-                return { conflict: true, file: dll };
-            }
+            // DURUM C (Üçüncü parti mod çakışması uyarısı kaldırıldı)
+            // if (!isOurMod && !isWindowsSystemDll) {
+            //     return { conflict: true, file: dll };
+            // }
         }
     }
     return { conflict: false };

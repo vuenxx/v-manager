@@ -1,3 +1,7 @@
+// Guard callback: settings.js bunu override eder
+let _settingsCloseGuard = null;
+export function setSettingsCloseGuard(fn) { _settingsCloseGuard = fn; }
+
 export function closeModal(modalId) {
     if (modalId) {
         const modal = document.getElementById(modalId);
@@ -5,12 +9,20 @@ export function closeModal(modalId) {
             modal.classList.remove('active');
             modal.style.zIndex = '';
         }
+        // Floating kaydet butonunu settings-modal kapanınca gizle
+        if (modalId === 'settings-modal') {
+            const saveBtn = document.getElementById('settings-save-btn');
+            if (saveBtn) saveBtn.style.display = 'none';
+        }
     } else {
         const modals = document.querySelectorAll('.modal');
         modals.forEach(modal => {
             modal.classList.remove('active');
             modal.style.zIndex = '';
         });
+        // Tüm modaller kapanırsa floating butonu da gizle
+        const saveBtn = document.getElementById('settings-save-btn');
+        if (saveBtn) saveBtn.style.display = 'none';
     }
 }
 
@@ -59,6 +71,8 @@ export function initBaseModals() {
     const scanProgressModal = document.getElementById('scan-progress-modal');
     const manualAddModal = document.getElementById('manual-add-modal');
 
+    const settingsModal = document.getElementById('settings-modal');
+
     window.addEventListener('click', (e) => {
         if (e.target === modModal) closeModal('mod-modal');
         if (e.target === dlssModal) closeModal('dlss-modal');
@@ -77,5 +91,27 @@ export function initBaseModals() {
         if (e.target === refreshConfirmModal) closeModal('refresh-confirm-modal');
         if (e.target === scanProgressModal) closeModal('scan-progress-modal');
         if (e.target === manualAddModal) closeModal('manual-add-modal');
+        // settings-modal: guard üzerinden geç
+        if (e.target === settingsModal) {
+            if (_settingsCloseGuard) {
+                _settingsCloseGuard();
+            } else {
+                closeModal('settings-modal');
+            }
+        }
     });
-}
+
+    // settings-modal X butonu: guard üzerinden geç
+    const settingsCloseBtn = settingsModal ? settingsModal.querySelector('.modal-close') : null;
+    if (settingsCloseBtn) {
+        // base.js'in genel close-modal listener'ını bu butona uygulamayı engelle
+        settingsCloseBtn.removeAttribute('data-target');
+        settingsCloseBtn.addEventListener('click', () => {
+            if (_settingsCloseGuard) {
+                _settingsCloseGuard();
+            } else {
+                closeModal('settings-modal');
+            }
+        });
+    }
+};

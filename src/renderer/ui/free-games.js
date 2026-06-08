@@ -5,6 +5,7 @@ const CACHE_TIME_KEY = 'gamerpower_cache_time';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 let allGiveaways = [];
+let filteredGiveaways = [];
 let currentPage = 1;
 const ITEMS_PER_PAGE = 9;
 
@@ -21,6 +22,30 @@ export function initFreeGames() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
             loadFreeGames(true);
+        });
+    }
+
+    // Search and filters event listeners
+    const searchInput = document.getElementById('free-games-search-input');
+    const platformSelect = document.getElementById('free-games-platform-select');
+    const searchClear = document.getElementById('free-games-search-clear');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            applyFilters();
+        });
+    }
+
+    if (platformSelect) {
+        platformSelect.addEventListener('change', () => {
+            applyFilters();
+        });
+    }
+
+    if (searchClear) {
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            applyFilters();
         });
     }
 
@@ -73,8 +98,9 @@ async function loadFreeGames(force = false) {
             if (timePassed < CACHE_DURATION) {
                 try {
                     allGiveaways = JSON.parse(cachedData);
+                    filteredGiveaways = allGiveaways;
                     currentPage = 1;
-                    renderPage(currentPage);
+                    applyFilters();
                     loading.style.display = 'none';
                     return;
                 } catch (e) {
@@ -98,8 +124,9 @@ async function loadFreeGames(force = false) {
         localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
 
         allGiveaways = data;
+        filteredGiveaways = data;
         currentPage = 1;
-        renderPage(currentPage);
+        applyFilters();
         loading.style.display = 'none';
     } catch (err) {
         console.error('Error fetching or rendering free games:', err);
@@ -117,12 +144,12 @@ function renderPage(page) {
     container.innerHTML = '';
     if (paginationContainer) paginationContainer.innerHTML = '';
 
-    if (!allGiveaways || allGiveaways.length === 0) {
-        container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); width: 100%; padding: 40px;">No giveaways active currently.</div>`;
+    if (!filteredGiveaways || filteredGiveaways.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); width: 100%; padding: 40px;" data-i18n="freeGames.noResults">${t('freeGames.noResults')}</div>`;
         return;
     }
 
-    const totalItems = allGiveaways.length;
+    const totalItems = filteredGiveaways.length;
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
     // Bounds checking
@@ -132,7 +159,7 @@ function renderPage(page) {
 
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
-    const pageItems = allGiveaways.slice(startIndex, endIndex);
+    const pageItems = filteredGiveaways.slice(startIndex, endIndex);
 
     pageItems.forEach(item => {
         const title = item.title || 'Unknown Game';
@@ -267,4 +294,47 @@ function goToPage(page) {
     if (mainContent) {
         mainContent.scrollTop = 0;
     }
+}
+
+function applyFilters() {
+    const searchInput = document.getElementById('free-games-search-input');
+    const platformSelect = document.getElementById('free-games-platform-select');
+    const searchClear = document.getElementById('free-games-search-clear');
+    
+    if (!searchInput || !platformSelect) return;
+    
+    const query = searchInput.value.toLowerCase().trim();
+    const platform = platformSelect.value;
+    
+    // Toggle search clear button
+    if (searchClear) {
+        searchClear.style.display = query.length > 0 ? 'block' : 'none';
+    }
+    
+    filteredGiveaways = allGiveaways.filter(item => {
+        // Search query check (title or description)
+        const titleMatch = !query || 
+            (item.title && item.title.toLowerCase().includes(query)) || 
+            (item.description && item.description.toLowerCase().includes(query));
+        
+        // Platform check
+        let platformMatch = true;
+        if (platform !== 'all') {
+            let matchString = platform.replace('-', ' ');
+            if (platform === 'epic-games-store') matchString = 'epic games';
+            if (platform === 'xbox-series-xs') matchString = 'xbox series';
+            if (platform === 'playstation4') matchString = 'playstation 4';
+            if (platform === 'playstation5') matchString = 'playstation 5';
+            if (platform === 'xbox-one') matchString = 'xbox one';
+            if (platform === 'nintendo-switch') matchString = 'nintendo switch';
+            
+            const itemPlatforms = (item.platforms || '').toLowerCase();
+            platformMatch = itemPlatforms.includes(matchString);
+        }
+        
+        return titleMatch && platformMatch;
+    });
+    
+    currentPage = 1;
+    renderPage(currentPage);
 }

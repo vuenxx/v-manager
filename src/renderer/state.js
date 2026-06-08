@@ -9,5 +9,6 @@ export const state = {
     isDownloadingStreamline: false,
     isScanning: false,
     currentBlacklistPage: 1,
-    gameSortMethod: 'name' // 'name', 'source'
+    gameSortMethod: 'name', // 'name', 'source'
+    activePlatformFilter: null
 };

@@ -142,16 +142,53 @@ async function restoreStreamline(gameName) {
                 
                 // Fetch the hash of the mod file that was installed
                 let modHash = null;
-                if (game.streamlineVersion) {
-                    const modPath = path.join(config.streamlineModsPath, game.streamlineVersion, originalName);
-                    if (fs.existsSync(modPath)) {
+                let modDirName = game.streamlineModVersion;
+
+                // Fallback: search downloaded mods asynchronously if modDirName is not set or not found
+                if (!modDirName || !fs.existsSync(path.join(config.streamlineModsPath, modDirName))) {
+                    try {
+                        const modsPathExists = await fs.promises.access(config.streamlineModsPath)
+                            .then(() => true)
+                            .catch(() => false);
+                        
+                        if (modsPathExists) {
+                            const entries = await fs.promises.readdir(config.streamlineModsPath, { withFileTypes: true });
+                            const dirs = entries.filter(e => e.isDirectory()).map(e => e.name);
+
+                            for (const dir of dirs) {
+                                const candidatePath = path.join(config.streamlineModsPath, dir, originalName);
+                                const candidateExists = await fs.promises.access(candidatePath)
+                                    .then(() => true)
+                                    .catch(() => false);
+
+                                if (candidateExists) {
+                                    const ver = await utils.getFileVersion(candidatePath);
+                                    if (ver && utils.compareVersions(ver, game.streamlineVersion) === 0) {
+                                        modDirName = dir;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[STREAMLINE] Error scanning mod folders for version fallback:', e);
+                    }
+                }
+
+                if (modDirName) {
+                    const modPath = path.join(config.streamlineModsPath, modDirName, originalName);
+                    const modPathExists = await fs.promises.access(modPath)
+                        .then(() => true)
+                        .catch(() => false);
+
+                    if (modPathExists) {
                         modHash = await utils.getFileHash(modPath);
                     }
                 }
 
                 // If active file hash is different from the backup AND different from the installed mod,
                 // the game has been updated (e.g. Steam update overwrote the mod file with a new version).
-                if (originalHash && currentHash !== originalHash && currentHash !== modHash) {
+                if (originalHash && modHash && currentHash !== originalHash && currentHash !== modHash) {
                     gameUpdated = true;
                     console.log(`[STREAMLINE] Oyun güncellemesi saptandı: ${originalName} (Mevcut: ${currentHash}, Orijinal: ${originalHash}, Mod: ${modHash})`);
                     break;
@@ -180,6 +217,7 @@ async function restoreStreamline(gameName) {
             game.streamlinePath = null;
             // Clean up hashes from database
             delete game.streamlineHashes;
+            delete game.streamlineModVersion;
             if (game.upscalers) game.upscalers.streamline = false;
             config.saveGamesState();
 
@@ -250,6 +288,7 @@ async function restoreStreamline(gameName) {
         game.streamlinePath = detection.streamlinePath;
         game.upscalers = detection;
         delete game.streamlineHashes;
+        delete game.streamlineModVersion;
 
         config.saveGamesState();
         return { success: true, games: config.getExistingGamesState() };
@@ -606,6 +645,7 @@ async function installStreamline(game, version, targetDir) {
             dbGame.streamlinePath = detection.streamlinePath;
             dbGame.upscalers = detection;
             dbGame.streamlineHashes = streamlineHashes;
+            dbGame.streamlineModVersion = version;
             config.saveGamesState();
             console.log(`[STREAMLINE] Veritabanı ve durum başarıyla güncellendi: ${dbGame.name}`);
         } else {

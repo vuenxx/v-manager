@@ -31,6 +31,7 @@ function getStreamlineModsPath() {
 function getUserGamesFile() { return path.join(app.getPath('userData'), 'user-games.json'); }
 function getCustomFoldersFile() { return path.join(app.getPath('userData'), 'custom-folders.json'); }
 function getCustomSubfoldersStateFile() { return path.join(app.getPath('userData'), 'custom-subfolders-state.json'); }
+function getModPresetsFile() { return path.join(app.getPath('userData'), 'mod-presets.json'); }
 
 const DEVELOPER_GAMES_FILE = path.join(projectRoot, 'developer-games.json');
 
@@ -371,6 +372,7 @@ function deduplicateState() {
                     existing.hasStreamline = true;
                     if (game.streamlineVersion) existing.streamlineVersion = game.streamlineVersion;
                     if (game.streamlinePath) existing.streamlinePath = game.streamlinePath;
+                    if (game.streamlineModVersion) existing.streamlineModVersion = game.streamlineModVersion;
                     if (game.streamlineHashes) {
                         existing.streamlineHashes = { ...existing.streamlineHashes, ...game.streamlineHashes };
                     }
@@ -469,6 +471,37 @@ function saveCustomSubfoldersState(state) {
     }
 }
 
+/** Read user-saved mod presets for a given mod ('dlss-enabler' | 'optiscaler'). */
+function getModPresets(mod) {
+    try {
+        const file = getModPresetsFile();
+        if (fs.existsSync(file)) {
+            const all = JSON.parse(fs.readFileSync(file, 'utf-8'));
+            return Array.isArray(all[mod]) ? all[mod] : [];
+        }
+    } catch (e) {
+        console.error('[CONFIG] Could not read mod-presets.json:', e.message);
+    }
+    return [];
+}
+
+/** Save user presets for a given mod into mod-presets.json. */
+function saveModPresets(mod, presets) {
+    try {
+        const file = getModPresetsFile();
+        let all = {};
+        if (fs.existsSync(file)) {
+            try { all = JSON.parse(fs.readFileSync(file, 'utf-8')); } catch(_) {}
+        }
+        all[mod] = presets;
+        atomicWriteFile(file, JSON.stringify(all, null, 2));
+        console.log(`[CONFIG] mod-presets.json saved for mod="${mod}".`);
+    } catch (e) {
+        console.error('[CONFIG] Could not write mod-presets.json:', e.message);
+        throw e;
+    }
+}
+
 module.exports = {
     STEAMGRID_API_KEY,
     get GAMES_FILE() { return getGamesFile(); },
@@ -518,5 +551,9 @@ module.exports = {
     getCustomFolders,
     saveCustomFolders,
     getCustomSubfoldersState,
-    saveCustomSubfoldersState
+    saveCustomSubfoldersState,
+
+    // Mod presets
+    getModPresets,
+    saveModPresets
 };

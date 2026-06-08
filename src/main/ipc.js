@@ -38,6 +38,10 @@ function registerIpcHandlers() {
         return config.getExistingGamesState();
     });
 
+    ipcMain.handle('launch-game', async (event, game) => {
+        return await require('./mods/launcher').launchGame(game);
+    });
+
     // Scanner
     ipcMain.on('start-scan', async (event, scanSettings) => {
         if (isScanning) return; // Prevent multiple scans
@@ -446,6 +450,28 @@ function registerIpcHandlers() {
                 return { success: false, error: 'Dosya kullanılıyor. Oyun açık olabilir, oyunu kapatıp tekrar deneyin.' };
             }
             return { success: false, error: err.message };
+        }
+    });
+
+    // Mod Presets
+    ipcMain.handle('mod-presets:read', async (event, { mod }) => {
+        console.log(`[IPC] mod-presets:read for mod="${mod}"`);
+        try {
+            return { success: true, presets: config.getModPresets(mod) };
+        } catch (e) {
+            console.error('[IPC] mod-presets:read error:', e.message);
+            return { success: false, presets: [], error: e.message };
+        }
+    });
+
+    ipcMain.handle('mod-presets:write', async (event, { mod, presets }) => {
+        console.log(`[IPC] mod-presets:write for mod="${mod}", count=${presets ? presets.length : 0}`);
+        try {
+            config.saveModPresets(mod, presets);
+            return { success: true };
+        } catch (e) {
+            console.error('[IPC] mod-presets:write error:', e.message);
+            return { success: false, error: e.message };
         }
     });
 

@@ -8,9 +8,9 @@ export const DLSS_ENABLER_SCHEMA = {
         IlluminationStrength: { type: 'slider', label: 'Illumination Strength', min: 0, max: 100, step: 1 },
         OcclusionStrength: { type: 'slider', label: 'Occlusion Strength', min: 0, max: 100, step: 1 },
         HudDetectionMode: { type: 'dropdown', label: 'HUD Detection Mode', options: [
-            { val: 0, label: 'Kapalı (0)' },
-            { val: 1, label: 'Mod 1' },
-            { val: 2, label: 'Mod 2' }
+            { val: 0, label: 'Kapalı (0)', labelKey: 'modSettings.options.disabled0' },
+            { val: 1, label: 'Mod 1', labelKey: 'modSettings.options.mode1' },
+            { val: 2, label: 'Mod 2', labelKey: 'modSettings.options.mode2' }
         ]}
     },
     Reflex: {
@@ -32,16 +32,16 @@ export const DLSS_ENABLER_SCHEMA = {
         SaturationBoost: { type: 'slider', label: 'Saturation Boost', min: 0, max: 1, step: 0.1 }
     },
     Performance: {
-        OverdriveMode: { type: 'dropdown', label: 'Overdrive Mode', options: [{ val: 0, label: 'Kapalı' }, { val: 1, label: 'Açık' }] },
+        OverdriveMode: { type: 'dropdown', label: 'Overdrive Mode', options: [{ val: 0, label: 'Kapalı', labelKey: 'modSettings.options.disabled' }, { val: 1, label: 'Açık', labelKey: 'modSettings.options.enabled' }] },
         HudInterpolation: { type: 'toggle', label: 'HUD Interpolation' },
-        MFGOverrideMode: { type: 'dropdown', label: 'MFG Override Mode', options: [{ val: 0, label: 'Kapalı' }, { val: 1, label: 'Açık' }] },
+        MFGOverrideMode: { type: 'dropdown', label: 'MFG Override Mode', options: [{ val: 0, label: 'Kapalı (0)', labelKey: 'modSettings.options.mfg0' }, { val: 1, label: '1X MFG (1)', labelKey: 'modSettings.options.mfg1' }, { val: 2, label: '2X MFG (2)', labelKey: 'modSettings.options.mfg2' }, { val: 3, label: '3X MFG (3)', labelKey: 'modSettings.options.mfg3' }, { val: 4, label: '4X MFG (4)', labelKey: 'modSettings.options.mfg4' }, { val: 5, label: '5X MFG (5)', labelKey: 'modSettings.options.mfg5' }, { val: 6, label: '6X MFG (6)', labelKey: 'modSettings.options.mfg6' }] },
         MFGHotkeys: { type: 'toggle', label: 'MFG Hotkeys' },
         DynamicMFG: { type: 'toggle', label: 'Dynamic MFG' },
         DynamicMFGThreshold2: { type: 'slider', label: 'Threshold 2', min: 0, max: 144, step: 1 },
         DynamicMFGThreshold3: { type: 'slider', label: 'Threshold 3', min: 0, max: 144, step: 1 },
         DynamicMFGThreshold4: { type: 'slider', label: 'Threshold 4', min: 0, max: 144, step: 1 },
         DynamicMFGThreshold5: { type: 'slider', label: 'Threshold 5', min: 0, max: 144, step: 1 },
-        DFGMode: { type: 'dropdown', label: 'DFG Mode', options: [{ val: 0, label: 'Kapalı' }, { val: 1, label: 'Açık' }] },
+        DFGMode: { type: 'dropdown', label: 'DFG Mode', options: [{ val: 0, label: 'Kapalı', labelKey: 'modSettings.options.disabled' }, { val: 1, label: 'Açık', labelKey: 'modSettings.options.enabled' }] },
         DFGTargetFps: { type: 'slider', label: 'DFG Target FPS', min: 30, max: 240, step: 1 },
         DFGInstinct: { type: 'toggle', label: 'DFG Instinct' },
         DFGMinFps: { type: 'slider', label: 'DFG Min FPS', min: 0, max: 144, step: 1 },
@@ -56,7 +56,7 @@ export const DLSS_ENABLER_SCHEMA = {
     },
     GhostBuster: {
         Enabled: { type: 'toggle', label: 'Enabled' },
-        DebugMode: { type: 'dropdown', label: 'Debug Mode', options: [{ val: 0, label: 'Kapalı' }, { val: 1, label: 'Açık' }] }
+        DebugMode: { type: 'dropdown', label: 'Debug Mode', options: [{ val: 0, label: 'Kapalı', labelKey: 'modSettings.options.disabled' }, { val: 1, label: 'Açık', labelKey: 'modSettings.options.enabled' }] }
     }
 };export const OPTISCALER_SCHEMA = {
     Upscalers: {
@@ -212,45 +212,98 @@ export const OPTISCALER_FOCUSED_KEYS = {
     Plugins: {
         LoadAsiPlugins: {
             label: 'ASI Eklentiler (LoadAsiPlugins)',
+            labelKey: 'modSettings.labels.loadAsiPlugins',
             type: 'dropdown',
             options: [
-                { val: 'auto', label: 'Kapalı (Varsayılan)' },
-                { val: 'true', label: 'Açık' }
+                { val: 'auto', label: 'Kapalı (Varsayılan)', labelKey: 'modSettings.options.disabledDefault' },
+                { val: 'true', label: 'Açık', labelKey: 'modSettings.options.enabled' }
             ]
         }
     },
     Menu: {
         ShowFps: {
             label: 'FPS Göster (ShowFps)',
+            labelKey: 'modSettings.labels.showFps',
             type: 'dropdown',
             options: [
-                { val: 'auto', label: 'Kapalı (Varsayılan)' },
-                { val: 'true', label: 'Açık' }
+                { val: 'auto', label: 'Kapalı (Varsayılan)', labelKey: 'modSettings.options.disabledDefault' },
+                { val: 'true', label: 'Açık', labelKey: 'modSettings.options.enabled' }
             ]
         },
         FpsOverlayPos: {
             label: 'FPS Pozisyonu (FpsOverlayPos)',
+            labelKey: 'modSettings.labels.fpsOverlayPos',
             type: 'dropdown',
             options: [
-                { val: 'auto', label: 'Varsayılan' },
-                { val: '0',    label: 'Sol Üst' },
-                { val: '1',    label: 'Sağ Üst' },
-                { val: '2',    label: 'Sol Alt' },
-                { val: '3',    label: 'Sağ Alt' }
+                { val: 'auto', label: 'Varsayılan', labelKey: 'modSettings.options.default' },
+                { val: '0',    label: 'Sol Üst', labelKey: 'modSettings.options.topLeft' },
+                { val: '1',    label: 'Sağ Üst', labelKey: 'modSettings.options.topRight' },
+                { val: '2',    label: 'Sol Alt', labelKey: 'modSettings.options.bottomLeft' },
+                { val: '3',    label: 'Sağ Alt', labelKey: 'modSettings.options.bottomRight' }
             ]
         },
         FpsOverlayType: {
             label: 'FPS Tipi (FpsOverlayType)',
+            labelKey: 'modSettings.labels.fpsOverlayType',
             type: 'dropdown',
             options: [
-                { val: 'auto', label: 'Varsayılan' },
-                { val: '0',    label: 'Sadece FPS' },
-                { val: '1',    label: 'Basitleştirilmiş' },
-                { val: '2',    label: 'Detaylı' },
-                { val: '3',    label: 'Detaylı + Grafikli' },
-                { val: '4',    label: 'Full' },
-                { val: '5',    label: 'Full + Grafikli' },
-                { val: '6',    label: 'Reflex Zamanlamaları' }
+                { val: 'auto', label: 'Varsayılan', labelKey: 'modSettings.options.default' },
+                { val: '0',    label: 'Sadece FPS', labelKey: 'modSettings.options.fpsOnly' },
+                { val: '1',    label: 'Basitleştirilmiş', labelKey: 'modSettings.options.simplified' },
+                { val: '2',    label: 'Detaylı', labelKey: 'modSettings.options.detailed' },
+                { val: '3',    label: 'Detaylı + Grafikli', labelKey: 'modSettings.options.detailedGraph' },
+                { val: '4',    label: 'Full', labelKey: 'modSettings.options.full' },
+                { val: '5',    label: 'Full + Grafikli', labelKey: 'modSettings.options.fullGraph' },
+                { val: '6',    label: 'Reflex Zamanlamaları', labelKey: 'modSettings.options.reflexTimings' }
+            ]
+        }
+    }
+};
+
+export const OPTISCALER_INSTALL_KEYS = {
+    FrameGen: {
+        Enabled: {
+            label: 'Etkinleştirildi (Enabled)',
+            labelKey: 'modSettings.labels.enabled',
+            type: 'dropdown',
+            options: [
+                { val: 'true', label: 'Açık (True)', labelKey: 'modSettings.options.true' },
+                { val: 'false', label: 'Kapalı (False)', labelKey: 'modSettings.options.false' }
+            ]
+        },
+        FGInput: {
+            label: 'FG Girdisi (FGInput)',
+            labelKey: 'modSettings.labels.fgInput',
+            type: 'dropdown',
+            options: [
+                { val: 'nofg', label: 'nofg' },
+                { val: 'dlssg', label: 'dlssg' },
+                { val: 'nukems', label: 'nukems' },
+                { val: 'fsrfg', label: 'fsrfg' },
+                { val: 'upscaler', label: 'upscaler' },
+                { val: 'fsrfg30', label: 'fsrfg30' }
+            ]
+        },
+        FGOutput: {
+            label: 'FG Çıktısı (FGOutput)',
+            labelKey: 'modSettings.labels.fgOutput',
+            type: 'dropdown',
+            options: [
+                { val: 'nofg', label: 'nofg' },
+                { val: 'fsrfg', label: 'fsrfg' },
+                { val: 'xefg', label: 'xefg' },
+                { val: 'nukems', label: 'nukems' }
+            ]
+        }
+    },
+    OptiFG: {
+        HUDFix: {
+            label: 'Arayüz Düzeltmesi (HUDFix)',
+            labelKey: 'modSettings.labels.hudFix',
+            type: 'dropdown',
+            options: [
+                { val: 'true', label: 'Açık (True)', labelKey: 'modSettings.options.true' },
+                { val: 'false', label: 'Kapalı (False)', labelKey: 'modSettings.options.false' }
             ]
         }
     }

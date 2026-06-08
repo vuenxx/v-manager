@@ -1,10 +1,10 @@
 import { showInfoModal } from './modals/info.js';
 
 export function initNavigation() {
-    // External links logic
-    const externalLinks = document.querySelectorAll('.external-link');
-    externalLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
+    // External links logic (using event delegation to support dynamic translation strings)
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('.external-link');
+        if (link) {
             e.preventDefault();
             const url = link.getAttribute('data-url');
             if (url && window.electronAPI) {
@@ -14,7 +14,7 @@ export function initNavigation() {
                     window.electronAPI.openExternal(url);
                 }
             }
-        });
+        }
     });
 
     // Tab switching logic

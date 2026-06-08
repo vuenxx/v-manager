@@ -31,7 +31,7 @@
     }
   },
   "author": "vuenxx",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "devDependencies": {
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3"

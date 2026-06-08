@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { exec } = require('child_process');
 
@@ -431,6 +432,7 @@ async function processAndStreamGame(game, event, scanSettings) {
         existingGame.streamlineVersion = detectedUpscalers.streamlineVersion || existingGame.streamlineVersion || null;
         existingGame.streamlinePath = detectedUpscalers.streamlinePath || existingGame.streamlinePath || null;
         existingGame.streamlineHashes = existingGame.streamlineHashes || {};
+        existingGame.streamlineModVersion = existingGame.streamlineModVersion || null;
 
         existingGame.hasOptiscaler = detectedUpscalers.optiscaler;
         existingGame.optiscalerVersion = detectedUpscalers.optiscalerVersion || null;
@@ -459,6 +461,9 @@ async function processAndStreamGame(game, event, scanSettings) {
             existingGame.cover = localCoverPath || null;
         }
         existingGame.isFavorite = isFavorite;
+        if (game.id) {
+            existingGame.launcherId = game.id;
+        }
 
         if (currentScanFoundGames) {
             // H-15: Inside a scan — skip per-game save; runScan saves once at the end
@@ -483,6 +488,7 @@ async function processAndStreamGame(game, event, scanSettings) {
             gameRoot: derivedRoot,
             cover: localCoverPath || null,
             source: finalizedSource,
+            launcherId: game.id || null,
             hasDlssEnabler: detectedUpscalers.dlssEnabler,
             hasOptiscaler: detectedUpscalers.optiscaler || false,
             hasStreamline: detectedUpscalers.streamline || false,
@@ -493,6 +499,7 @@ async function processAndStreamGame(game, event, scanSettings) {
             streamlineVersion: detectedUpscalers.streamlineVersion,
             streamlinePath: detectedUpscalers.streamlinePath,
             streamlineHashes: {},
+            streamlineModVersion: null,
             upscalers: detectedUpscalers,
             isFavorite: isFavorite
         };
@@ -699,6 +706,193 @@ async function scanRegistryGames(event, progressTracker, scanSettings) {
     });
 }
 
+async function scanXboxGames(event, progressTracker, scanSettings) {
+    console.log('[XBOX-SCAN] Starting Xbox / UWP game scan via AppX packages...');
+    
+    const psScript = `
+$ErrorActionPreference = 'SilentlyContinue'
+Get-AppxPackage | Where-Object { $_.InstallLocation -ne $null -and $_.SignatureKind -eq 'Store' } | ForEach-Object {
+    $dir = $_.InstallLocation
+    $manifestPath = Join-Path $dir 'AppxManifest.xml'
+    if (Test-Path $manifestPath) {
+        [xml]$manifest = Get-Content $manifestPath
+        $hasGameConfig = Test-Path (Join-Path $dir 'MicrosoftGame.config')
+        $appNode = $manifest.Package.Applications.Application
+        $hasGameCategory = $false
+        $hasXboxProtocol = $false
+        if ($appNode -ne $null) {
+            $apps = if ($appNode -is [array]) { $appNode } else { @($appNode) }
+            foreach ($app in $apps) {
+                $exts = if ($app.Extensions.Extension -is [array]) { $app.Extensions.Extension } else { @($app.Extensions.Extension) }
+                foreach ($ext in $exts) {
+                    if ($ext.Category -eq 'windows.game') { $hasGameCategory = $true }
+                    if ($ext.Category -eq 'windows.protocol') {
+                        $protocols = if ($ext.Protocol -is [array]) { $ext.Protocol } else { @($ext.Protocol) }
+                        foreach ($proto in $protocols) {
+                            if ($proto.Name -like 'ms-xbl-*') { $hasXboxProtocol = $true }
+                        }
+                    }
+                }
+            }
+        }
+        if ($hasGameConfig -or $hasGameCategory -or $hasXboxProtocol) {
+            $firstApp = if ($appNode -is [array]) { $appNode[0] } else { $appNode }
+            $exe = $firstApp.Executable
+            if (-not $exe -and ($appNode -is [array])) {
+                foreach ($a in $appNode) {
+                    if ($a.Executable) {
+                        $firstApp = $a
+                        $exe = $a.Executable
+                        break
+                    }
+                }
+            }
+            $displayName = $manifest.Package.Properties.DisplayName
+            if ($firstApp.VisualElements.DisplayName -and -not $displayName) {
+                $displayName = $firstApp.VisualElements.DisplayName
+            }
+            [PSCustomObject]@{
+                Name = $_.Name
+                DisplayName = $displayName
+                Path = $dir
+                PFN = $_.PackageFamilyName
+                Executable = $exe
+                AppId = $firstApp.Id
+            }
+        }
+    }
+} | ConvertTo-Json -Compress
+`;
+
+    const tempScriptPath = path.join(os.tmpdir(), `vmanager_xbox_scan_${Date.now()}.ps1`);
+    
+    try {
+        fs.writeFileSync(tempScriptPath, psScript, 'utf8');
+    } catch (err) {
+        console.error('[XBOX-SCAN] Failed to write temporary PowerShell script:', err);
+        return;
+    }
+
+    return new Promise((resolve) => {
+        const cmd = `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${tempScriptPath}"`;
+        exec(cmd, { maxBuffer: 1024 * 1024 * 10 }, async (error, stdout) => {
+            // Clean up temp file
+            try {
+                if (fs.existsSync(tempScriptPath)) {
+                    fs.unlinkSync(tempScriptPath);
+                }
+            } catch (err) {
+                console.error('[XBOX-SCAN] Failed to delete temporary PowerShell script:', err);
+            }
+
+            if (error || !stdout) {
+                console.log('[XBOX-SCAN] PowerShell error or empty output:', error);
+                resolve();
+                return;
+            }
+
+            try {
+                let parsed = JSON.parse(stdout.trim());
+                if (!parsed) {
+                    resolve();
+                    return;
+                }
+                if (!Array.isArray(parsed)) parsed = [parsed];
+
+                console.log(`[XBOX-SCAN] PowerShell query found ${parsed.length} Xbox/UWP games`);
+                if (progressTracker) progressTracker.total += parsed.length;
+
+                for (const app of parsed) {
+                    try {
+                        const installLocation = app.Path;
+                        let exeName = app.Executable;
+                        if (Array.isArray(exeName)) {
+                            exeName = exeName[0];
+                        } else if (typeof exeName === 'object' && exeName) {
+                            exeName = exeName['#text'] || Object.values(exeName)[0];
+                        }
+
+                        let appId = app.AppId;
+                        if (Array.isArray(appId)) {
+                            appId = appId[0];
+                        } else if (typeof appId === 'object' && appId) {
+                            appId = appId['#text'] || Object.values(appId)[0];
+                        }
+
+                        const pfn = app.PFN;
+                        
+                        if (!installLocation || !pfn || !appId || !exeName) {
+                            console.warn('[XBOX-SCAN] Skipping app due to missing properties:', app.Name);
+                            if (progressTracker) {
+                                progressTracker.current++;
+                                if (event) event.sender.send('scan-progress', Math.round((progressTracker.current / progressTracker.total) * 100));
+                            }
+                            continue;
+                        }
+
+                        const finalExePath = path.join(installLocation, exeName);
+                        const launcherId = `${pfn}!${appId}`;
+
+                        // Resolve display name cleanly
+                        let displayName = app.DisplayName || app.Name;
+                        if (!displayName || displayName.startsWith('ms-resource:')) {
+                            const manifestPath = path.join(installLocation, 'AppxManifest.xml');
+                            if (fs.existsSync(manifestPath)) {
+                                try {
+                                    const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
+                                    // Look for <Properties><DisplayName>...</DisplayName></Properties>
+                                    const propMatch = manifestContent.match(/<Properties>[\s\S]*?<DisplayName>([^<]+)<\/DisplayName>[\s\S]*?<\/Properties>/i);
+                                    if (propMatch && propMatch[1]) {
+                                        const val = propMatch[1].trim();
+                                        if (!val.startsWith('ms-resource:')) {
+                                            displayName = val;
+                                        } else {
+                                            displayName = path.basename(installLocation) || app.Name.split('.')[1] || app.Name;
+                                        }
+                                    } else {
+                                        const dispMatch = manifestContent.match(/<DisplayName>([^<]+)<\/DisplayName>/i);
+                                        if (dispMatch && dispMatch[1] && !dispMatch[1].trim().startsWith('ms-resource:')) {
+                                            displayName = dispMatch[1].trim();
+                                        } else {
+                                            displayName = path.basename(installLocation) || app.Name.split('.')[1] || app.Name;
+                                        }
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+
+                        // Format name nicely (replace dashes/underscores with spaces)
+                        if (displayName) {
+                            displayName = displayName.replace(/[\-_]/g, ' ').trim();
+                        }
+
+                        await processAndStreamGame({
+                            name: displayName,
+                            id: launcherId,
+                            exePath: finalExePath,
+                            gameRoot: installLocation,
+                            source: 'xbox',
+                            coverUrl: null
+                        }, event, scanSettings);
+
+                    } catch (e) {
+                        console.error(`[XBOX-SCAN] Error processing Xbox package ${app.Name}:`, e);
+                    }
+
+                    if (progressTracker) {
+                        progressTracker.current++;
+                        const percent = Math.round((progressTracker.current / progressTracker.total) * 100);
+                        if (event) event.sender.send('scan-progress', percent);
+                    }
+                }
+            } catch (e) {
+                console.error('[XBOX-SCAN] JSON Parse error for packages list:', e);
+            }
+            resolve();
+        });
+    });
+}
+
 async function scanUserRegisteredGames(event, progressTracker, scanSettings) {
     console.log('[SCANNER] Scanning user-registered games (user-games.json)...');
     try {
@@ -814,7 +1008,10 @@ async function runScan(event, scanSettings) {
     if (sources.includes('Epic')) {
         await scanEpicGames(event, progressTracker, scanSettings);
     }
-    const registrySources = ['GOG', 'EA', 'Ubisoft', 'Xbox'];
+    if (sources.includes('Xbox')) {
+        await scanXboxGames(event, progressTracker, scanSettings);
+    }
+    const registrySources = ['GOG', 'EA', 'Ubisoft'];
     if (registrySources.some(s => sources.includes(s))) {
         await scanRegistryGames(event, progressTracker, scanSettings);
     }
@@ -879,6 +1076,7 @@ module.exports = {
     processAndStreamGame,
     scanSteamGames,
     scanEpicGames,
+    scanXboxGames,
     scanRegistryGames,
     scanUserRegisteredGames,
     refreshMissingCovers,
