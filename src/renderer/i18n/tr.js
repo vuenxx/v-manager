@@ -564,5 +564,7 @@ export const tr = {
         treesizeDesc: 'Disk alanınızı görselleştirin. Hangi klasörlerin en çok yer kapladığını saniyeler içinde bulun ve gereksiz dosyaları temizleyerek yer açın.',
         everythingTitle: 'Everything Search',
         everythingDesc: 'Bilgisayarınızdaki dosya ve klasörleri anında bulun. Ultra hızlı arama motoru ile zaman kazanın, dosyalarınızı yönetin.',
+        utoolboxTitle: 'Ü Toolbox',
+        utoolboxDesc: 'Windows 11 deneyiminizi iyileştirmek, gizliliğinizi artırmak ve sistem performansını maksimize etmek için tasarlanmış açık kaynaklı araç kutusu.',
     },
 };

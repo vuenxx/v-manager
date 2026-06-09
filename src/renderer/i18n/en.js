@@ -565,5 +565,7 @@ export const en = {
         treesizeDesc: 'Visualize your disk space. Find which folders take up the most space in seconds and clear unnecessary files to free up space.',
         everythingTitle: 'Everything Search',
         everythingDesc: 'Find files and folders on your computer instantly. Save time with an ultra-fast search engine and manage your files.',
+        utoolboxTitle: 'Ü Toolbox',
+        utoolboxDesc: 'An open-source toolset designed to improve Windows 11 experience, enhance privacy, and maximize system performance.',
     },
 };
