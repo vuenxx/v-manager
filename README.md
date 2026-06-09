@@ -137,7 +137,17 @@ Uygulamanın temel modülleri ve görevleri şu şekildedir:
 
 ### 🔑 Lisans ve Geri Bildirim
 
-Bu yazılım ve kaynak kodları tescillidir (Proprietary). Berkay Küçükbekar'ın yazılı izni olmaksızın kopyalanması, değiştirilmesi, dağıtılması veya herhangi bir ortamda türetilmiş eserler oluşturulması kesinlikle yasaktır. Tüm hakları saklıdır.
+**V-Manager - Kullanıcı Lisans Sözleşmesi**
+
+Bu yazılım "olduğu gibi" sunulmaktadır. Yazılımın kullanımıyla ilgili tüm riskler kullanıcıya aittir. 
+
+1. **Lisans Hakkı:** Bu yazılım ve kaynak kodları tescillidir (Proprietary). Berkay Küçükbekar'ın yazılı izni olmaksızın kopyalanması, değiştirilmesi, dağıtılması veya herhangi bir ortamda türetilmiş eserler oluşturulması kesinlikle yasaktır. Tüm hakları saklıdır.
+2. **Sorumluluk Reddi:** Geliştirici, bu yazılımın kullanımından doğabilecek herhangi bir veri kaybı veya sistem hasarından sorumlu tutulamaz.
+3. **Değişiklikler:** Geliştirici, yazılımın özelliklerini veya bu sözleşmeyi dilediği zaman güncelleme hakkını saklı tutar.
+
+Uygulamayı kurarak bu şartları kabul etmiş sayılırsınız.
+
+---
 
 Karşılaştığınız hataları veya önerilerinizi **Issues** sekmesinden bildirebilirsiniz.
 
@@ -251,7 +261,17 @@ The core modules of the application and their responsibilities:
 
 ### 🔑 License & Feedback
 
-This software and its source code are proprietary. Unauthorized copying, modification, distribution, or creation of derivative works via any medium is strictly prohibited. Copyright (C) 2026 Berkay Küçükbekar. All Rights Reserved.
+**V-Manager - User License Agreement**
+
+This software is provided "as is", without warranty of any kind. Use at your own risk.
+
+1. **License Rights:** This software and its source code are proprietary. Unauthorized copying, modification, distribution, or creation of derivative works via any medium is strictly prohibited. Copyright (C) 2026 Berkay Küçükbekar. All Rights Reserved.
+2. **Disclaimer:** The developer is not responsible for any data loss or system damage arising from the use of this software.
+3. **Modifications:** The developer reserves the right to update features or this agreement at any time.
+
+By installing this software, you agree to these terms.
+
+---
 
 You can report bugs or suggestions via the **Issues** tab.
 
