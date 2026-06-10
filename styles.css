@@ -3000,3 +3000,44 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     color: var(--accent-color);
     box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
 }
+
+/* Home Tab Footer Notice styling */
+#home {
+    position: relative;
+    padding-bottom: 80px;
+}
+
+.footer-notice {
+    position: absolute;
+    bottom: 24px;
+    right: 40px;
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    opacity: 0.65;
+    transition: opacity 0.2s ease, color 0.2s ease;
+    text-align: right;
+    pointer-events: auto;
+    z-index: 5;
+}
+
+.footer-notice:hover {
+    opacity: 0.95;
+    color: var(--text-primary);
+}
+
+.footer-notice a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(68, 214, 44, 0.15);
+}
+
+:root:not([data-theme="dark"]) .footer-notice a {
+    border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+
+.footer-notice a:hover {
+    color: var(--accent-hover);
+    border-bottom-color: var(--accent-hover);
+}

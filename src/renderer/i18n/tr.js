@@ -36,6 +36,7 @@ export const tr = {
         warningDesc: 'League of Legends (Vanguard), CS2 (VAC), Valorant gibi sunucu taraflı üçüncü parti hile koruma (Anti-Cheat) sistemine sahip çevrimiçi rekabetçi oyunlarda bu modları <strong>kesinlikle kullanmayınız</strong>. Oyuna üçüncü taraf DLL enjeksiyonu yapıldığı için hesabınız kalıcı olarak yasaklanabilir (ban).',
         supportTitle: 'Resmi Kare Oluşturma (Frame Generation) Desteği',
         supportDesc: 'DLSS Enabler ve Multi Frame Generation modlarının çalışabilmesi için, ekran kartınızın modelinden bağımsız olarak, oyunun kendisinin resmi olarak <strong>DLSS Frame Generation (Multi Frame Gen)</strong> desteğine sahip olması gerekmektedir. Desteklenen oyunların güncel listesini kontrol etmek için <a href="#" class="external-link" data-url="https://www.nvidia.com/en-us/geforce/news/nvidia-rtx-games-engines-apps/">NVIDIA RTX Oyunları Listesi</a> adresini ziyaret edebilir ve ilgili oyunun karşısında <strong>NV</strong> veya <strong>6X</strong> ibarelerinin bulunduğundan emin olabilirsiniz.',
+        footerNotice: 'Bu uygulamayı kullanarak <a href="#" class="external-link" data-url="https://github.com/vuenxx/v-manager/blob/main/LICENSE">kullanıcı sözleşmesini</a> kabul etmiş sayılırsınız.',
     },
     games: {
         title: 'Oyunlar',

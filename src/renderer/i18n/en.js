@@ -36,6 +36,7 @@ export const en = {
         warningDesc: 'Do <strong>strictly not use</strong> these mods in competitive online games that have server-side third-party anti-cheat systems, such as League of Legends (Vanguard), CS2 (VAC), or Valorant. Since these mods inject third-party DLLs into the game, your account could be permanently banned.',
         supportTitle: 'Official Frame Generation Support Requirement',
         supportDesc: 'For DLSS Enabler and Multi Frame Generation mods to work, the game itself must officially support <strong>DLSS Frame Generation (Multi Frame Gen)</strong>, regardless of your graphics card model. You can check the current list of supported games at the <a href="#" class="external-link" data-url="https://www.nvidia.com/en-us/geforce/news/nvidia-rtx-games-engines-apps/">NVIDIA RTX Games List</a>, ensuring that <strong>NV</strong> or <strong>6X</strong> is displayed next to the game under the DLSS Multi Frame Gen column.',
+        footerNotice: 'By using this application, you are deemed to have accepted the <a href="#" class="external-link" data-url="https://github.com/vuenxx/v-manager/blob/main/LICENSE">user agreement</a>.',
     },
     games: {
         title: 'Games',
