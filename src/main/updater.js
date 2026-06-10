@@ -60,6 +60,9 @@ autoUpdater.on('error', (err) => {
 
 // ─── Dışa Açılan Fonksiyonlar ─────────────────────────────────────────────────
 
+let autoCheckInterval = null;
+const AUTO_CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
+
 /**
  * Otomatik updater'ı başlatır.
  * SADECE paketlenmiş (production) build'de çalışır.
@@ -77,6 +80,26 @@ function initAutoUpdater() {
             log.error('[UPDATER] Otomatik kontrol hatası:', err.message);
         });
     }, 3000);
+
+    // Periyodik kontrolü kur
+    if (autoCheckInterval) {
+        clearInterval(autoCheckInterval);
+    }
+    autoCheckInterval = setInterval(() => {
+        log.info('[UPDATER] Periyodik güncelleme kontrolü başlatılıyor...');
+        autoUpdater.checkForUpdates().catch((err) => {
+            log.error('[UPDATER] Periyodik kontrol hatası:', err.message);
+        });
+    }, AUTO_CHECK_INTERVAL);
+
+    // Memory leak önleme: uygulama kapatılırken interval'ı temizle
+    app.on('before-quit', () => {
+        if (autoCheckInterval) {
+            clearInterval(autoCheckInterval);
+            autoCheckInterval = null;
+            log.info('[UPDATER] Periyodik kontrol intervali temizlendi.');
+        }
+    });
 }
 
 /**

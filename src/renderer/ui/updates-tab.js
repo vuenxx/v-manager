@@ -8,6 +8,7 @@
  */
 
 import { t, getCurrentLang } from '../i18n/i18n.js';
+import { switchTab } from './navigation.js';
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -51,6 +52,73 @@ function _setupButtonListeners() {
 
 // ─── IPC Event Listener'ları ──────────────────────────────────────────────────
 
+let notifiedVersions = new Set();
+
+function showUpdateToast(version) {
+    if (document.getElementById('update-toast')) return;
+
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.id = 'update-toast';
+    toast.className = 'toast-notification';
+
+    toast.innerHTML = `
+        <div class="toast-header">
+            <span class="toast-title">🔔 ${t('updates.notificationTitle')}</span>
+            <button class="toast-close" id="update-toast-close">&times;</button>
+        </div>
+        <div class="toast-body">
+            ${t('updates.notificationBody').replace('{version}', version)}
+        </div>
+        <div class="toast-footer">
+            <button class="toast-btn toast-btn-secondary" id="update-toast-later-btn">${t('updates.notificationDismissBtn')}</button>
+            <button class="toast-btn toast-btn-primary" id="update-toast-show-btn">${t('updates.notificationShowBtn')}</button>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    // Animasyonu tetikle
+    setTimeout(() => toast.classList.add('show'), 50);
+
+    let dismissTimeout = null;
+
+    const closeToast = () => {
+        if (dismissTimeout) clearTimeout(dismissTimeout);
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    };
+
+    const startDismissTimer = (duration) => {
+        dismissTimeout = setTimeout(closeToast, duration);
+    };
+
+    // 10 saniye sonra otomatik kapat
+    startDismissTimer(10000);
+
+    // Üzerine gelindiğinde duraklat (Hover Pause)
+    toast.addEventListener('mouseenter', () => {
+        if (dismissTimeout) {
+            clearTimeout(dismissTimeout);
+            dismissTimeout = null;
+        }
+    });
+
+    // Ayrıldığında tekrar sayacı başlat (Resume)
+    toast.addEventListener('mouseleave', () => {
+        startDismissTimer(8000);
+    });
+
+    toast.querySelector('#update-toast-close').addEventListener('click', closeToast);
+    toast.querySelector('#update-toast-later-btn').addEventListener('click', closeToast);
+    toast.querySelector('#update-toast-show-btn').addEventListener('click', () => {
+        closeToast();
+        switchTab('updates');
+    });
+}
+
 function _setupIpcListeners() {
     window.electronAPI.removeUpdateListeners?.();
 
@@ -60,6 +128,14 @@ function _setupIpcListeners() {
 
     window.electronAPI.onUpdateAvailable((info) => {
         _setState('available', info);
+        
+        // Kullanıcı güncellemeler sekmesinde değilse ve bu sürüm daha önce bildirilmediyse Toast göster
+        const updatesTab = document.getElementById('updates');
+        const isUpdatesTabActive = updatesTab && updatesTab.classList.contains('active');
+        if (info && info.version && !isUpdatesTabActive && !notifiedVersions.has(info.version)) {
+            notifiedVersions.add(info.version);
+            showUpdateToast(info.version);
+        }
     });
 
     window.electronAPI.onUpdateNotAvailable(() => {

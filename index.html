@@ -111,44 +111,15 @@
                 </div>
 
                 <div class="dashboard-section-title">
-                    <h3 data-i18n="home.quickMenu">Hızlı Menü & Keşfet</h3>
+                    <h3 data-i18n="home.guideTitle">Uygulama Kullanım Rehberi</h3>
                 </div>
 
-                <div class="promo-grid">
-                    <!-- Promo Card 1: Games -->
-                    <div class="promo-card" data-target-tab="games">
-                        <div class="promo-header">
-                            <div class="promo-icon">🎮</div>
-                            <h4 data-i18n="home.promoGamesTitle">Oyun Kütüphanesi</h4>
+                <div class="video-guide-wrapper">
+                    <div class="video-guide-container external-link" data-url="https://www.youtube.com/watch?v=9X-FTNxjTI4" style="cursor: pointer;">
+                        <img src="https://img.youtube.com/vi/9X-FTNxjTI4/maxresdefault.jpg" alt="V-Manager Kullanım Rehberi" class="video-guide-thumbnail">
+                        <div class="video-guide-play-btn">
+                            <span class="play-icon">▶</span>
                         </div>
-                        <p class="promo-desc" data-i18n="home.promoGamesDesc">Buradan oyunlarınıza DLSS Enabler,
-                            Optiscaler kurabilir ve Streamline
-                            dosyalarını güncelleyebilirsiniz.</p>
-                        <button class="promo-action-btn" data-i18n="home.promoGamesBtn">Oyunları Yönet ➔</button>
-                    </div>
-
-                    <!-- Promo Card 2: Mods -->
-                    <div class="promo-card" data-target-tab="modes">
-                        <div class="promo-header">
-                            <div class="promo-icon">📦</div>
-                            <h4 data-i18n="home.promoModsTitle">Mod Sürümleri</h4>
-                        </div>
-                        <p class="promo-desc" data-i18n="home.promoModsDesc">Modlar yerinden programda olan modların
-                            (DLSS Enabler, Optiscaler vs)
-                            sürümlerini güncelleyebilirsiniz.</p>
-                        <button class="promo-action-btn" data-i18n="home.promoModsBtn">Sürümleri İncele ➔</button>
-                    </div>
-
-                    <!-- Promo Card 3: Videos -->
-                    <div class="promo-card" data-target-tab="videos">
-                        <div class="promo-header">
-                            <div class="promo-icon">📺</div>
-                            <h4 data-i18n="home.promoVideosTitle">Youtube Rehberleri</h4>
-                        </div>
-                        <p class="promo-desc" data-i18n="home.promoVideosDesc">Videolar yerinden Youtube kanalımda
-                            işinize yarayabilecek içerikleri
-                            görüntüleyip, izleyebilirsiniz.</p>
-                        <button class="promo-action-btn" data-i18n="home.promoVideosBtn">Videoları İzle ➔</button>
                     </div>
                 </div>
 
@@ -1854,6 +1825,8 @@
 
     <div id="global-tooltip" class="global-tooltip"
         style="display: none; position: fixed; z-index: 10000; pointer-events: none;"></div>
+
+    <div id="toast-container" class="toast-container"></div>
 
     <script type="module" src="renderer.js"></script>
 </body>

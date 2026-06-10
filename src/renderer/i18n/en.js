@@ -21,6 +21,7 @@ export const en = {
         title: 'V-Manager Dashboard',
         subtitle: 'Monitor application status, manage your installed mods, and quickly access new content.',
         quickMenu: 'Quick Menu & Discover',
+        guideTitle: 'Application Usage Guide',
         totalMods: 'Total Installed Mods',
         promoGamesTitle: 'Game Library',
         promoGamesDesc: 'Install DLSS Enabler, OptiScaler on your games and update Streamline files from here.',
@@ -113,6 +114,10 @@ export const en = {
         latestBadge: 'Latest',
         noChangeNotes: 'No change notes added.',
         noNotes: 'No changelog available.',
+        notificationTitle: 'Update Available! 🚀',
+        notificationBody: 'A new version of V-Manager has been detected: v{version}. Click to update or view details.',
+        notificationShowBtn: 'Check Now',
+        notificationDismissBtn: 'Later',
     },
     compress: {
         title: 'Compress',

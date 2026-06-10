@@ -21,6 +21,7 @@ export const tr = {
         title: 'V-Manager Kontrol Paneli',
         subtitle: 'Uygulama durumunu izleyin, kurulu modlarınızı yönetin ve yeni içeriklere hızlıca erişin.',
         quickMenu: 'Hızlı Menü & Keşfet',
+        guideTitle: 'Uygulama Kullanım Rehberi',
         totalMods: 'Toplam Kurulu Mod',
         promoGamesTitle: 'Oyun Kütüphanesi',
         promoGamesDesc: 'Buradan oyunlarınıza DLSS Enabler, Optiscaler kurabilir ve Streamline dosyalarını güncelleyebilirsiniz.',
@@ -112,6 +113,10 @@ export const tr = {
         latestBadge: 'En Güncel',
         noChangeNotes: 'Değişiklik notu eklenmemiş.',
         noNotes: 'Değişiklik notları mevcut değil.',
+        notificationTitle: 'Güncelleme Mevcut! 🚀',
+        notificationBody: 'Yeni bir V-Manager sürümü tespit edildi: v{version}. Güncellemek için tıklayın veya detayları inceleyin.',
+        notificationShowBtn: 'Şimdi İncele',
+        notificationDismissBtn: 'Daha Sonra',
     },
     compress: {
         title: 'Sıkıştır',

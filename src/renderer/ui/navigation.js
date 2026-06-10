@@ -28,22 +28,6 @@ export function initNavigation() {
             switchTab(targetId);
         });
     });
-
-    // Promo cards navigation logic
-    const promoCards = document.querySelectorAll('.promo-card');
-    promoCards.forEach(card => {
-        card.addEventListener('click', () => {
-            const targetTab = card.getAttribute('data-target-tab');
-            if (targetTab) {
-                const sidebarItem = document.querySelector(`.nav-item[data-target="${targetTab}"]`);
-                if (sidebarItem) {
-                    sidebarItem.click();
-                } else {
-                    switchTab(targetTab);
-                }
-            }
-        });
-    });
 }
 export function switchTab(tabId) {
     window.electronAPI.logToMain(`Navigation: switchTab called -> ${tabId}`);

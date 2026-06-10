@@ -917,97 +917,77 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Promo Grid & Cards */
-.promo-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+/* Video Usage Guide Styles */
+.video-guide-wrapper {
+    max-width: 800px;
+    margin: 20px auto 0;
+    width: 100%;
 }
 
-@media (max-width: 900px) {
-    .promo-grid {
-        grid-template-columns: 1fr;
-    }
+.video-guide-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.promo-card {
-    background: rgba(255, 255, 255, 0.01);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 14px;
-    padding: 26px;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
-    cursor: pointer;
+.video-guide-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.promo-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
-}
-
-.promo-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
-}
-
-.promo-icon {
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 10px;
-    color: var(--text-primary);
-    transition: all 0.25s ease;
-}
-
-.promo-card:hover .promo-icon {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.08);
+.video-guide-container:hover .video-guide-thumbnail {
     transform: scale(1.04);
 }
 
-.promo-header h4 {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.promo-desc {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    margin-bottom: 24px;
-    flex-grow: 1;
-}
-
-.promo-action-btn {
-    align-self: flex-start;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    color: var(--text-secondary);
-    padding: 10px 18px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
+.video-guide-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 68px;
+    height: 48px;
+    background: rgba(229, 9, 20, 0.9); /* YouTube style red */
+    border-radius: 12px;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.promo-card:hover .promo-action-btn {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: var(--bg-color);
+.video-guide-container:hover .video-guide-play-btn {
+    background: #ff0000;
+    transform: translate(-50%, -50%) scale(1.08);
+    box-shadow: 0 4px 25px rgba(255, 0, 0, 0.4);
+}
+
+.play-icon {
+    color: #ffffff;
+    font-size: 20px;
+    margin-left: 4px; /* visually center the play triangle */
+}
+
+.video-guide-container:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45), 0 0 20px rgba(68, 214, 44, 0.2);
+}
+
+:root:not([data-theme="dark"]) .video-guide-container {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+:root:not([data-theme="dark"]) .video-guide-container:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 0 20px rgba(59, 130, 246, 0.25);
 }
 
 .game-cover-placeholder {
@@ -3041,3 +3021,190 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     color: var(--accent-hover);
     border-bottom-color: var(--accent-hover);
 }
+
+/* ==========================================
+   Toast Notification System (Glassmorphic)
+   ========================================== */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none; /* Let mouse events pass through container to underlying UI */
+}
+
+.toast-notification {
+    pointer-events: auto; /* Re-enable pointer events on the toast card itself */
+    width: 340px;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transform: translateX(400px);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    opacity: 0;
+}
+
+.toast-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-notification:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 
+                0 0 15px rgba(68, 214, 44, 0.15);
+}
+
+:root:not([data-theme="dark"]) .toast-notification {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.5);
+    color: #1f2937;
+}
+
+:root:not([data-theme="dark"]) .toast-notification:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 
+                0 0 15px rgba(59, 130, 246, 0.15);
+}
+
+.toast-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.toast-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+}
+
+.toast-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.toast-close:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.toast-body {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+:root:not([data-theme="dark"]) .toast-body {
+    color: #4b5563;
+}
+
+.toast-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.toast-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+}
+
+.toast-btn-primary {
+    background: var(--accent-color);
+    color: #000000;
+    border: none;
+    box-shadow: 0 2px 6px rgba(68, 214, 44, 0.2);
+}
+
+:root:not([data-theme="dark"]) .toast-btn-primary {
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+}
+
+.toast-btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(68, 214, 44, 0.35);
+}
+
+:root:not([data-theme="dark"]) .toast-btn-primary:hover {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.toast-btn-primary:active {
+    transform: translateY(0);
+}
+
+.toast-btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+}
+
+:root:not([data-theme="dark"]) .toast-btn-secondary {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: #4b5563;
+}
+
+.toast-btn-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+:root:not([data-theme="dark"]) .toast-btn-secondary:hover {
+    border-color: rgba(0, 0, 0, 0.3);
+    color: #1f2937;
+    background: rgba(0, 0, 0, 0.03);
+}
+
+/* Responsive Toast Layout for Small Windows */
+@media (max-width: 480px) {
+    .toast-container {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+        width: auto;
+    }
+    .toast-notification {
+        width: 100%;
+    }
+}
+

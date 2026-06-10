@@ -13,7 +13,8 @@ const DEVELOPER_PRESETS = {
             locked: true,
             values: {
                 Performance: { MFGOverrideMode: 6, MFGHotkeys: true },
-                UI: { Monitoring: true }
+                UI: { Monitoring: true },
+                GhostBuster: { Enabled: true }
             }
         }
     ],
@@ -480,9 +481,11 @@ function applyPreset(preset, chipEl) {
 
     // Mevcut currentSettingsData'ya kısmi uygula
     for (const [section, keys] of Object.entries(preset.values)) {
-        if (!currentSettingsData[section]) currentSettingsData[section] = {};
+        const matchedSec = Object.keys(currentSettingsData).find(s => s.toLowerCase() === section.toLowerCase()) || section;
+        if (!currentSettingsData[matchedSec]) currentSettingsData[matchedSec] = {};
         for (const [key, val] of Object.entries(keys)) {
-            currentSettingsData[section][key] = val;
+            const matchedKey = Object.keys(currentSettingsData[matchedSec]).find(k => k.toLowerCase() === key.toLowerCase()) || key;
+            currentSettingsData[matchedSec][matchedKey] = val;
         }
     }
 
@@ -526,9 +529,16 @@ function syncFormToData(data) {
     selects.forEach(sel => {
         const section = sel.dataset.section;
         const key = sel.dataset.key;
-        const newVal = data[section] && data[section][key] !== undefined
-            ? String(data[section][key])
-            : null;
+        
+        const matchedSec = Object.keys(data).find(s => s.toLowerCase() === section.toLowerCase());
+        let newVal = null;
+        if (matchedSec) {
+            const matchedKey = Object.keys(data[matchedSec]).find(k => k.toLowerCase() === key.toLowerCase());
+            if (matchedKey && data[matchedSec][matchedKey] !== undefined) {
+                newVal = String(data[matchedSec][matchedKey]);
+            }
+        }
+
         if (newVal !== null && sel.value !== newVal) {
             sel.value = newVal;
             if (sel.value !== newVal) sel.selectedIndex = 0;
@@ -539,9 +549,16 @@ function syncFormToData(data) {
     inputs.forEach(inp => {
         const section = inp.dataset.section;
         const key = inp.dataset.key;
-        const newVal = data[section] && data[section][key] !== undefined
-            ? String(data[section][key])
-            : null;
+        
+        const matchedSec = Object.keys(data).find(s => s.toLowerCase() === section.toLowerCase());
+        let newVal = null;
+        if (matchedSec) {
+            const matchedKey = Object.keys(data[matchedSec]).find(k => k.toLowerCase() === key.toLowerCase());
+            if (matchedKey && data[matchedSec][matchedKey] !== undefined) {
+                newVal = String(data[matchedSec][matchedKey]);
+            }
+        }
+
         if (newVal !== null) inp.value = newVal;
     });
 
@@ -549,9 +566,16 @@ function syncFormToData(data) {
     sliders.forEach(sl => {
         const section = sl.dataset.section;
         const key = sl.dataset.key;
-        const newVal = data[section] && data[section][key] !== undefined
-            ? String(data[section][key])
-            : null;
+        
+        const matchedSec = Object.keys(data).find(s => s.toLowerCase() === section.toLowerCase());
+        let newVal = null;
+        if (matchedSec) {
+            const matchedKey = Object.keys(data[matchedSec]).find(k => k.toLowerCase() === key.toLowerCase());
+            if (matchedKey && data[matchedSec][matchedKey] !== undefined) {
+                newVal = String(data[matchedSec][matchedKey]);
+            }
+        }
+
         if (newVal !== null) {
             sl.value = newVal;
             const display = sl.nextElementSibling;
