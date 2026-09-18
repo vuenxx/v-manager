@@ -422,9 +422,17 @@ async function loadModSettings(modId) {
                     // hem oyun kartlarından hem de bu ekrandan hemen düşmeli.
                     await refreshGamesAfterModChange(game.name);
 
-                    showInfoModal(t('update.successTitle') || 'Başarılı', `${mod.name || mod.id} ${t('modSettings.uninstallSuccess') || 'başarıyla kaldırıldı.'}`);
-                    // Settings Hub'ı güncellenen oyun durumuyla tekrar aç (kalan modları ya da boş ekranı gösterir)
+                    // ÖNCE Settings Hub'ı güncel oyun durumuyla yeniden çiz
+                    // (kalan modları ya da boş ekranı gösterir), SONRA bilgi
+                    // modalini aç. Ters sırada, openModal()'ın dinamik z-index'i
+                    // settings-modal'ı bilgi modalinin üstüne çıkarıyordu.
                     await openSettingsModal(state.currentSelectedGame);
+                    showInfoModal(
+                        t('update.successTitle') || 'Başarılı',
+                        `${mod.name || mod.id} ${t('modSettings.uninstallSuccess') || 'başarıyla kaldırıldı.'}`,
+                        false,
+                        { log: unResult.log, logSummary: unResult.logSummary, logFile: unResult.logFile }
+                    );
                 } else {
                     const errText = (unResult && (unResult.error || unResult.message)) || 'Bilinmeyen hata';
                     showError(`${t('modSettings.uninstallError') || 'Mod kaldırılırken hata oluştu: '}${errText}`);
@@ -518,11 +526,29 @@ async function loadModSettings(modId) {
 
                     let installRes;
                     if (window.electronAPI && window.electronAPI.moduleInstall) {
+                        const installOptions = {
+                            preset: false // Varsayılan preset ile kullanıcı ayarlarını ezme
+                        };
+                        // proxyTarget'ı mevcut oyun durumundan al
+                        if (mod.manifest?.state?.injectionField && game[mod.manifest.state.injectionField]) {
+                            installOptions.proxyTarget = game[mod.manifest.state.injectionField];
+                        }
+                        // Aktif addons'ları mevcut oyun durumundan al
+                        if (mod.manifest?.addons) {
+                            installOptions.addons = {};
+                            for (const addon of mod.manifest.addons) {
+                                if (game.installedMods && game.installedMods[addon.moduleId]?.installed) {
+                                    installOptions.addons[addon.moduleId] = true;
+                                }
+                            }
+                        }
+
                         installRes = await window.electronAPI.moduleInstall({
                             moduleId: manifestId,
                             gameName: game.name,
                             exePath: game.exePath,
-                            tag: targetVersion
+                            tag: targetVersion,
+                            options: installOptions
                         });
                     }
 

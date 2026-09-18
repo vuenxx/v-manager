@@ -32,6 +32,11 @@ const MESSAGES = {
         errListFolder: 'Mod klasörü listelenemedi: {err}',
         errCopyFailed: 'Kopyalama hatası: {err}',
         copyOk: 'Dosyalar kopyalandı.',
+        copiedFile: 'Kopyalandı: {file}',
+        backedUpFile: 'Mevcut dosya yedeklendi: {file}',
+        skippedFile: 'Atlandı (manifest kuralı): {file}',
+        prereqOk: 'Ön koşullar sağlandı.',
+        errPrereq: 'Ön koşullar sağlanamadı: {reasons}',
         dbUpdate: 'games.json geçici olarak güncellendi.',
         launching: 'Oyun başlatılıyor...',
         errLaunchFailed: 'Oyun başlatılamadı: {err}',
@@ -79,6 +84,11 @@ const MESSAGES = {
         errListFolder: 'Could not list mod directory: {err}',
         errCopyFailed: 'Copy error: {err}',
         copyOk: 'Files copied.',
+        copiedFile: 'Copied: {file}',
+        backedUpFile: 'Existing file backed up: {file}',
+        skippedFile: 'Skipped (manifest rule): {file}',
+        prereqOk: 'Prerequisites satisfied.',
+        errPrereq: 'Prerequisites not satisfied: {reasons}',
         dbUpdate: 'games.json updated temporarily.',
         launching: 'Launching game...',
         errLaunchFailed: 'Could not launch game: {err}',
@@ -166,10 +176,51 @@ function resolveSourceRoot(versionDir, sourceFile) {
 }
 
 /**
+ * Manifest `install.files.include` / `install.files.exclude` / `install.whitelistFiles`
+ * kurallarını uygular. Sihirbaz eskiden kaynak klasördeki HER dosyayı kopyalıyordu;
+ * normal kurulum (moduleEngine.install) ise bu filtreleri uyguluyor. Kurallar tek
+ * yerden sürülsün diye sihirbaz da aynı manifest alanlarına uyar.
+ *
+ * @returns {{allowed: boolean, reason: string|null}}
+ */
+function isFileAllowedByManifest(manifest, fileName) {
+    const inst = manifest && manifest.install ? manifest.install : {};
+
+    if (Array.isArray(inst.whitelistFiles) && inst.whitelistFiles.length > 0) {
+        const allow = inst.whitelistFiles.some(f => String(f).toLowerCase() === fileName.toLowerCase());
+        if (!allow) return { allowed: false, reason: 'whitelistFiles' };
+    }
+
+    const matches = (patterns) => patterns.some(pat => {
+        const rx = new RegExp('^' + String(pat)
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+            .replace(/\*/g, '.*')
+            .replace(/\?/g, '.') + '$', 'i');
+        return rx.test(fileName);
+    });
+
+    if (Array.isArray(inst.files?.include) && inst.files.include.length > 0) {
+        if (!matches(inst.files.include)) return { allowed: false, reason: 'install.files.include' };
+    }
+    if (Array.isArray(inst.files?.exclude) && inst.files.exclude.length > 0) {
+        if (matches(inst.files.exclude)) return { allowed: false, reason: 'install.files.exclude' };
+    }
+
+    return { allowed: true, reason: null };
+}
+
+/**
  * Manifest sourceFile'ını seçilen proxy adıyla, kalan dosyaları olduğu gibi kopyalar.
  * dlssEnabler.copyDlssFiles'ın modülden bağımsız hâli (o fonksiyon 'version.dll' sabitliydi).
+ *
+ * Normal kurulumla aynı iki kuralı uygular:
+ *  - Hedefte aynı adlı bir dosya varsa ÖNCE `<ad>.bak` olarak saklanır (oyunun
+ *    kendi DLL'i üzerine geri dönüşsüz yazılmasın diye — moduleEngine adım 13).
+ *  - Ek dosyalar manifest'in include/exclude/whitelist kurallarından geçirilir.
+ *
+ * @returns {{success:boolean, error?:string, copied?:string[], skipped?:string[], backedUp?:string[]}}
  */
-async function copyModFiles(sourceDir, targetDir, sourceFile, effectiveDllName, verifyDelayMs = 1500) {
+async function copyModFiles(sourceDir, targetDir, sourceFile, effectiveDllName, verifyDelayMs = 1500, manifest = {}) {
     const sourcePath = path.join(sourceDir, sourceFile);
     const targetPath = path.join(targetDir, effectiveDllName);
 
@@ -177,8 +228,30 @@ async function copyModFiles(sourceDir, targetDir, sourceFile, effectiveDllName, 
         return { success: false, error: `Kaynak dosya bulunamadı: ${sourceFile} (${sourceDir})` };
     }
 
+    const copied = [];
+    const skipped = [];
+    const backedUp = [];
+
+    // Hedefte aynı adlı dosya varsa üzerine yazmadan önce `.bak` olarak sakla.
+    const backupExisting = (filePath) => {
+        if (!fs.existsSync(filePath)) return;
+        const bakPath = filePath + '.bak';
+        try {
+            // Zaten bir `.bak` varsa ilk (gerçek orijinal) yedek korunur.
+            if (fs.existsSync(bakPath)) return;
+            fs.renameSync(filePath, bakPath);
+            backedUp.push(path.basename(bakPath));
+            console.log(`[MODULE WIZARD] Mevcut dosya yedeklendi: ${path.basename(filePath)} -> ${path.basename(bakPath)}`);
+        } catch (e) {
+            console.warn(`[MODULE WIZARD] Mevcut dosya yedeklenemedi (${path.basename(filePath)}): ${e.message}`);
+        }
+    };
+
+    backupExisting(targetPath);
+
     try {
         fs.copyFileSync(sourcePath, targetPath);
+        copied.push(`${sourceFile} → ${effectiveDllName}`);
     } catch (e) {
         if (['EPERM', 'EACCES', 'EBUSY'].includes(e.code)) {
             return { success: false, error: `Erişim engellendi (${e.code}): Klasör izinlerini veya antivirüs ayarlarını kontrol edin.` };
@@ -190,10 +263,19 @@ async function copyModFiles(sourceDir, targetDir, sourceFile, effectiveDllName, 
         const others = fs.readdirSync(sourceDir, { withFileTypes: true })
             .filter(e => e.isFile() && e.name.toLowerCase() !== sourceFile.toLowerCase());
         for (const entry of others) {
+            const verdict = isFileAllowedByManifest(manifest, entry.name);
+            if (!verdict.allowed) {
+                skipped.push(`${entry.name} (${verdict.reason})`);
+                continue;
+            }
             try {
-                fs.copyFileSync(path.join(sourceDir, entry.name), path.join(targetDir, entry.name));
+                const dest = path.join(targetDir, entry.name);
+                backupExisting(dest);
+                fs.copyFileSync(path.join(sourceDir, entry.name), dest);
+                copied.push(entry.name);
             } catch (e) {
                 console.warn(`[MODULE WIZARD] Ek dosya kopyalanamadı: ${entry.name} — ${e.message}`);
+                skipped.push(`${entry.name} (hata: ${e.message})`);
             }
         }
     } catch (e) {
@@ -206,12 +288,13 @@ async function copyModFiles(sourceDir, targetDir, sourceFile, effectiveDllName, 
         if (!fs.existsSync(targetPath)) {
             return {
                 success: false,
-                error: `Erişim Engellendi veya Antivirüs Engeli: "${effectiveDllName}" kopyalandıktan sonra silindi. Antivirüs karantinasını veya klasör izinlerini kontrol edin.`
+                error: `Erişim Engellendi veya Antivirüs Engeli: "${effectiveDllName}" kopyalandıktan sonra silindi. Antivirüs karantinasını veya klasör izinlerini kontrol edin.`,
+                copied, skipped, backedUp
             };
         }
     }
 
-    return { success: true };
+    return { success: true, copied, skipped, backedUp };
 }
 
 function cleanupCopiedFiles(targetExeDir, currentDll, otherFiles, watchFile) {
@@ -226,6 +309,20 @@ function cleanupCopiedFiles(targetExeDir, currentDll, otherFiles, watchFile) {
             try {
                 fs.unlinkSync(targetFile);
             } catch (e) { /* ignore */ }
+        }
+
+        // Kopyalama öncesinde `<ad>.bak` olarak saklanan ORİJİNAL dosya varsa
+        // geri yükle. Aksi hâlde başarısız bir sihirbaz denemesi oyunun kendi
+        // DLL'ini kalıcı olarak yok ediyordu (moduleEngine kaldırma adım 3b ile
+        // aynı sıra: önce mod dosyası silinir, sonra `.bak` geri alınır).
+        const bakFile = targetFile + '.bak';
+        try {
+            if (fs.existsSync(bakFile) && !fs.existsSync(targetFile)) {
+                fs.renameSync(bakFile, targetFile);
+                console.log(`[MODULE WIZARD] .bak geri yüklendi: ${path.basename(bakFile)} -> ${path.basename(targetFile)}`);
+            }
+        } catch (e) {
+            console.warn(`[MODULE WIZARD] .bak geri yüklenemedi (${bakFile}): ${e.message}`);
         }
     }
 }
@@ -343,6 +440,26 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
         } catch (e) {}
     }
 
+    // 1c. Ön koşullar (requires) — normal kurulum (moduleEngine adım 5c) bunu
+    // indirmeden ÖNCE uyguluyor. Sihirbaz hiç kontrol etmiyordu; tek başına
+    // çalışamayan modüller (ör. bir ReShade eklentisi) sessizce kuruluyordu.
+    if (Array.isArray(manifest.requires) && manifest.requires.length > 0) {
+        try {
+            const requirementChecker = require('./requirementChecker');
+            const reqResult = await requirementChecker.checkRequirements(manifest, {
+                gameName, exePath, gameDir: targetExeDir
+            });
+            if (!reqResult.satisfied) {
+                const reasons = reqResult.failures.map(f => f.message).join('; ');
+                logMsg(event, logPath, 'err', t('errPrereq', { reasons }), '[ERR_006]');
+                return { success: false, error: 'PREREQUISITES_NOT_MET', code: 'ERR_006', failures: reqResult.failures, logPath };
+            }
+            logMsg(event, logPath, 'ok', t('prereqOk'));
+        } catch (reqErr) {
+            logMsg(event, logPath, 'warn', `Ön koşul kontrolü çalıştırılamadı: ${reqErr.message}`);
+        }
+    }
+
     if (!alreadyDownloaded) {
         logMsg(event, logPath, 'info', t('downloading', { version }));
         if (!downloadUrl) {
@@ -429,7 +546,8 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
             targetExeDir,
             sourceFile,
             currentDll,
-            manifest.install?.verifyAntiVirusDelayMs ?? 1500
+            manifest.install?.verifyAntiVirusDelayMs ?? 1500,
+            manifest
         );
         if (!copyResult.success) {
             logMsg(event, logPath, 'err', t('errCopyFailed', { err: copyResult.error }), '[ERR_002]');
@@ -440,6 +558,17 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
             continue;
         }
         logMsg(event, logPath, 'ok', t('copyOk'));
+
+        // Ne kopyalandı / ne kopyalanmadı — normal kurulumdaki ayrıntı düzeyiyle aynı
+        for (const line of (copyResult.copied || [])) {
+            logMsg(event, logPath, 'ok', t('copiedFile', { file: line }));
+        }
+        for (const line of (copyResult.backedUp || [])) {
+            logMsg(event, logPath, 'info', t('backedUpFile', { file: line }));
+        }
+        for (const line of (copyResult.skipped || [])) {
+            logMsg(event, logPath, 'info', t('skippedFile', { file: line }));
+        }
 
         if (shouldAbort && shouldAbort()) {
             logMsg(event, logPath, 'warn', 'Kurulum kullanıcı tarafından iptal edildi.');
@@ -470,6 +599,15 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
                 if (!dbGame.upscalers) dbGame.upscalers = {};
                 dbGame.upscalers[manifest.state.upscalerField] = true;
             }
+            // Normal kurulum (moduleEngine adım 15) bu kaydı da yazıyor; sihirbaz
+            // yazmayınca "Modları Yönet" ekranı ve çakışma/ön koşul kontrolleri
+            // modu kurulu saymıyordu.
+            if (!dbGame.installedMods) dbGame.installedMods = {};
+            dbGame.installedMods[manifest.id] = {
+                installed: true,
+                version: version,
+                installedAt: new Date().toISOString()
+            };
             dbGame.exePath = exePath;
         } else {
             const defaultName = game.name || path.basename(targetExeDir);
@@ -487,6 +625,12 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
                     if (!dbGame.upscalers) dbGame.upscalers = {};
                     dbGame.upscalers[manifest.state.upscalerField] = true;
                 }
+                if (!dbGame.installedMods) dbGame.installedMods = {};
+                dbGame.installedMods[manifest.id] = {
+                    installed: true,
+                    version: version,
+                    installedAt: new Date().toISOString()
+                };
             }
         }
         config.saveGamesState();

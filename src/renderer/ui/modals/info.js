@@ -1,7 +1,17 @@
 import { openModal, closeModal } from './base.js';
+import { appendModuleLog } from './moduleLogView.js';
 import { t } from '../../i18n/i18n.js';
 
-export function showInfoModal(title, message, isError = false) {
+/**
+ * @param {string} title
+ * @param {string} message
+ * @param {boolean} [isError]
+ * @param {Object} [options]
+ * @param {Array}  [options.log]         moduleEngine `result.log` — iki dilli kurulum günlüğü
+ * @param {Object} [options.logSummary]  `result.logSummary`
+ * @param {string} [options.logFile]     `result.logFile`
+ */
+export function showInfoModal(title, message, isError = false, options = {}) {
     const infoModal = document.getElementById('info-modal');
     const infoModalTitle = document.getElementById('info-modal-title');
     const infoModalMessage = document.getElementById('info-modal-message');
@@ -13,6 +23,10 @@ export function showInfoModal(title, message, isError = false) {
     const existingExtra = infoModal.querySelector('.unsaved-extra-btn');
     if (existingExtra) existingExtra.remove();
 
+    // Önceki çağrıdan kalan günlük bloğunu temizle
+    const staleLog = infoModal.querySelector('.module-log-details');
+    if (staleLog) (staleLog.parentElement || staleLog).remove();
+
     if (infoModalOkBtn) {
         infoModalOkBtn.textContent = t('info.okBtn') || 'Tamam';
         infoModalOkBtn.style.backgroundColor = '';
@@ -21,8 +35,26 @@ export function showInfoModal(title, message, isError = false) {
     }
 
     infoModalTitle.textContent = title;
-    infoModalTitle.style.color = isError ? '#ef4444' : 'var(--accent-color)';
+    if (isError === 'warning') {
+        infoModalTitle.style.color = '#eab308';
+    } else {
+        infoModalTitle.style.color = isError ? '#ef4444' : 'var(--accent-color)';
+    }
     infoModalMessage.textContent = message;
+
+    // Kurulum/kaldırma günlüğü verildiyse mesajın altına katlanabilir blok ekle
+    if (options && Array.isArray(options.log) && options.log.length > 0) {
+        const host = document.createElement('div');
+        // Mesaj paragrafının hemen ardına yerleştir — buton grubunun altına değil
+        infoModalMessage.insertAdjacentElement('afterend', host);
+        appendModuleLog(host, options.log, {
+            summary: options.logSummary,
+            logFile: options.logFile
+        });
+        // Günlük yoksa boş kapsayıcı kalmasın
+        if (!host.firstChild) host.remove();
+    }
+
     infoModal.classList.add('active');
     infoModal.style.zIndex = '9999';
 }

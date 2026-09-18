@@ -96,6 +96,55 @@ export function getInstalledModEntries(game) {
     return entries;
 }
 
+// ─── Global ipucu (tooltip) yardımcısı ───────────────────────────────────────
+// Kart kapağı (.game-cover-wrapper) overflow:hidden olduğu için ::after tabanlı
+// ipuçları kartın dışına taşamıyor ve kırpılıyordu. Bunun yerine body'e bağlı
+// #global-tooltip elemanı position:fixed olarak konumlandırılır; böylece ipucu
+// kartın sınırlarından bağımsız, her zaman tam görünür.
+function attachGlobalTooltip(el, text, { multiline = false } = {}) {
+    if (!el || !text) return;
+
+    const hide = () => {
+        const tooltip = document.getElementById('global-tooltip');
+        if (!tooltip) return;
+        tooltip.style.display = 'none';
+        tooltip.classList.remove('global-tooltip-multiline');
+    };
+
+    el.addEventListener('mouseenter', () => {
+        const tooltip = document.getElementById('global-tooltip');
+        if (!tooltip) return;
+
+        tooltip.textContent = text;
+        tooltip.classList.toggle('global-tooltip-multiline', multiline);
+        tooltip.style.display = 'block';
+
+        const rect = el.getBoundingClientRect();
+        const tipRect = tooltip.getBoundingClientRect();
+        const margin = 10;
+
+        // Varsayılan: hedefin üstünde ve yatayda ortalanmış
+        let top = rect.top - tipRect.height - 8;
+        let left = rect.left + (rect.width - tipRect.width) / 2;
+
+        // Ekranın dışına taşmasın — dört kenar da sıkıştırılır
+        if (left < margin) left = margin;
+        if (left + tipRect.width > window.innerWidth - margin) {
+            left = Math.max(margin, window.innerWidth - margin - tipRect.width);
+        }
+        if (top < margin) top = rect.bottom + 8;
+        if (top + tipRect.height > window.innerHeight - margin) {
+            top = Math.max(margin, window.innerHeight - margin - tipRect.height);
+        }
+
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+    });
+
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('click', hide);
+}
+
 /** "modid v1.2.3" — sürüm yoksa yalnızca id. */
 function formatModEntry(entry) {
     if (!entry.version) return entry.modId;
@@ -141,10 +190,11 @@ export function createGameCard(game) {
         currentBottom += 34;
     });
 
+    const hiddenEntries = installedEntries.slice(MAX_CARD_MOD_TAGS);
+
     if (hiddenCount > 0) {
-        const moreTooltip = t('games.moreModsTooltip') ||
-            'Birden fazla mod tespit edildi, görebilmek için lütfen liste görünümüne geçin.';
-        modTagsHtml += `<div class="dlss-tag dlss-tag-more" style="bottom: ${currentBottom}px;" data-tooltip="${escapeHtml(moreTooltip)}">+${hiddenCount}</div>`;
+        // İpucu metni #global-tooltip ile çizildiği için burada data-tooltip yok.
+        modTagsHtml += `<div class="dlss-tag dlss-tag-more" style="bottom: ${currentBottom}px;">+${hiddenCount}</div>`;
         currentBottom += 34;
     }
 
@@ -199,6 +249,15 @@ export function createGameCard(game) {
     // Bind events using shared helper
     bindGameEvents(card, game);
 
+    // "+N" rozetinin ipucu: gizli mod listesi + liste görünümü yönlendirmesi
+    if (hiddenCount > 0) {
+        const moreBadge = card.querySelector('.dlss-tag-more');
+        const moreHint = t('games.moreModsTooltip') ||
+            'Birden fazla mod tespit edildi, görebilmek için lütfen liste görünümüne geçin.';
+        const moreText = hiddenEntries.map(formatModEntry).join('\n') + '\n\n' + moreHint;
+        attachGlobalTooltip(moreBadge, moreText, { multiline: true });
+    }
+
     // Add verified compatibility badge if developer-supported or DLSS Enabler supported
     const normKey = game.name
         .toLowerCase()
@@ -244,33 +303,8 @@ export function createGameCard(game) {
                 badgeContainer.className = 'verified-badge-container';
                 badgeContainer.innerHTML = `<img src="icons/verified_${compatibility}.png" class="verified-badge-icon" />`;
 
-                // Hover events for tooltip
-                badgeContainer.addEventListener('mouseenter', () => {
-                    const tooltip = document.getElementById('global-tooltip');
-                    if (tooltip) {
-                        tooltip.textContent = tooltipText;
-                        tooltip.style.display = 'block';
-
-                        const rect = badgeContainer.getBoundingClientRect();
-                        const tooltipRect = tooltip.getBoundingClientRect();
-
-                        let top = rect.top - tooltipRect.height - 8;
-                        let left = rect.left + (rect.width - tooltipRect.width) / 2;
-
-                        if (left < 10) left = 10;
-                        if (top < 10) top = rect.bottom + 8; // fallback below
-
-                        tooltip.style.top = `${top}px`;
-                        tooltip.style.left = `${left}px`;
-                    }
-                });
-
-                badgeContainer.addEventListener('mouseleave', () => {
-                    const tooltip = document.getElementById('global-tooltip');
-                    if (tooltip) {
-                        tooltip.style.display = 'none';
-                    }
-                });
+                // Hover ipucu — ortak yardımcı (ekran kenarlarına da sıkıştırır)
+                attachGlobalTooltip(badgeContainer, tooltipText);
 
                 const coverWrapper = card.querySelector('.game-cover-wrapper');
                 if (coverWrapper) {
@@ -551,6 +585,20 @@ export function findGameCardElement(gameName) {
  */
 export function updateExistingGameCard(game) {
     if (!game || !game.name) return;
+
+    // Kart DOM'u tazelenirken `state.games` da güncellenmeli. Aksi hâlde bir
+    // sonraki tam `renderGames(state.games)` çağrısı bayat kopyayı yeniden
+    // çizip kaldırılan modları geri getiriyordu.
+    if (Array.isArray(state.games)) {
+        const idx = state.games.findIndex(g => g && g.name === game.name);
+        if (idx !== -1) {
+            state.games[idx] = game;
+            if (state.currentSelectedGame && state.currentSelectedGame.name === game.name) {
+                state.currentSelectedGame = game;
+            }
+        }
+    }
+
     const existingCard = findGameCardElement(game.name);
     if (!existingCard) {
         console.warn('[RENDERER] Kart bulunamadı, güncellenemedi:', game.name);

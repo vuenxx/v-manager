@@ -34,8 +34,30 @@ function validate(manifest) {
     if (manifest.source) {
         const sourceType = manifest.source.type || 'github';
 
-        if (sourceType !== 'github' && sourceType !== 'url') {
-            errors.push("'source.type' 'github' veya 'url' olmalıdır.");
+        if (sourceType !== 'github' && sourceType !== 'url' && sourceType !== 'github_files') {
+            errors.push("'source.type' 'github', 'github_files' veya 'url' olmalıdır.");
+        }
+
+        // github_files: release'de asset yok, dosyalar depodan tek tek cekilir
+        if (sourceType === 'github_files') {
+            if (!manifest.source.repo || typeof manifest.source.repo !== 'string' ||
+                manifest.source.repo.split('/').filter(Boolean).length !== 2) {
+                errors.push("'source.repo' 'owner/repo' formatında olmalıdır.");
+            }
+            const files = manifest.source.files;
+            if (files !== undefined) {
+                if (!Array.isArray(files) || !files.every(f => typeof f === 'string' && f.length > 0)) {
+                    errors.push("'source.files' boş olmayan string dizisi olmalıdır.");
+                }
+            }
+            // Indirilecek hic dosya yoksa kurulum anlamsiz: ya sabit dosya listesi
+            // ya da hedefe gore kaynak esleme (proxyDetection.sourceByTarget) olmali
+            const hasFiles = Array.isArray(files) && files.length > 0;
+            const hasProxyMap = manifest.install && manifest.install.proxyDetection &&
+                                manifest.install.proxyDetection.sourceByTarget;
+            if (!hasFiles && !hasProxyMap) {
+                errors.push("'github_files' kaynağı için 'source.files' ya da 'install.proxyDetection.sourceByTarget' gerekir.");
+            }
         }
 
         if (sourceType === 'github') {
@@ -155,7 +177,21 @@ function validate(manifest) {
                 if (!Array.isArray(pd.candidates) || pd.candidates.length === 0) {
                     errors.push("'install.proxyDetection.candidates' boş olmayan bir string dizisi olmalıdır.");
                 }
-                if (!pd.descriptionMatch || typeof pd.descriptionMatch !== 'string') {
+                // sourceByTarget: her hedef adin KENDI binary'si var (yeniden
+                // adlandirma yok). Boyle modullerde DLL'de surum kaynagi
+                // bulunmayabilir, o yuzden descriptionMatch zorunlu degildir.
+                if (pd.sourceByTarget !== undefined) {
+                    if (typeof pd.sourceByTarget !== 'object' || Array.isArray(pd.sourceByTarget)) {
+                        errors.push("'install.proxyDetection.sourceByTarget' bir obje olmalıdır.");
+                    } else {
+                        const cands = Array.isArray(pd.candidates) ? pd.candidates : [];
+                        for (const cand of cands) {
+                            if (!pd.sourceByTarget[cand]) {
+                                errors.push(`'install.proxyDetection.sourceByTarget' '${cand}' için kaynak yol içermiyor.`);
+                            }
+                        }
+                    }
+                } else if (!pd.descriptionMatch || typeof pd.descriptionMatch !== 'string') {
                     errors.push("'install.proxyDetection.descriptionMatch' string olmalıdır.");
                 }
                 if (!pd.defaultTarget || typeof pd.defaultTarget !== 'string') {
@@ -461,7 +497,13 @@ function validate(manifest) {
                         if (!Array.isArray(vd.candidates) || vd.candidates.length === 0) {
                             errors.push(`'uninstall.verifiedDlls[${idx}].candidates' string dizisi olmalıdır.`);
                         }
-                        if (!vd.descriptionMatch || typeof vd.descriptionMatch !== 'string') {
+                        // matchModFileHash: DLL'de FileDescription yoksa sahiplik
+                        // indirilmis mod dosyasinin hash'iyle kanitlanir
+                        if (vd.matchModFileHash !== undefined && typeof vd.matchModFileHash !== 'boolean') {
+                            errors.push(`'uninstall.verifiedDlls[${idx}].matchModFileHash' boolean olmalıdır.`);
+                        }
+                        if (vd.matchModFileHash !== true &&
+                            (!vd.descriptionMatch || typeof vd.descriptionMatch !== 'string')) {
                             errors.push(`'uninstall.verifiedDlls[${idx}].descriptionMatch' string olmalıdır.`);
                         }
                     });

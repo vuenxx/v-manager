@@ -158,8 +158,8 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 | `core/archive.js` | ~60 | `.zip` (extract-zip), `.7z` (7zip-bin) ve `.rar` (rarExtractor) çıkarma |
 | `core/exeApiDetector.js` | ~330 | **Oyun exe'sinin grafik API'si + bit genişliği** — PE başlığı (kesin bitlik), import/delay-import tablosu, exe içi string taraması, motor (UE/Unity) ve yol ipuçları. Puanlanmış sıralı liste döner; `apiTargeting` ve kurulum modalı kullanır |
 | `core/requirementChecker.js` | ~155 | **Manifest ön koşulları (`requires`)** — "bu mod kurulmadan önce şu modül kurulu olmalı". Önce diskten (`moduleDetector.isModuleInstalledIn`), sonra `games.json` bayrağından kontrol eder. Kurulum modalı ve motorun 5c adımı **aynı** sonucu okur; `failures` şekli `conditionChecker` ile birebir aynıdır |
-| `core/conflictChecker.js` | ~200 | **Çakışma denetimi** — (a) manifest'te bildirilen `conflicts` / `incompatible_mods`, (b) dahili *dosya sahipliği* çakışması: hedef dosya zaten var ve başka bir modüle ait. `requires`'ın aynası; `failures` şekli `conditionChecker`/`requirementChecker` ile birebir aynı. Aynı `detect.exclusiveGroup` içindeki varyantlar (OptiScaler ↔ OptiBuilder) çakışma sayılmaz |
-| `core/sourceResolver.js` | ~180 | **Manifest kaynağı çözücü** — `source.type: "github"` veya `"url"`. URL kaynağında sürüm keşfi (`html_scrape` / `json_field` / `static`) yapar, githubFetcher ile **aynı şemada** kayıt döndürür, böylece motorun geri kalanı değişmez |
+| `core/conflictChecker.js` | ~270 | **Çakışma denetimi** — (a) manifest'te bildirilen `conflicts` / `incompatible_mods`, (b) dahili *dosya sahipliği* çakışması: hedef dosya zaten var ve başka bir modüle ait, (c) **yabancı dosya çakışması** (`findForeignTargetConflict`): hedef dosya var ama sahibi hiçbir modül değil — yani oyunun kendi dosyası; kurulum durur ve kullanıcıdan başka bir enjeksiyon tipi seçmesi istenir. `requires`'ın aynası; `failures` şekli `conditionChecker`/`requirementChecker` ile birebir aynı. Aynı `detect.exclusiveGroup` içindeki varyantlar (OptiScaler ↔ OptiBuilder) çakışma sayılmaz |
+| `core/sourceResolver.js` | ~330 | **Manifest kaynağı çözücü** — `source.type: "github"`, `"github_files"` veya `"url"`. URL kaynağında sürüm keşfi (`html_scrape` / `json_field` / `static`) yapar, githubFetcher ile **aynı şemada** kayıt döndürür, böylece motorun geri kalanı değişmez. `github_files`: release'de asset yokken (yalnızca "Source code (zip)" varken) gereken dosyaları `raw.githubusercontent.com`'dan tek tek indirir (`rawFileUrl`, `downloadFiles`) |
 | `core/rarExtractor.js` | ~130 | **RAR4/RAR5 çıkarma** (node-unrar-js/WASM). 7za RAR desteklemediği için yazıldı; asar altında `app.asar.unpacked` yolundan WASM okur, zip-slip koruması var |
 | `core/configEditor.js` | 134 | INI/JSON config okuma-yazma, `Section.Key` nokta notasyonu |
 | `core/conditionChecker.js` | 181 | `check_conflicts`, `file_exists`, GPU kontrolü (PowerShell `Win32_VideoController`, cache'li) |
@@ -197,6 +197,7 @@ Aynı `id` iki kez bulunursa ilk yüklenen kazanır (shadowing engeli).
 | `optiscaler-dlssnr` | mod | `Dagherbou/OptiScaler_DLSSNR` | `game_exe` | OptiScaler + DLSS5 Neural Rendering forku. `[DlssNr]` config şeması + 4 preset, `proxyDetection`, `files.exclude` (setup script'leri). **`nvngx_dlssnr.dll` kullanıcı tarafından sağlanır** |
 | `mfg-unlock` | mod | `mavismmg/MFGAdaUnlock-RenoDx` | `game_exe` | RTX 40'ta DLSS Multi Frame Generation (3x/4x/6x) kilidini açan **ReShade addon'u**. Asset arşiv değil, tek `.addon64` dosyası. `requires: [reshade]` ile ReShade'e bağlı; ayarları `ReShade.ini` → `[RenoDX.MFGUnlock]` |
 | `reshade` | **both** | `reshade.me` (url) | `game_exe` | Post-process enjektör. `source.type: url` + sürüm keşfi, SFX exe'den DLL çıkarma, `apiTargeting` (32/64 bit + API'ye göre yeniden adlandırma), `extraSources` (shader paketi), `ReShade.ini` üretimi |
+| `dlssg-for-sm86` | mod | `sdli1995/dlssg_for_sm86` | `game_exe` | RTX 20/30'da MFG. Release'de **asset yok** → `source.type: "github_files"` (yalnızca gereken dosyalar raw üzerinden). Her enjeksiyon adı ayrı binary → `proxyDetection.sourceByTarget`. DLL'de FileDescription yok → kaldırma `uninstall.verifiedDlls[].matchModFileHash` ile |
 | `streamline` | mod | `NVIDIA-RTX/Streamline` | `dynamic_search` | `in_place_suffix` backup (`.backup`), hash kaydı, `whitelistFiles` |
 | `dummy-mod` | mod | `vuenxx/dummy` | `game_exe` | Test manifesti |
 
@@ -208,8 +209,15 @@ Aynı `id` iki kez bulunursa ilk yüklenen kazanır (shadowing engeli).
 
 ```
 id, name, description, author, version
-source:   { type:"github" | "url",
-            // github: repo, release, asset, maxReleases
+source:   { type:"github" | "github_files" | "url",
+            // github:       repo, release, asset, maxReleases
+            // github_files: repo, release, maxReleases, files:[depo içi yollar]
+            //               Release'de asset yokken (yalnızca "Source code (zip)")
+            //               dosyalar raw.githubusercontent.com/<repo>/<tag>/<yol>
+            //               üzerinden tek tek indirilir ve hedef klasöre DÜZ
+            //               (yalnızca dosya adıyla) yazılır. İndirilecek liste =
+            //               source.files + seçilen enjeksiyonun sourceByTarget yolu.
+            //               `install.extractRoot: "none"` kullanılmalı (arşiv yok).
             // url:    url ("...{version}..."), assetName, version,
             //         versionCheck:{ type:"html_scrape"|"json_field"|"static",
             //                        url, pattern|field, flags }
@@ -220,7 +228,13 @@ install:
   destination:  "game_root" | "game_exe" | "dynamic_search" | {type:"relative", path}
   extractRoot:  "auto" | "bin/x64"
   files:        { exclude:[glob], include:[glob] }
-  proxyDetection: { sourceFile, candidates[], descriptionMatch, defaultTarget }
+  proxyDetection: { sourceFile, candidates[], descriptionMatch, defaultTarget,
+                    sourceByTarget: { "dxgi.dll": "alternatives/dxgi.dll", ... } }
+                  // Klasik mod: TEK dosya (`sourceFile`) seçilen hedef adla kopyalanır.
+                  // `sourceByTarget`: her hedef adın KENDİ binary'si vardır (yeniden
+                  // adlandırma yoktur); anahtar = hedef ad, değer = arşiv/depo içi yol.
+                  // Bu alan varsa `descriptionMatch` zorunlu değildir — sürüm kaynağı
+                  // taşımayan DLL'lerde mevcut kurulum `state.injectionField`'den okunur.
   apiTargeting: { sourceByArch:{ x64, x86 },        // bit genişliğine göre kaynak dosya
                   renameByApi:{ d3d12:"dxgi.dll", d3d9:"d3d9.dll", ... },
                   defaultApi:"auto", allowUserOverride, backupExisting }
@@ -235,6 +249,10 @@ config: [ { file, format:"ini"|"json", search[], required, createIfMissing,
 conditions: [ { type:"check_conflicts"|"file_exists"|"file_not_exists"|"gpu", ... } ]
 backup:   { enabled, files[], strategy:"in_place_suffix", suffix, recordHashes, rollbackOnFailure }
 uninstall:{ files[], verifiedDlls[], restoreBackup, resetState, cleanModOnlyFiles, gameUpdatedCheck,
+            // verifiedDlls[]: { candidates[], descriptionMatch }  → açıklama doğrulamalı silme
+            //                 { candidates[], matchModFileHash:true } → DLL'de FileDescription
+            //                 yoksa: kurulu dosyanın hash'i indirilmiş mod dosyasıyla
+            //                 birebir aynıysa silinir, oyunun kendi DLL'ine dokunulmaz
             userRemovable }   // false → Yönet ekranında "Modu Kaldır" butonu gizlenir,
                              // yalnızca sürüm değiştirilebilir (ör. streamline).
                              // Alan yoksa buton görünür (varsayılan true).
@@ -296,16 +314,19 @@ permissions[], metadata:{ homepage, tags[], notes }
 | 5b | Yol-bağımlı `conditions` tekrar kontrolü | — |
 | 5c | **`requires`** — ön koşul modülleri kurulu mu? (eksikse **indirme başlamadan** durur, hata `failures[]` taşır) | 27 |
 | 5d | **`conflicts`** — bildirilmiş çakışan modül kurulu mu? (kuruluysa indirme başlamadan durur) | 27 |
+| 5e | **`proxyDetection`** — enjeksiyon (proxy) DLL hedefini belirle. *Eskiden 12a idi*; `github_files` kaynağında indirilecek dosya seçime bağlı olduğu için indirmeden önceye alındı. Öncelik: kullanıcı seçimi > diskte tespit (`descriptionMatch`, yoksa `state.injectionField`) > `defaultTarget` | 27 |
+| 5f | **Enjeksiyon çakışması ön-kontrolü** — seçilen proxy adı oyunun kendi dosyasıyla çakışıyorsa **indirme hiç başlamaz** (aynı kontrol 12e'de `apiTargeting` hedefi için tekrarlanır) | 27 |
 | 6 | Sürüm belirle + yerel mod klasörü var mı? | 30 |
 | 7–8 | GitHub release + asset çöz | 45 |
-| 9 | İndir (yerel varsa atlanır) → kalıcı cache | 50–60 |
+| 7b | **`github_files`**: asset yok — `source.files` + seçilen enjeksiyonun kaynak yolu raw üzerinden tek tek indirilir, arşiv çıkarma adımı (10) atlanır | 50–65 |
+| 9 | İndir (yerel varsa atlanır) → kalıcı cache. `github_files`'ta "yerel var" demek yetmez: seçilen enjeksiyon DLL'i önbellekte yoksa yalnızca o dosya indirilir | 50–60 |
 | 10 | Arşiv çıkar (`userData/mods/<modId>/<tag>/`) | 65 |
 | 11 | `extractRoot` çöz (`auto` = tek kök klasörü içeri gir) | 70 |
 | 12 | Backup pipeline (klasik veya `in_place_suffix`) | 75 |
-| 12a | `proxyDetection` → hedef DLL adını belirle | — |
 | 12b | `cleanStaleVersionFiles` — eski sürüm artıkları | — |
-| 12e | **Dahili çakışma** — hedef DLL başka bir V-Manager moduna aitse `.bak` alınmaz, kurulum durur | — |
+| 12e | **Dahili çakışma** — hedef DLL başka bir V-Manager moduna aitse `.bak` alınmaz, kurulum durur. **Sahibi hiçbir modül değilse** (oyunun kendi dosyası) kurulum yine durur: *"Seçtiğiniz enjeksiyon tipi (X) oyunun içerisindeki dosyalarla çakışıyor. Lütfen farklı bir enjeksiyon tipi deneyin."* — `failures[0].type = 'injection_conflict'`. Sahiplik `detect` bloklarından bilinir; `detect` tanımlamayan manifestlerde ve `apiTargeting.backupExisting: true` olan manifestlerde (ör. ReShade) bu kontrol atlanır | — |
 | 13 | Dosyaları kopyala | 80 |
+| 13a | Enjeksiyon tipi değiştiyse eski proxy DLL'i kaldır (hash'i önbellekteki mod dosyasıyla birebir aynıysa; oyunun kendi DLL'ine dokunulmaz) | — |
 | 13b | `verifyAntiVirusDelayMs` — AV silmiş mi kontrolü | 83 |
 | 13c | **`addons`** — seçili eklentileri kur (hata ana kurulumu bozmaz) | 84 |
 | 14 | `config` değişikliklerini uygula (`set` / preset / addon `configChanges`) | 85 |
@@ -315,7 +336,7 @@ permissions[], metadata:{ homepage, tags[], notes }
 
 **Hata durumunda:** backup varsa otomatik rollback (`restoreBackup`).
 
-**`uninstall()` sırası:** dosya silme (`uninstall.files`) → doğrulamalı DLL silme (`verifiedDlls`) → `.backup` / klasör yedeği geri yükleme → **`.bak` geri yükleme (adım 3b)** → state sıfırlama.
+**`uninstall()` sırası:** dosya silme (`uninstall.files`) → doğrulamalı DLL silme (`verifiedDlls`: FileDescription eşleşmesi ya da `matchModFileHash` ile indirilmiş dosyanın hash'i) → `.backup` / klasör yedeği geri yükleme → **`.bak` geri yükleme (adım 3b)** → state sıfırlama.
 `.bak` dosyaları `apiTargeting` kurulumunda üzerine yazılan orijinal DLL'lerdir; ÖNCE mod dosyası silinir, SONRA `.bak` uzantısı kaldırılarak orijinal adıyla geri konur (ad çakışması olmasın diye).
 
 ---
@@ -500,6 +521,7 @@ Event'ler (main → renderer):
   "hasOptiscaler":  false, "optiscalerVersion": null,   "optiscalerPath": null, "optiscalerInjection": "dxgi.dll",
   "hasOptiBuilder": false, "optiBuilderVersion": null,  "optiBuilderPath": null, "optiBuilderInjection": null,
   "hasDlssNr":      false, "dlssNrVersion": null,       "dlssNrPath": null,     "dlssNrInjection": null,
+  "hasDlssgSm86":   false, "dlssgSm86Version": null,    "dlssgSm86Path": null,  "dlssgSm86Injection": null,
   "hasStreamline":  false, "streamlineVersion": null,   "streamlinePath": null,
   "streamlineHashes": {},  "streamlineModVersion": null,
 
@@ -733,6 +755,10 @@ node src/main/modules/test-reshade.js
 
 ```bash
 node src/main/modules/test-requirements.js
+```
+
+```bash
+node src/main/modules/test-dlssg-sm86.js
 ```
 
 ```bash

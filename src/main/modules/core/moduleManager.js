@@ -320,37 +320,49 @@ function registerIpcHandlers(ipcMain) {
         }
     });
 
+    let actionLock = Promise.resolve();
+
     // ── module-install: Modül kurulumu ─────────────────────────────────────
     ipcMain.handle('module-install', async (event, data, ...rest) => {
-        let moduleId, gameName, exePath, tag, options;
-        if (data && typeof data === 'object') {
-            moduleId = data.moduleId;
-            gameName = data.gameName;
-            exePath = data.exePath || data.exe_path;
-            tag = data.tag;
-            options = data.options;
-        } else {
-            moduleId = data;
-            gameName = rest[0];
-            exePath = rest[1];
-            tag = rest[2];
-            options = rest[3];
-        }
-
-        console.log(`${TAG} [INSTALL_REQUEST] moduleId="${moduleId}", gameName="${gameName}", exePath="${exePath}", tag="${tag}"`);
-
-        const mod = getModule(moduleId);
-        if (!mod) {
-            const loaded = Array.from(modules.keys()).join(', ');
-            console.error(`${TAG} [INSTALL_ERROR] Modül bulunamadı: "${moduleId}". Yüklü modüller: [${loaded}]`);
-            return { 
-                success: false, 
-                error: `Modül bulunamadı: "${moduleId}" (Yüklü modüller: ${loaded})`,
-                message: `Modül bulunamadı: "${moduleId}"`
-            };
-        }
+        const unlock = actionLock;
+        let resolveLock;
+        actionLock = new Promise(r => resolveLock = r);
+        await unlock;
 
         try {
+            const ipc = require('../../ipc');
+            if (ipc.isScanRunning && ipc.isScanRunning()) {
+                return { success: false, error: 'scan_in_progress', message: 'Tarama devam ediyor, lütfen bekleyin.' };
+            }
+
+            let moduleId, gameName, exePath, tag, options;
+            if (data && typeof data === 'object') {
+                moduleId = data.moduleId;
+                gameName = data.gameName;
+                exePath = data.exePath || data.exe_path;
+                tag = data.tag;
+                options = data.options;
+            } else {
+                moduleId = data;
+                gameName = rest[0];
+                exePath = rest[1];
+                tag = rest[2];
+                options = rest[3];
+            }
+
+            console.log(`${TAG} [INSTALL_REQUEST] moduleId="${moduleId}", gameName="${gameName}", exePath="${exePath}", tag="${tag}"`);
+
+            const mod = getModule(moduleId);
+            if (!mod) {
+                const loaded = Array.from(loadedModules.keys()).join(', ');
+                console.error(`${TAG} [INSTALL_ERROR] Modül bulunamadı: "${moduleId}". Yüklü modüller: [${loaded}]`);
+                return { 
+                    success: false, 
+                    error: `Modül bulunamadı: "${moduleId}" (Yüklü modüller: ${loaded})`,
+                    message: `Modül bulunamadı: "${moduleId}"`
+                };
+            }
+
             const result = await moduleEngine.install(
                 mod.manifest,
                 gameName,
@@ -418,30 +430,42 @@ function registerIpcHandlers(ipcMain) {
                 message: e.message || 'Bilinmeyen kurulum hatası',
                 stack: e.stack
             };
+        } finally {
+            resolveLock();
         }
     });
 
     // ── module-uninstall: Modül kaldırma ──────────────────────────────────
     ipcMain.handle('module-uninstall', async (_event, data, ...rest) => {
-        let moduleId, gameName, exePath;
-        if (data && typeof data === 'object') {
-            moduleId = data.moduleId;
-            gameName = data.gameName;
-            exePath = data.exePath || data.exe_path;
-        } else {
-            moduleId = data;
-            gameName = rest[0];
-            exePath = rest[1];
-        }
-
-        console.log(`${TAG} [UNINSTALL_REQUEST] moduleId="${moduleId}", gameName="${gameName}", exePath="${exePath}"`);
-
-        const mod = getModule(moduleId);
-        if (!mod) {
-            return { success: false, error: `Modül bulunamadı: ${moduleId}`, message: `Modül bulunamadı: ${moduleId}` };
-        }
+        const unlock = actionLock;
+        let resolveLock;
+        actionLock = new Promise(r => resolveLock = r);
+        await unlock;
 
         try {
+            const ipc = require('../../ipc');
+            if (ipc.isScanRunning && ipc.isScanRunning()) {
+                return { success: false, error: 'scan_in_progress', message: 'Tarama devam ediyor, lütfen bekleyin.' };
+            }
+
+            let moduleId, gameName, exePath;
+            if (data && typeof data === 'object') {
+                moduleId = data.moduleId;
+                gameName = data.gameName;
+                exePath = data.exePath || data.exe_path;
+            } else {
+                moduleId = data;
+                gameName = rest[0];
+                exePath = rest[1];
+            }
+
+            console.log(`${TAG} [UNINSTALL_REQUEST] moduleId="${moduleId}", gameName="${gameName}", exePath="${exePath}"`);
+
+            const mod = getModule(moduleId);
+            if (!mod) {
+                return { success: false, error: `Modül bulunamadı: ${moduleId}`, message: `Modül bulunamadı: ${moduleId}` };
+            }
+
             const result = await moduleEngine.uninstall(mod.manifest, gameName, exePath);
             if (result.success) {
                 try {
@@ -449,13 +473,19 @@ function registerIpcHandlers(ipcMain) {
                     const gameRoot = path.dirname(exePath || '');
                     if (gameRoot && fs.existsSync(gameRoot)) {
                         console.log(`${TAG} [UNINSTALL_REFRESH] Mod kaldırıldı, oyun yenileniyor: "${gameName}"`);
+                        // Kaynak/kapak DB'den taşınır: sabit `source: 'manual'`
+                        // geçilirse processAndStreamGame oyunun gerçek kaynağını
+                        // (Steam/Epic/...) "manual"a çevirip kart etiketini bozuyor.
+                        const dbGames = config.getExistingGamesState() || [];
+                        const dbGame = dbGames.find(g =>
+                            g && g.name && config.normalizeGameKey(g.name) === config.normalizeGameKey(gameName));
                         await scanner.processAndStreamGame({
                             name: gameName,
                             exePath: exePath,
-                            gameRoot: gameRoot,
-                            source: 'manual',
-                            launcherId: null,
-                            cover: null,
+                            gameRoot: (dbGame && dbGame.gameRoot) || gameRoot,
+                            source: (dbGame && dbGame.source) || 'manual',
+                            launcherId: (dbGame && dbGame.launcherId) || null,
+                            cover: (dbGame && dbGame.cover) || null,
                             coverUrl: null
                         }, _event);
                     }
@@ -471,6 +501,8 @@ function registerIpcHandlers(ipcMain) {
         } catch (e) {
             console.error(`${TAG} module-uninstall hatası (${moduleId}):`, e);
             return { success: false, error: e.message, message: e.message, stack: e.stack };
+        } finally {
+            resolveLock();
         }
     });
 
@@ -527,6 +559,25 @@ function registerIpcHandlers(ipcMain) {
     // ── module-get-active-for-game: Oyun için aktif modülleri listele ────
     ipcMain.handle('module-get-active-for-game', async (_event, game) => {
         try {
+            // Renderer'dan gelen `game` nesnesi bayat olabilir (or. mod kaldirildiktan
+            // hemen sonra elde kalan eski kopya). Kurulu mod listesi her zaman
+            // games.json'daki guncel kayittan surulur; DB'de bulunamazsa gelen
+            // nesneye geri dusulur.
+            try {
+                const dbGames = config.getExistingGamesState();
+                if (game && Array.isArray(dbGames)) {
+                    const dbGame = dbGames.find(g =>
+                        (g && g.name && game.name &&
+                            config.normalizeGameKey(g.name) === config.normalizeGameKey(game.name)) ||
+                        (g && g.exePath && game.exePath &&
+                            path.resolve(g.exePath).toLowerCase() === path.resolve(game.exePath).toLowerCase())
+                    );
+                    if (dbGame) game = dbGame;
+                }
+            } catch (dbErr) {
+                console.warn(`${TAG} module-get-active-for-game DB eslestirmesi basarisiz:`, dbErr.message);
+            }
+
             const activeMods = [];
             for (const [id, mod] of loadedModules) {
                 const manifest = mod.manifest;

@@ -9,6 +9,12 @@
  * (`{ name, tag, downloadUrl, size, publishedAt, assetName }`), böylece
  * moduleEngine'in indirme/çıkarma/önbellek adımları değişmeden çalışır.
  *
+ * `source.type: "github_files"` ise release'in EK DOSYASI (asset) hiç yoktur —
+ * bazı depolar yalnızca "Source code (zip)" üretir. Bütün kaynak arşivini indirmek
+ * (bu depoda ~133 MB) yerine yalnızca gereken dosyalar `raw.githubusercontent.com`
+ * üzerinden tek tek çekilir. Dönen kayıtta `downloadUrl` yoktur; yerine
+ * `fileMode: true` bulunur ve moduleEngine `downloadFiles()` ile indirir.
+ *
  * Sürüm keşfi (`source.versionCheck`):
  *   - html_scrape : bir sayfayı indirip regex ile sürüm yakalar (ReShade)
  *   - json_field  : JSON API'den nokta notasyonlu alan okur
@@ -144,6 +150,101 @@ async function fetchUrlReleases(manifest, options = {}) {
     }
 }
 
+/** raw.githubusercontent.com adresi — depo içi bir dosyanın sürüm etiketli hâli. */
+function rawFileUrl(repo, tag, filePath) {
+    const clean = String(filePath).replace(/\\/g, '/').replace(/^\/+/, '');
+    const encoded = clean.split('/').map(encodeURIComponent).join('/');
+    return `https://raw.githubusercontent.com/${repo}/${encodeURIComponent(tag)}/${encoded}`;
+}
+
+/**
+ * `github_files` için sürüm listesi — release'lerde asset aranmaz, yalnızca
+ * tag'ler listelenir. Kayıt şeması diğer kaynaklarla aynı kalır ki
+ * moduleEngine'in sürüm seçimi/önbellek mantığı değişmesin.
+ */
+async function fetchGithubFileReleases(manifest, options = {}) {
+    const source = manifest.source;
+    const cacheKey = manifest.id;
+    const repo = source.repo;
+
+    if (options.forceRefresh) {
+        releaseCache.clearCache(cacheKey);
+    } else if (releaseCache.isCacheValid(cacheKey, repo)) {
+        const cached = releaseCache.readCache(cacheKey);
+        if (cached) return { fetchedAt: cached.fetchedAt, releases: cached.releases };
+    }
+
+    try {
+        const res = await fetch(`https://api.github.com/repos/${repo}/releases`, {
+            headers: { 'User-Agent': USER_AGENT }
+        });
+        if (!res.ok) throw new Error(`GitHub API HTTP ${res.status}`);
+
+        const raw = await res.json();
+        const maxReleases = source.maxReleases || 10;
+        const releases = raw.slice(0, maxReleases).map(r => ({
+            name: r.name || r.tag_name,
+            tag: r.tag_name,
+            downloadUrl: null,
+            size: null,
+            publishedAt: r.published_at,
+            assetName: null,
+            fileMode: true
+        }));
+
+        releaseCache.writeCache(cacheKey, releases, repo);
+        return { fetchedAt: Date.now(), releases };
+
+    } catch (err) {
+        console.error(`${TAG} ${manifest.id} sürüm listesi alınamadı:`, err.message);
+        const cached = releaseCache.readCache(cacheKey);
+        if (cached && cached.releases && cached.releases.length > 0) {
+            return { fetchedAt: cached.fetchedAt, fromStaleCache: true, releases: cached.releases };
+        }
+        return { error: err.message, releases: [] };
+    }
+}
+
+/**
+ * `github_files` indirmesi: depo içi yolları hedef klasöre DÜZ (flat) indirir —
+ * kaydedilen ad her zaman yolun son parçasıdır (ör. `alternatives/dxgi.dll`
+ * → `dxgi.dll`), böylece kopyalama adımı arşivden çıkmış bir klasörle
+ * çalışıyormuş gibi davranır.
+ *
+ * @param {string} repo      "owner/repo"
+ * @param {string} tag       release etiketi
+ * @param {string[]} paths   depo içi dosya yolları
+ * @param {string} destDir   hedef klasör
+ * @param {(info:{index:number,total:number,percent:number,fileName:string})=>void} onProgress
+ * @returns {Promise<string[]>} indirilen dosyaların tam yolları
+ */
+async function downloadFiles(repo, tag, paths, destDir, onProgress) {
+    const githubFetcherRef = require('./githubFetcher');
+    const written = [];
+    const total = paths.length;
+
+    for (let i = 0; i < total; i++) {
+        const filePath = paths[i];
+        const fileName = String(filePath).replace(/\\/g, '/').split('/').pop();
+        const url = rawFileUrl(repo, tag, filePath);
+
+        const result = await githubFetcherRef.downloadAsset(url, destDir, fileName, (percent) => {
+            if (onProgress) {
+                onProgress({
+                    index: i,
+                    total,
+                    fileName,
+                    percent: Math.round(((i + percent / 100) / total) * 100)
+                });
+            }
+        });
+        written.push(result.path);
+        console.log(`${TAG} ${repo}@${tag} → ${fileName} indirildi`);
+    }
+
+    return written;
+}
+
 /**
  * Manifest kaynağından sürüm listesi getirir.
  * `source.type` github ise githubFetcher'a delege eder, url ise kendisi çözer.
@@ -156,6 +257,10 @@ async function fetchReleases(manifest, options = {}) {
 
     if (type === 'url') {
         return await fetchUrlReleases(manifest, options);
+    }
+
+    if (type === 'github_files') {
+        return await fetchGithubFileReleases(manifest, options);
     }
 
     return await githubFetcher.fetchReleases(manifest.id, manifest.source.repo, {
@@ -174,5 +279,7 @@ module.exports = {
     fetchReleases,
     findRelease,
     discoverVersion,
-    applyTemplate
+    applyTemplate,
+    rawFileUrl,
+    downloadFiles
 };

@@ -1,0 +1,221 @@
+{
+    "id": "dlssg-for-sm86",
+    "name": "dlssg_for_sm86",
+    "description": "RTX 30 serisinde destekleyen oyunlarda Multi Frame Generation (MFG) teknolojisini kullanmaya yarayan bir mod.",
+    "conflicts": [
+        { "moduleId": "dlssenabler", "severity": "warn" },
+        { "moduleId": "optiscaler", "severity": "warn" },
+        { "moduleId": "optibuilder", "severity": "warn" },
+        { "moduleId": "optiscaler-dlssnr", "severity": "warn" }
+    ],
+    "author": "sdli1995",
+    "version": "latest",
+    "role": "mod",
+    "source": {
+        "type": "github_files",
+        "repo": "sdli1995/dlssg_for_sm86",
+        "release": "latest",
+        "maxReleases": 10,
+        "files": [
+            "dlssg_sm86.ini"
+        ]
+    },
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "none",
+        "refreshGameOnComplete": true,
+        "verifyAntiVirusDelayMs": 1500,
+        "proxyDetection": {
+            "sourceFile": "version.dll",
+            "defaultTarget": "version.dll",
+            "candidates": [
+                "version.dll",
+                "winmm.dll",
+                "dbghelp.dll",
+                "dinput8.dll",
+                "dxgi.dll",
+                "d3d12.dll"
+            ],
+            "sourceByTarget": {
+                "version.dll": "version.dll",
+                "winmm.dll": "alternatives/winmm.dll",
+                "dbghelp.dll": "alternatives/dbghelp.dll",
+                "dinput8.dll": "alternatives/dinput8.dll",
+                "dxgi.dll": "alternatives/dxgi.dll",
+                "d3d12.dll": "alternatives/d3d12.dll"
+            }
+        }
+    },
+    "config": [
+        {
+            "file": "dlssg_sm86.ini",
+            "format": "ini",
+            "search": [
+                "dlssg_sm86.ini"
+            ],
+            "required": false,
+            "createIfMissing": false,
+            "schema": {
+                "General": {
+                    "Enabled": {
+                        "label": "Kare Üretimi Etkin (Enabled)",
+                        "labelKey": "modSettings.labels.dlssgSm86Enabled",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" },
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" }
+                        ],
+                        "displayDefault": "1"
+                    }
+                },
+                "FrameGeneration": {
+                    "Optimized": {
+                        "label": "Optimizasyon Seviyesi (Optimized)",
+                        "labelKey": "modSettings.labels.dlssgSm86Optimized",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "0 — Orijinal çekirdekler", "labelKey": "modSettings.options.dlssgSm86Opt0" },
+                            { "val": "1", "label": "1 — Birebir aynı görüntü (önerilen)", "labelKey": "modSettings.options.dlssgSm86Opt1" },
+                            { "val": "2", "label": "2 — Hafif kayıplı, daha hızlı", "labelKey": "modSettings.options.dlssgSm86Opt2" },
+                            { "val": "3", "label": "3 — Tamamen kayıplı, en hızlı", "labelKey": "modSettings.options.dlssgSm86Opt3" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "MaxGeneratedFrames": {
+                        "label": "Kare Çarpanı Tavanı (MaxGeneratedFrames)",
+                        "labelKey": "modSettings.labels.dlssgSm86MaxFrames",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "2X", "labelKey": "modSettings.options.mfg2" },
+                            { "val": "2", "label": "3X", "labelKey": "modSettings.options.mfg3" },
+                            { "val": "3", "label": "4X (varsayılan)", "labelKey": "modSettings.options.dlssgSm86Frames4" },
+                            { "val": "5", "label": "6X", "labelKey": "modSettings.options.mfg6" }
+                        ],
+                        "displayDefault": "3"
+                    }
+                },
+                "Compatibility": {
+                    "Preset": {
+                        "label": "DLSS-G Preset (Preset)",
+                        "labelKey": "modSettings.labels.dlssgSm86Preset",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "Auto", "label": "Otomatik", "labelKey": "modSettings.options.dlssgSm86PresetAuto" },
+                            { "val": "A", "label": "A — Arayüz birleştirme kapalı", "labelKey": "modSettings.options.dlssgSm86PresetA" },
+                            { "val": "B", "label": "B — Arayüz birleştirme açık", "labelKey": "modSettings.options.dlssgSm86PresetB" }
+                        ],
+                        "displayDefault": "Auto"
+                    }
+                },
+                "Logging": {
+                    "Level": {
+                        "label": "Günlük Seviyesi (Level)",
+                        "labelKey": "modSettings.labels.dlssgSm86LogLevel",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Yalnızca hatalar", "labelKey": "modSettings.options.dlssgSm86Log1" },
+                            { "val": "2", "label": "Yapılandırma ve yetenekler", "labelKey": "modSettings.options.dlssgSm86Log2" },
+                            { "val": "3", "label": "Ayrıntılı izleme", "labelKey": "modSettings.options.dlssgSm86Log3" }
+                        ],
+                        "displayDefault": "1"
+                    }
+                }
+            },
+            "presets": {
+                "dlssg-sm86-quality": {
+                    "name": "Birebir Görüntü (Önerilen)",
+                    "nameKey": "modSettings.presets.dlssgSm86QualityName",
+                    "description": "Resmi NVIDIA çıktısıyla birebir aynı görüntü, 4X tavan.",
+                    "values": {
+                        "General.Enabled": "1",
+                        "FrameGeneration.Optimized": "1",
+                        "FrameGeneration.MaxGeneratedFrames": "3",
+                        "Compatibility.Preset": "Auto"
+                    }
+                },
+                "dlssg-sm86-performance": {
+                    "name": "Performans",
+                    "nameKey": "modSettings.presets.dlssgSm86PerformanceName",
+                    "description": "Kayıplı çekirdekler açık, 6X tavan (yalnızca 310.9 yapısı).",
+                    "values": {
+                        "General.Enabled": "1",
+                        "FrameGeneration.Optimized": "2",
+                        "FrameGeneration.MaxGeneratedFrames": "5",
+                        "Compatibility.Preset": "Auto"
+                    }
+                },
+                "dlssg-sm86-safe": {
+                    "name": "Uyumluluk",
+                    "nameKey": "modSettings.presets.dlssgSm86SafeName",
+                    "description": "Hiç hızlandırma yok; oyun takılırsa bu profille deneyin.",
+                    "values": {
+                        "General.Enabled": "1",
+                        "FrameGeneration.Optimized": "0",
+                        "FrameGeneration.MaxGeneratedFrames": "3",
+                        "Compatibility.Preset": "Auto"
+                    }
+                }
+            }
+        }
+    ],
+    "detect": {
+        "priority": 12,
+        "depthStrategy": "shallowest",
+        "match": {
+            "anyFileName": [
+                "dlssg_sm86.ini",
+                "version.dll",
+                "winmm.dll",
+                "dbghelp.dll",
+                "dinput8.dll",
+                "dxgi.dll",
+                "d3d12.dll"
+            ],
+            "requireSiblingFile": "dlssg_sm86.ini"
+        }
+    },
+    "state": {
+        "flag": "hasDlssgSm86",
+        "versionField": "dlssgSm86Version",
+        "pathField": "dlssgSm86Path",
+        "injectionField": "dlssgSm86Injection"
+    },
+    "uninstall": {
+        "files": [
+            "dlssg_sm86.ini",
+            "dlssg_sm86"
+        ],
+        "verifiedDlls": [
+            {
+                "candidates": [
+                    "version.dll",
+                    "winmm.dll",
+                    "dbghelp.dll",
+                    "dinput8.dll",
+                    "dxgi.dll",
+                    "d3d12.dll"
+                ],
+                "matchModFileHash": true
+            }
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://github.com/sdli1995/dlssg_for_sm86",
+        "tags": [
+            "dlss",
+            "frame-generation",
+            "mfg",
+            "rtx30",
+            "rtx20",
+            "proxy"
+        ],
+        "notes": "Depo release'lerine dosya eklemiyor; yalnizca 'Source code (zip)' bulunuyor. Tum kaynak arsivi ~133 MB oldugu icin manifest 'github_files' kaynagini kullanir: secilen enjeksiyon DLL'i + dlssg_sm86.ini raw.githubusercontent.com uzerinden tek tek indirilir. Her proxy adi AYRI bir binary'dir (version.dll yeniden adlandirilarak dxgi.dll yapilamaz); esleme install.proxyDetection.sourceByTarget icindedir. Depo kok dizinindeki version.dll 310.9 calisma zamanini (6X'e kadar), depodaki 310.1 klasoru eski calisma zamanini (4X) tasir; bu manifest kok dizini, yani 310.9'u kurar. dxgi.dll ve d3d12.dll render sicak yolundadir; depo bunlari yalnizca digerleri oyun tarafindan yuklenmediginde onerir. DLL'lerde surum kaynagi (FileDescription) yoktur, bu yuzden kaldirma indirilmis dosyanin hash'iyle dogrulanir (uninstall.verifiedDlls[].matchModFileHash) ve oyunun kendi DLL'ine dokunulmaz. Calismasi icin RTX 20/30 serisi ve D3D12 gerekir."
+    }
+}

@@ -2026,8 +2026,9 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
 /* ── Tekil Oyun Yenile Butonu — GRID modu ── */
 .refresh-game-btn {
     position: absolute;
-    top: 10px;
-    right: 34px; /* yıldızın hemen solunda */
+    /* Yildizin (favori) hemen ALTINDA dursun: favori top:10px + 24px yukseklik */
+    top: 36px;
+    right: 9px;
     background: transparent;
     color: #6b7280;
     border: none;
@@ -3407,6 +3408,8 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     padding: 12px;
     text-align: left;
     position: relative;
+    /* Favori + (altindaki) yenile butonu dikey olarak sigsin diye taban yukseklik */
+    min-height: 66px;
 }
 
 .game-title {
@@ -4277,6 +4280,16 @@ body:not([data-theme="dark"]) .game-search-input:focus {
 #uninstall-confirm-modal,
 #refresh-confirm-modal {
     z-index: 2000 !important;
+}
+
+/* Onay diyalogu her zaman en ustte olmali.
+   NOT: #general-confirm-modal (showConfirmDialog) hicbir z-index listesinde
+   degildi; openModal() dinamik z-index'i de acik modal sayisina bagli oldugu
+   icin "Modlari Yonet" (settings-modal) uzerinden acilan "Modu Kaldir" onayi
+   zaman zaman modalin ARKASINDA kaliyordu. Bilgi/uyari modallerinin (2000)
+   da ustune alinir. */
+#general-confirm-modal {
+    z-index: 2100 !important;
 }
 
 /* ── Güncellemeler Sekmesi ───────────────────────────────────────────────────── */
@@ -9991,24 +10004,97 @@ body:not([data-theme="dark"]) #settings-change-version-btn:hover:not(:disabled) 
     color: #e2e8f0;
 }
 
-.dlss-tag-more[data-tooltip]:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: calc(100% + 8px);
-    right: 0;
-    width: max-content;
-    max-width: 220px;
-    white-space: normal;
+/* NOT: Bu rozetin ipucu artik ::after ile degil, body'e bagli #global-tooltip
+   ile ciziliyor. Kart .game-cover-wrapper'i overflow:hidden oldugu icin
+   ::after tabanli ipucu kartin disina tasamiyor ve kirpiliyordu. */
+.global-tooltip.global-tooltip-multiline {
+    white-space: pre-line;
     text-align: left;
-    line-height: 1.35;
-    background: rgba(15, 15, 20, 0.97);
-    color: #ffffff;
-    padding: 6px 9px;
-    border-radius: 6px;
-    font-size: 11px;
+    max-width: 260px;
+}
+
+/* ── Modül kurulum/kaldırma günlüğü (moduleLogView.js) ──────────────────────
+   Bilgi modalinin altına katlanabilir blok olarak eklenir. Satırlar iki dilli
+   üretilir; burada yalnızca seviyeye göre renklendirme yapılır.
+   ⊘ (skip) satırları "yapılmayan işleri" gösterir — soluk gri tutulur. */
+.module-log-details {
+    margin-top: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    text-align: left;
+}
+
+.module-log-details > summary {
+    cursor: pointer;
+    padding: 8px 12px;
+    font-size: 12px;
     font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-    z-index: 10;
-    pointer-events: none;
+    color: var(--text-secondary);
+    user-select: none;
+    list-style: none;
+}
+
+.module-log-details > summary::-webkit-details-marker { display: none; }
+
+.module-log-details > summary::before {
+    content: '▸ ';
+    display: inline-block;
+    transition: transform 0.15s ease;
+}
+
+.module-log-details[open] > summary::before {
+    content: '▾ ';
+}
+
+.module-log-lines {
+    max-height: 260px;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 4px 12px 10px 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.module-log-line {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 11.5px;
+    line-height: 1.5;
+    font-family: Consolas, 'Courier New', monospace;
+    padding: 1px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.module-log-sym {
+    flex-shrink: 0;
+    width: 12px;
+    text-align: center;
+}
+
+.module-log-time {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+.module-log-msg {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary);
+}
+
+.module-log-skip .module-log-msg {
+    color: var(--text-secondary);
+    opacity: 0.85;
+}
+
+.module-log-file {
+    padding: 6px 12px 10px 12px;
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    word-break: break-all;
+    border-top: 1px solid var(--border-color);
 }

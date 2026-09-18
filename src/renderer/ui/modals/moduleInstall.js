@@ -812,7 +812,16 @@ export function initModuleInstallModalListeners() {
                         if (note && note !== postNoteKey) detail += `\n\nℹ️ ${note}`;
                     }
 
-                    showInfoModal('Kurulum Başarılı', detail);
+                    if (result.partialFailures && result.partialFailures.length > 0) {
+                        detail += `\n\n⚠️ Ek dosyalar indirilirken hata oluştu:\n` + result.partialFailures.map(f => `• ${f.label}: ${f.error}`).join('\n');
+                    }
+
+                    const isWarning = (result.partialFailures && result.partialFailures.length > 0) || (result.addonWarnings && result.addonWarnings.length > 0);
+                    showInfoModal(isWarning ? 'Kurulum Tamamlandı (Uyarılarla)' : 'Kurulum Başarılı', detail, isWarning ? 'warning' : false, {
+                        log: result.log,
+                        logSummary: result.logSummary,
+                        logFile: result.logFile
+                    });
                     await refreshGame(_currentGame);
                     updateHomeStats();
 
@@ -835,7 +844,11 @@ export function initModuleInstallModalListeners() {
                         log: result?.log
                     });
 
-                    showInfoModal('Kurulum Hatası', errorDetail, true);
+                    showInfoModal('Kurulum Hatası', errorDetail, true, {
+                        log: result?.log,
+                        logSummary: result?.logSummary,
+                        logFile: result?.logFile
+                    });
                 }
             } catch (err) {
                 if (window.electronAPI.removeModuleDownloadProgressListeners) {

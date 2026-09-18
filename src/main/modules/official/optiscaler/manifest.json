@@ -2,6 +2,10 @@
     "id": "optiscaler",
     "name": "OptiScaler",
     "description": "DLSS girdilerini FSR ve XeSS upscalerlarına dönüştürerek desteklenmeyen GPU'larda upscaling sağlar.",
+    "conflicts": [
+        { "moduleId": "optibuilder", "severity": "block" },
+        { "moduleId": "optiscaler-dlssnr", "severity": "block" }
+    ],
     "author": "cdozdil",
     "version": "latest",
     "source": {
@@ -357,16 +361,16 @@
     ],
     "uninstall": {
         "files": [
-            "OptiScaler.ini",
+            { "file": "OptiScaler.ini", "unlessAnyState": [ { "flag": "hasOptiBuilder", "value": true }, { "flag": "hasDlssNr", "value": true } ] },
             "OptiScaler.log",
             "OptiMX.log",
             "nvapi.dll",
-            "nvapi64.dll",
+            { "file": "nvapi64.dll", "unlessAnyState": [ { "flag": "hasOptiBuilder", "value": true }, { "flag": "hasDlssNr", "value": true } ] },
             "setup_linux.sh",
             "setup_windows.bat",
-            "fakenvapi.dll",
-            "fakenvapi.ini",
-            "dlssg_to_fsr3_amd_is_better.dll",
+            { "file": "fakenvapi.dll", "unlessAnyState": [ { "flag": "hasOptiBuilder", "value": true }, { "flag": "hasDlssNr", "value": true } ] },
+            { "file": "fakenvapi.ini", "unlessAnyState": [ { "flag": "hasOptiBuilder", "value": true }, { "flag": "hasDlssNr", "value": true } ] },
+            { "file": "dlssg_to_fsr3_amd_is_better.dll", "unlessAnyState": [ { "flag": "hasDlssEnabler", "value": true }, { "flag": "hasDlssgSm86", "value": true } ] },
             "!! README_EXTRACT ALL FILES TO GAME FOLDER !!.txt",
             "D3D12_Optiscaler",
             "OptiPatcher.asi"

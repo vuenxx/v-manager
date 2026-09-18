@@ -2,6 +2,11 @@
     "id": "dlssenabler",
     "name": "DLSS Enabler",
     "description": "NVIDIA DLSS Frame Generation özelliğini desteklenmeyen GPU'larda ve oyunlarda etkinleştirir.",
+    "conflicts": [
+        { "moduleId": "optiscaler", "severity": "warn" },
+        { "moduleId": "optibuilder", "severity": "warn" },
+        { "moduleId": "optiscaler-dlssnr", "severity": "warn" }
+    ],
     "author": "artur-graniszewski",
     "version": "latest",
     "source": {
@@ -371,26 +376,7 @@
             }
         }
     ],
-    "conditions": [
-        {
-            "type": "check_conflicts",
-            "enabled": false,
-            "candidates": [
-                "dxgi.dll",
-                "winmm.dll",
-                "d3d12.dll",
-                "dbghelp.dll",
-                "version.dll",
-                "wininet.dll",
-                "winhttp.dll",
-                "psapi.dll"
-            ],
-            "ignoreDescriptionMatches": [
-                "dlss enabler"
-            ],
-            "message": "Çakışan bir mod tespit edildi. Lütfen mevcut modu kaldırıp tekrar deneyin."
-        }
-    ],
+
     "backup": {
         "enabled": true,
         "files": [
@@ -429,13 +415,21 @@
         "files": [
             "dlss-enabler.ini",
             "dlss-enabler.log",
-            "dlssg_to_fsr3_amd_is_better.dll",
+            {
+                "file": "dlssg_to_fsr3_amd_is_better.dll",
+                "unlessAnyState": [
+                    { "flag": "hasOptiscaler", "value": true },
+                    { "flag": "hasOptiBuilder", "value": true },
+                    { "flag": "hasDlssgSm86", "value": true }
+                ]
+            },
             {
                 "file": "OptiScaler.ini",
-                "unlessState": {
-                    "flag": "hasOptiscaler",
-                    "value": true
-                }
+                "unlessAnyState": [
+                    { "flag": "hasOptiscaler", "value": true },
+                    { "flag": "hasOptiBuilder", "value": true },
+                    { "flag": "hasDlssNr", "value": true }
+                ]
             }
         ],
         "verifiedDlls": [

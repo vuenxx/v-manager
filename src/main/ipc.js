@@ -1350,5 +1350,6 @@ function registerIpcHandlers() {
 
 module.exports = {
     registerIpcHandlers,
-    isCompressionRunning: () => isCompressing
+    isCompressionRunning: () => isCompressing,
+    isScanRunning: () => isScanning
 };

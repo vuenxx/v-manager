@@ -2,6 +2,10 @@
     "id": "optiscaler-dlssnr",
     "name": "OptiScaler + DLSS5",
     "description": "OptiScaler'in DLSS5 Neural Rendering eklentili surumu. Upscaler ciktisi uzerine NVIDIA'nin sinirsel render modelini calistirarak detay uretir. nvngx_dlssnr.dll dosyasini kullanici saglamalidir.",
+    "conflicts": [
+        { "moduleId": "optiscaler", "severity": "block" },
+        { "moduleId": "optibuilder", "severity": "block" }
+    ],
     "author": "Dagherbou",
     "version": "latest",
     "source": {
@@ -45,25 +49,7 @@
         },
         "verifyAntiVirusDelayMs": 1500
     },
-    "conditions": [
-        {
-            "type": "check_conflicts",
-            "enabled": false,
-            "candidates": [
-                "dxgi.dll",
-                "winmm.dll",
-                "d3d12.dll",
-                "dbghelp.dll",
-                "version.dll",
-                "wininet.dll",
-                "winhttp.dll"
-            ],
-            "ignoreDescriptionMatches": [
-                "optiscaler"
-            ],
-            "message": "Cakisan bir mod tespit edildi. Lutfen mevcut modu kaldirip tekrar deneyin."
-        }
-    ],
+
     "backup": {
         "enabled": true,
         "files": [
@@ -687,21 +673,20 @@
     },
     "uninstall": {
         "files": [
-            "OptiScaler.ini",
+            { "file": "OptiScaler.ini", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasOptiBuilder", "value": true } ] },
             "OptiScaler.log",
             "OptiMX.log",
             "nvngx.dll_dlssnr.dll",
             "OptiScaler",
-            "Licenses",
             "D3D12_OptiScaler",
             "dlssnr-capture",
             "READ ME - DLSS Neural Rendering.txt",
             "!! EXTRACT ALL FILES TO GAME FOLDER !!",
             "setup_windows.bat",
             "setup_linux.sh",
-            "fakenvapi.dll",
-            "fakenvapi.ini",
-            "nvapi64-proxy.dll"
+            { "file": "fakenvapi.dll", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasOptiBuilder", "value": true } ] },
+            { "file": "fakenvapi.ini", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasOptiBuilder", "value": true } ] },
+            { "file": "nvapi64-proxy.dll", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasOptiBuilder", "value": true } ] }
         ],
         "verifiedDlls": [
             {

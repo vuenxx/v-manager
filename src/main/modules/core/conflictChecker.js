@@ -29,6 +29,7 @@
  * (["optiscaler"] → [{ moduleId: "optiscaler" }]).
  */
 
+const fs = require('fs');
 const path = require('path');
 const moduleDetector = require('./moduleDetector');
 
@@ -50,6 +51,15 @@ function cfg() {
 /** Standart çakışma metni — spesifikasyonda birebir bu cümle isteniyor. */
 function conflictMessage(name) {
     return `${name} ile çakışıyor, lütfen önce o modu kaldırın`;
+}
+
+/**
+ * Hedef dosya oyuna (ya da V-Manager dışı bir yazılıma) aitken gösterilen metin.
+ * Kullanıcının yapabileceği tek şey başka bir enjeksiyon adı seçmek.
+ */
+function injectionConflictMessage(fileName) {
+    return `Seçtiğiniz enjeksiyon tipi (${fileName}) oyunun içerisindeki dosyalarla ` +
+           `çakışıyor. Lütfen farklı bir enjeksiyon tipi deneyin.`;
 }
 
 /**
@@ -202,9 +212,62 @@ async function findFileOwnerConflict(manifest, destDir, fileNames = []) {
     return null;
 }
 
+/**
+ * Yabancı dosya çakışması: hedefte aynı adlı bir dosya VAR ama sahibi
+ * ne biz ne de başka bir V-Manager modülü — yani dosya oyunun kendisine
+ * (veya elle kurulmuş bir moda) ait. Üzerine yazmak/yedeklemek kullanıcının
+ * oyununu bozabileceği için kurulum durdurulur; çözüm başka bir enjeksiyon
+ * adı seçmektir.
+ *
+ * Sahiplik `detect` blokları üzerinden bilinir; `detect` tanımlamayan bir
+ * manifest için "bizim mi" sorusu cevaplanamaz, o yüzden kontrol atlanır
+ * (eski davranış korunur).
+ *
+ * @returns {Promise<string|null>} çakışan dosya adı, yoksa null
+ */
+async function findForeignTargetConflict(manifest, destDir, fileNames = []) {
+    if (!manifest || !manifest.detect) return null;
+    if (!destDir || !Array.isArray(fileNames) || fileNames.length === 0) return null;
+
+    const ownIds = new Set(
+        [manifest.id, ...(Array.isArray(manifest.aliases) ? manifest.aliases : [])]
+            .filter(Boolean).map(id => String(id).toLowerCase())
+    );
+    const ownGroup = manifest.detect.exclusiveGroup;
+
+    for (const fileName of fileNames) {
+        if (!fileName) continue;
+        const targetPath = path.join(destDir, fileName);
+
+        let exists = false;
+        try {
+            exists = fs.existsSync(targetPath) && fs.statSync(targetPath).isFile();
+        } catch (e) { /* ignore */ }
+        if (!exists) continue;
+
+        // Hiçbir modül hariç tutulmaz: dosya BİZE aitse (güncelleme/yeniden
+        // kurulum) sahibi bulunur ve çakışma sayılmaz.
+        const owner = await moduleDetector.identifyFileOwner(targetPath, {});
+
+        if (owner) {
+            const ownerId = String(owner.moduleId || '').toLowerCase();
+            if (ownIds.has(ownerId)) continue;                                  // kendi kurulumumuz
+            if (ownGroup && owner.exclusiveGroup === ownGroup) continue;        // aynı aileden varyant
+            continue;  // başka bir modül → findFileOwnerConflict'in işi
+        }
+
+        console.log(`${TAG} Yabancı dosya çakışması: ${fileName} (sahibi bilinmiyor)`);
+        return fileName;
+    }
+
+    return null;
+}
+
 module.exports = {
     checkDeclaredConflicts,
     findFileOwnerConflict,
+    findForeignTargetConflict,
+    injectionConflictMessage,
     normalizeConflictEntries,
     conflictMessage
 };

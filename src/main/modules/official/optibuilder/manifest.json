@@ -2,6 +2,10 @@
     "id": "optibuilder",
     "name": "OptiBuilder",
     "description": "OptiScaler yapılandırmalarını ve Frame Generation modüllerini optimize eder.",
+    "conflicts": [
+        { "moduleId": "optiscaler", "severity": "block" },
+        { "moduleId": "optiscaler-dlssnr", "severity": "block" }
+    ],
     "author": "vuenxx",
     "version": "latest",
     "source": {
@@ -344,11 +348,11 @@
     },
     "uninstall": {
         "files": [
-            "OptiScaler.ini",
+            { "file": "OptiScaler.ini", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasDlssNr", "value": true } ] },
             "OptiScaler.log",
             "OptiScaler",
-            "fakenvapi.ini",
-            "nvapi64-proxy.dll"
+            { "file": "fakenvapi.ini", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasDlssNr", "value": true } ] },
+            { "file": "nvapi64-proxy.dll", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasDlssNr", "value": true } ] }
         ],
         "verifiedDlls": [
             {

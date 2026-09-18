@@ -386,9 +386,9 @@ async function runTests() {
         assert(manifest.install.proxyDetection !== undefined, 'proxyDetection alanı olmalı');
         assert(manifest.install.verifyAntiVirusDelayMs === 1500, 'verifyAntiVirusDelayMs 1500 olmalı');
         assert(manifest.install.cleanStaleVersionFiles === true, 'cleanStaleVersionFiles true olmalı');
-        assert(manifest.conditions[0].enabled === false, 'check_conflicts enabled: false olmalı');
+        assert(manifest.conditions === undefined || manifest.conditions.length === 0, 'check_conflicts condition kaldırılmış olmalı');
         const optiEntry = manifest.uninstall.files.find(f => typeof f === 'object' && f.file === 'OptiScaler.ini');
-        assert(optiEntry && optiEntry.unlessState.flag === 'hasOptiscaler', 'OptiScaler.ini unlessState hasOptiscaler olmalı');
+        assert(optiEntry && optiEntry.unlessAnyState, 'OptiScaler.ini unlessAnyState içermeli');
         assert(manifest.uninstall.verifiedDlls.length === 1, 'verifiedDlls 1 kural içermeli');
         assert(manifest.uninstall.restoreBackup === false, 'restoreBackup false olmalı');
     });
