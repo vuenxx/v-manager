@@ -1,0 +1,35 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # v0.1.0, v1.0.0 gibi tag'larda tetiklenir
+
+jobs:
+  release:
+    runs-on: windows-latest 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Uyarıyı kaldıran komut
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24' # Node sürümünü de güncelleyelim
+          cache: 'npm'
+
+      - name: Bağımlılıkları yükle
+        run: npm ci
+
+      - name: Derle ve GitHub Releases'e yükle
+        # GH_TOKEN: electron-builder'ın release asset'lerini yüklemesi için gerekli.
+        # GITHUB_TOKEN GitHub Actions tarafından otomatik sağlanır;
+        # ekstra secret eklemeye gerek yok.
+        # Ön koşul: Repo → Settings → Actions → General →
+        #            Workflow permissions → "Read and write permissions" ✅
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

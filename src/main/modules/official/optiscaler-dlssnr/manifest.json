@@ -1,0 +1,738 @@
+{
+    "id": "optiscaler-dlssnr",
+    "name": "OptiScaler + DLSS5",
+    "description": "OptiScaler'in DLSS5 Neural Rendering eklentili surumu. Upscaler ciktisi uzerine NVIDIA'nin sinirsel render modelini calistirarak detay uretir. nvngx_dlssnr.dll dosyasini kullanici saglamalidir.",
+    "author": "Dagherbou",
+    "version": "latest",
+    "source": {
+        "type": "github",
+        "repo": "Dagherbou/OptiScaler_DLSSNR",
+        "release": "latest",
+        "asset": [
+            "*.zip",
+            "*.7z"
+        ],
+        "maxReleases": 10,
+        "legacyFolders": [
+            "OptiScaler_DLSSNR"
+        ]
+    },
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "auto",
+        "cleanStaleVersionFiles": true,
+        "refreshGameOnComplete": true,
+        "files": {
+            "exclude": [
+                "setup_linux.sh",
+                "setup_windows.bat",
+                "!! EXTRACT ALL FILES TO GAME FOLDER !!"
+            ]
+        },
+        "proxyDetection": {
+            "sourceFile": "OptiScaler.dll",
+            "candidates": [
+                "dxgi.dll",
+                "winmm.dll",
+                "d3d12.dll",
+                "dbghelp.dll",
+                "version.dll",
+                "wininet.dll",
+                "winhttp.dll"
+            ],
+            "descriptionMatch": "optiscaler",
+            "defaultTarget": "dxgi.dll"
+        },
+        "verifyAntiVirusDelayMs": 1500
+    },
+    "conditions": [
+        {
+            "type": "check_conflicts",
+            "enabled": false,
+            "candidates": [
+                "dxgi.dll",
+                "winmm.dll",
+                "d3d12.dll",
+                "dbghelp.dll",
+                "version.dll",
+                "wininet.dll",
+                "winhttp.dll"
+            ],
+            "ignoreDescriptionMatches": [
+                "optiscaler"
+            ],
+            "message": "Cakisan bir mod tespit edildi. Lutfen mevcut modu kaldirip tekrar deneyin."
+        }
+    ],
+    "backup": {
+        "enabled": true,
+        "files": [
+            "dxgi.dll",
+            "winmm.dll",
+            "d3d12.dll",
+            "version.dll",
+            "OptiScaler.ini"
+        ],
+        "rollbackOnFailure": true
+    },
+    "config": [
+        {
+            "file": "OptiScaler.ini",
+            "format": "ini",
+            "search": [
+                "OptiScaler.ini",
+                "optiscaler.ini"
+            ],
+            "required": false,
+            "createIfMissing": false,
+            "schema": {
+                "DlssNr": {
+                    "Enabled": {
+                        "label": "Neural Rendering (Enabled)",
+                        "labelKey": "modSettings.labels.dlssNrEnabled",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Kapalı (Varsayılan)",
+                                "labelKey": "modSettings.options.disabledDefault"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            },
+                            {
+                                "val": "false",
+                                "label": "Kapalı",
+                                "labelKey": "modSettings.options.disabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "TransferStrength": {
+                        "label": "Detay Gücü (TransferStrength)",
+                        "labelKey": "modSettings.labels.dlssNrTransferStrength",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "ColourStrength": {
+                        "label": "Renk Gücü (ColourStrength)",
+                        "labelKey": "modSettings.labels.dlssNrColourStrength",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "WhitePointScale": {
+                        "label": "Beyaz Nokta Çarpanı (WhitePointScale)",
+                        "labelKey": "modSettings.labels.dlssNrWhitePointScale",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "MaxRatio": {
+                        "label": "Maks. Parlaklık Oranı (MaxRatio)",
+                        "labelKey": "modSettings.labels.dlssNrMaxRatio",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "WorkingScale": {
+                        "label": "Model Çözünürlüğü (WorkingScale)",
+                        "labelKey": "modSettings.labels.dlssNrWorkingScale",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "ScalingDownscaler": {
+                        "label": "Küçültme Filtresi (ScalingDownscaler)",
+                        "labelKey": "modSettings.labels.dlssNrScalingDownscaler",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Varsayılan (Lanczos3)",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "0",
+                                "label": "FSR1"
+                            },
+                            {
+                                "val": "1",
+                                "label": "Bicubic"
+                            },
+                            {
+                                "val": "2",
+                                "label": "Catmull-Rom"
+                            },
+                            {
+                                "val": "3",
+                                "label": "Lanczos2"
+                            },
+                            {
+                                "val": "4",
+                                "label": "Lanczos3"
+                            },
+                            {
+                                "val": "5",
+                                "label": "Kaiser2"
+                            },
+                            {
+                                "val": "6",
+                                "label": "Kaiser3"
+                            },
+                            {
+                                "val": "7",
+                                "label": "MAGIC"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "Preset": {
+                        "label": "Model Ön Ayarı (Preset)",
+                        "labelKey": "modSettings.labels.dlssNrPreset",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "Style": {
+                        "label": "Model Stili (Style)",
+                        "labelKey": "modSettings.labels.dlssNrStyle",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "Intensity": {
+                        "label": "Yoğunluk (Intensity)",
+                        "labelKey": "modSettings.labels.dlssNrIntensity",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "LocalStructure": {
+                        "label": "Yerel Yapı (LocalStructure)",
+                        "labelKey": "modSettings.labels.dlssNrLocalStructure",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "LocalTone": {
+                        "label": "Yerel Ton (LocalTone)",
+                        "labelKey": "modSettings.labels.dlssNrLocalTone",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "SkinStructure": {
+                        "label": "Cilt Yapısı (SkinStructure)",
+                        "labelKey": "modSettings.labels.dlssNrSkinStructure",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    },
+                    "AutoMask": {
+                        "label": "Otomatik Maske (AutoMask)",
+                        "labelKey": "modSettings.labels.dlssNrAutoMask",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Varsayılan (Açık)",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            },
+                            {
+                                "val": "false",
+                                "label": "Kapalı",
+                                "labelKey": "modSettings.options.disabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "DebugView": {
+                        "label": "Hata Ayıklama Görünümü (DebugView)",
+                        "labelKey": "modSettings.labels.dlssNrDebugView",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Kapalı (Varsayılan)",
+                                "labelKey": "modSettings.options.disabledDefault"
+                            },
+                            {
+                                "val": "1",
+                                "label": "Modelin gördüğü kare",
+                                "labelKey": "modSettings.options.dlssNrDebugInput"
+                            },
+                            {
+                                "val": "2",
+                                "label": "Modelin ham çıktısı",
+                                "labelKey": "modSettings.options.dlssNrDebugOutput"
+                            },
+                            {
+                                "val": "3",
+                                "label": "Fark görünümü (20x)",
+                                "labelKey": "modSettings.options.dlssNrDebugDiff"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "AutoCapture": {
+                        "label": "Otomatik Kare Yakalama (AutoCapture)",
+                        "labelKey": "modSettings.labels.dlssNrAutoCapture",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Varsayılan (Açık)",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            },
+                            {
+                                "val": "false",
+                                "label": "Kapalı",
+                                "labelKey": "modSettings.options.disabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "ToggleKey": {
+                        "label": "Açma/Kapama Tuşu (ToggleKey)",
+                        "labelKey": "modSettings.labels.dlssNrToggleKey",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    }
+                },
+                "Upscalers": {
+                    "Dx12Upscaler": {
+                        "label": "DX12 Upscaler (Dx12Upscaler)",
+                        "labelKey": "modSettings.labels.dx12Upscaler",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Otomatik",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "dlss",
+                                "label": "dlss"
+                            },
+                            {
+                                "val": "xess",
+                                "label": "xess"
+                            },
+                            {
+                                "val": "fsr21",
+                                "label": "fsr21"
+                            },
+                            {
+                                "val": "fsr22",
+                                "label": "fsr22"
+                            },
+                            {
+                                "val": "ffx",
+                                "label": "ffx"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "Dx11Upscaler": {
+                        "label": "DX11 Upscaler (Dx11Upscaler)",
+                        "labelKey": "modSettings.labels.dx11Upscaler",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Otomatik",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "dlss",
+                                "label": "dlss"
+                            },
+                            {
+                                "val": "dlss_12",
+                                "label": "dlss_12"
+                            },
+                            {
+                                "val": "fsr22",
+                                "label": "fsr22"
+                            },
+                            {
+                                "val": "fsr31",
+                                "label": "fsr31"
+                            },
+                            {
+                                "val": "xess",
+                                "label": "xess"
+                            },
+                            {
+                                "val": "ffx_12",
+                                "label": "ffx_12"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "VulkanUpscaler": {
+                        "label": "Vulkan Upscaler (VulkanUpscaler)",
+                        "labelKey": "modSettings.labels.vulkanUpscaler",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Otomatik",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "dlss",
+                                "label": "dlss"
+                            },
+                            {
+                                "val": "fsr21",
+                                "label": "fsr21"
+                            },
+                            {
+                                "val": "fsr22",
+                                "label": "fsr22"
+                            },
+                            {
+                                "val": "ffx",
+                                "label": "ffx"
+                            },
+                            {
+                                "val": "xess",
+                                "label": "xess"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    }
+                },
+                "FrameGen": {
+                    "Enabled": {
+                        "label": "Frame Generation (Enabled)",
+                        "labelKey": "modSettings.labels.enabled",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Kapalı (Varsayılan)",
+                                "labelKey": "modSettings.options.disabledDefault"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            },
+                            {
+                                "val": "false",
+                                "label": "Kapalı",
+                                "labelKey": "modSettings.options.disabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "FGInput": {
+                        "label": "FG Girdisi (FGInput)",
+                        "labelKey": "modSettings.labels.fgInput",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Otomatik",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "nofg",
+                                "label": "nofg"
+                            },
+                            {
+                                "val": "dlssg",
+                                "label": "dlssg"
+                            },
+                            {
+                                "val": "nvngxfg",
+                                "label": "nvngxfg"
+                            },
+                            {
+                                "val": "fsrfg",
+                                "label": "fsrfg"
+                            },
+                            {
+                                "val": "upscaler",
+                                "label": "upscaler"
+                            },
+                            {
+                                "val": "fsrfg30",
+                                "label": "fsrfg30"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "FGOutput": {
+                        "label": "FG Çıktısı (FGOutput)",
+                        "labelKey": "modSettings.labels.fgOutput",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Otomatik",
+                                "labelKey": "modSettings.options.default"
+                            },
+                            {
+                                "val": "nofg",
+                                "label": "nofg"
+                            },
+                            {
+                                "val": "fsrfg",
+                                "label": "fsrfg"
+                            },
+                            {
+                                "val": "xefg",
+                                "label": "xefg"
+                            },
+                            {
+                                "val": "dlssg",
+                                "label": "dlssg"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    }
+                },
+                "Menu": {
+                    "ShowFps": {
+                        "label": "FPS Göster (ShowFps)",
+                        "labelKey": "modSettings.labels.showFps",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Kapalı (Varsayılan)",
+                                "labelKey": "modSettings.options.disabledDefault"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    },
+                    "ShortcutKey": {
+                        "label": "Menü Kısayolu (ShortcutKey)",
+                        "labelKey": "modSettings.labels.shortcutKey",
+                        "type": "text",
+                        "displayDefault": "auto"
+                    }
+                },
+                "Plugins": {
+                    "LoadAsiPlugins": {
+                        "label": "ASI Eklentiler (LoadAsiPlugins)",
+                        "labelKey": "modSettings.labels.loadAsiPlugins",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Kapalı (Varsayılan)",
+                                "labelKey": "modSettings.options.disabledDefault"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    }
+                },
+                "Log": {
+                    "LogToFile": {
+                        "label": "Dosyaya Log Yaz (LogToFile)",
+                        "labelKey": "modSettings.labels.logToFile",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "auto",
+                                "label": "Kapalı (Varsayılan)",
+                                "labelKey": "modSettings.options.disabledDefault"
+                            },
+                            {
+                                "val": "true",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            },
+                            {
+                                "val": "false",
+                                "label": "Kapalı",
+                                "labelKey": "modSettings.options.disabled"
+                            }
+                        ],
+                        "displayDefault": "auto"
+                    }
+                }
+            },
+            "presets": {
+                "dlssnr-on": {
+                    "name": "Neural Rendering Açık",
+                    "nameKey": "modSettings.presets.dlssNrOnName",
+                    "locked": true,
+                    "values": {
+                        "DlssNr.Enabled": "true",
+                        "DlssNr.TransferStrength": "1.0",
+                        "DlssNr.ColourStrength": "1.0",
+                        "DlssNr.WorkingScale": "1.0",
+                        "DlssNr.AutoMask": "true"
+                    }
+                },
+                "dlssnr-quality": {
+                    "name": "Neural Rendering Kalite",
+                    "nameKey": "modSettings.presets.dlssNrQualityName",
+                    "locked": true,
+                    "values": {
+                        "DlssNr.Enabled": "true",
+                        "DlssNr.TransferStrength": "1.0",
+                        "DlssNr.ColourStrength": "1.0",
+                        "DlssNr.WorkingScale": "1.5",
+                        "DlssNr.ScalingDownscaler": "4",
+                        "DlssNr.AutoMask": "true"
+                    }
+                },
+                "dlssnr-performance": {
+                    "name": "Neural Rendering Performans",
+                    "nameKey": "modSettings.presets.dlssNrPerformanceName",
+                    "locked": true,
+                    "values": {
+                        "DlssNr.Enabled": "true",
+                        "DlssNr.TransferStrength": "0.8",
+                        "DlssNr.ColourStrength": "1.0",
+                        "DlssNr.WorkingScale": "0.75",
+                        "DlssNr.AutoMask": "true"
+                    }
+                },
+                "dlssnr-off": {
+                    "name": "Neural Rendering Kapalı",
+                    "nameKey": "modSettings.presets.dlssNrOffName",
+                    "locked": true,
+                    "values": {
+                        "DlssNr.Enabled": "false"
+                    }
+                }
+            }
+        }
+    ],
+    "addons": [
+        {
+            "moduleId": "optipatcher",
+            "label": "OptiPatcher",
+            "labelKey": "opti.patcherLabel",
+            "description": "OptiScaler icin ek ASI eklentilerini yukler ve ini dosyasini yapilandirir.",
+            "default": false,
+            "install": {
+                "destination": "plugins",
+                "files": {
+                    "include": [
+                        "*.asi"
+                    ]
+                },
+                "renameTo": "OptiPatcher.asi"
+            },
+            "configChanges": {
+                "Plugins.LoadAsiPlugins": "true"
+            },
+            "descriptionKey": "opti.patcherHelp"
+        },
+        {
+            "moduleId": "fsr4",
+            "label": "FSR4 INT8",
+            "labelKey": "opti.fsr4Label",
+            "description": "FSR4 upscaling dosyalarini yukleyerek oyunda FSR 4 destegi saglar.",
+            "default": false,
+            "install": {
+                "destination": "game_exe",
+                "files": {
+                    "include": [
+                        "*.dll"
+                    ]
+                }
+            },
+            "descriptionKey": "opti.fsr4Help"
+        }
+    ],
+    "detect": {
+        "priority": 60,
+        "exclusiveGroup": "optiscaler-family",
+        "depthStrategy": "shallowest",
+        "match": {
+            "proxyDll": {
+                "candidates": [
+                    "dxgi.dll",
+                    "winmm.dll",
+                    "d3d12.dll",
+                    "dbghelp.dll",
+                    "version.dll",
+                    "wininet.dll",
+                    "winhttp.dll",
+                    "optiscaler.dll"
+                ],
+                "descriptionMatch": "optiscaler"
+            },
+            "requireSiblingFile": "nvngx.dll_dlssnr.dll"
+        }
+    },
+    "state": {
+        "flag": "hasDlssNr",
+        "versionField": "dlssNrVersion",
+        "pathField": "dlssNrPath",
+        "injectionField": "dlssNrInjection",
+        "upscalerField": "dlssnr"
+    },
+    "uninstall": {
+        "files": [
+            "OptiScaler.ini",
+            "OptiScaler.log",
+            "OptiMX.log",
+            "nvngx.dll_dlssnr.dll",
+            "OptiScaler",
+            "Licenses",
+            "D3D12_OptiScaler",
+            "dlssnr-capture",
+            "READ ME - DLSS Neural Rendering.txt",
+            "!! EXTRACT ALL FILES TO GAME FOLDER !!",
+            "setup_windows.bat",
+            "setup_linux.sh",
+            "fakenvapi.dll",
+            "fakenvapi.ini",
+            "nvapi64-proxy.dll"
+        ],
+        "verifiedDlls": [
+            {
+                "candidates": [
+                    "dxgi.dll",
+                    "winmm.dll",
+                    "d3d12.dll",
+                    "dbghelp.dll",
+                    "version.dll",
+                    "wininet.dll",
+                    "winhttp.dll"
+                ],
+                "descriptionMatch": "optiscaler"
+            }
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://github.com/Dagherbou/OptiScaler_DLSSNR",
+        "tags": [
+            "optiscaler",
+            "dlss",
+            "neural-rendering",
+            "dlss5",
+            "upscaler"
+        ],
+        "notes": "Neural Rendering pass'inin calismasi icin oyun klasorune nvngx_dlssnr.dll gerekir. Bu dosya NVIDIA surucu paketinden gelir; telifli oldugu icin ne bu pakette ne de V-Manager tarafindan dagitilir, kullanici kendi surucusunden kopyalamalidir. Model RTX 50 serisi gerektirir (eski mimariler icin modlu DLL). DLL olmadan da OptiScaler kismi normal calisir, sadece [DlssNr] pass'i devre disi kalir."
+    }
+}

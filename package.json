@@ -1,0 +1,79 @@
+{
+  "name": "v-manager",
+  "version": "0.6.0",
+  "description": "V-Manager made by vuenxx",
+  "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vuenxx/v-manager"
+  },
+  "scripts": {
+    "start": "electron .",
+    "compile:win": "node tools/compile.js",
+    "compile:mac": "node tools/compile.js",
+    "compile:linux": "node tools/compile.js",
+    "build": "electron-builder --win --x64 --publish always",
+    "build:local": "electron-builder --win --x64 --publish never",
+    "build:compile": "npm run compile:win && electron-builder --win --x64 --publish always"
+  },
+  "build": {
+    "appId": "com.vuenxx.vmanager",
+    "productName": "V-Manager",
+    "publish": {
+      "provider": "github",
+      "owner": "vuenxx",
+      "repo": "v-manager"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "activation_preload.js",
+      "activation.html",
+      "activation_renderer.js",
+      "index.html",
+      "styles.css",
+      "icons/**",
+      "program_logo.ico",
+      "program_logo.png",
+      "node_modules/**",
+      "src/main/**",
+      "src/renderer/**",
+      "!tools/**"
+    ],
+    "asarUnpack": [
+      "node_modules/node-unrar-js/**"
+    ],
+    "extraResources": [
+      {
+        "from": "developer-games.json",
+        "to": "developer-games.json"
+      },
+      {
+        "from": "dlss_enabler_games.json",
+        "to": "dlss_enabler_games.json"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icons/program_logo.ico"
+    }
+  },
+  "author": "vuenxx",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "7zip-bin": "~5.2.0",
+    "adm-zip": "^0.6.0",
+    "bytenode": "^1.5.7",
+    "discord-rpc": "^4.0.1",
+    "electron-log": "^5.1.2",
+    "electron-updater": "^6.8.3",
+    "extract-zip": "^2.0.1",
+    "node-machine-id": "^1.1.12",
+    "node-unrar-js": "^2.0.2"
+  }
+}

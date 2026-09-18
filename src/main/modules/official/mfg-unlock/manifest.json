@@ -1,0 +1,322 @@
+{
+    "id": "mfg-unlock",
+    "name": "MFG Unlock (RenoDX)",
+    "description": "RTX 40 serisi kartlarda NVIDIA'nin 50 serisine kilitledigi DLSS Multi Frame Generation'i (3x/4x/6x) acar ve ara kare enterpolasyonunu duzeltir. Bir ReShade addon'udur — calismasi icin once ReShade kurulmus olmalidir.",
+    "author": "mavismmg (fork of Dreamt)",
+    "version": "latest",
+    "role": "mod",
+    "source": {
+        "type": "github",
+        "repo": "mavismmg/MFGAdaUnlock-RenoDx",
+        "asset": [
+            "*.addon64"
+        ],
+        "release": "latest",
+        "maxReleases": 10
+    },
+    "requires": [
+        {
+            "moduleId": "reshade",
+            "severity": "block",
+            "messageKey": "mfg.requiresReshade",
+            "message": "MFG Unlock bir ReShade addon'udur (.addon64). Once ReShade kurulmalidir."
+        }
+    ],
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "none",
+        "refreshGameOnComplete": true,
+        "verifyAntiVirusDelayMs": 1500,
+        "whitelistFiles": [
+            "renodx-mfgunlock.addon64"
+        ]
+    },
+    "config": [
+        {
+            "file": "ReShade.ini",
+            "format": "ini",
+            "search": [
+                "ReShade.ini"
+            ],
+            "required": false,
+            "createIfMissing": true,
+            "set": {
+                "RenoDX.MFGUnlock.Enabled": "1"
+            },
+            "schema": {
+                "RenoDX.MFGUnlock": {
+                    "Enabled": {
+                        "label": "Addon Etkin (Enabled)",
+                        "labelKey": "modSettings.labels.mfgEnabled",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" },
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "MaxCount": {
+                        "label": "Maksimum Kare Çarpanı (MaxCount)",
+                        "labelKey": "modSettings.labels.mfgMaxCount",
+                        "type": "slider",
+                        "min": 2,
+                        "max": 6,
+                        "step": 1,
+                        "displayDefault": "4"
+                    },
+                    "ForceMultiplier": {
+                        "label": "Çarpanı Zorla (ForceMultiplier)",
+                        "labelKey": "modSettings.labels.mfgForceMultiplier",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Oyunun Seçimi", "labelKey": "modSettings.options.mfgGameChoice" },
+                            { "val": "2", "label": "2X", "labelKey": "modSettings.options.mfg2" },
+                            { "val": "3", "label": "3X", "labelKey": "modSettings.options.mfg3" },
+                            { "val": "4", "label": "4X", "labelKey": "modSettings.options.mfg4" },
+                            { "val": "5", "label": "5X", "labelKey": "modSettings.options.mfg5" },
+                            { "val": "6", "label": "6X", "labelKey": "modSettings.options.mfg6" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "TemporalFix": {
+                        "label": "Zamansal Düzeltme (TemporalFix)",
+                        "labelKey": "modSettings.labels.mfgTemporalFix",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" },
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "BoundaryArtifactMitigationMode": {
+                        "label": "Kenar Artefakt Azaltma (BoundaryArtifactMitigationMode)",
+                        "labelKey": "modSettings.labels.mfgBoundaryMode",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Dengeli (Önerilen)", "labelKey": "modSettings.options.mfgBalanced" },
+                            { "val": "2", "label": "Agresif", "labelKey": "modSettings.options.mfgAggressive" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "ThinGeometryIntermediateScatter": {
+                        "label": "İnce Geometri: Ara Dağıtım",
+                        "labelKey": "modSettings.labels.mfgThinScatter",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" },
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "ThinGeometryValidatedWarpBlend": {
+                        "label": "İnce Geometri: Doğrulanmış Warp",
+                        "labelKey": "modSettings.labels.mfgThinWarp",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" },
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "ThinGeometryPreviousScatter": {
+                        "label": "İnce Geometri: Önceki Dağıtım (deneysel)",
+                        "labelKey": "modSettings.labels.mfgThinPrevious",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "BlackwellFrameworkKernels": {
+                        "label": "Blackwell Çekirdekleri",
+                        "labelKey": "modSettings.labels.mfgBlackwell",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" },
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" }
+                        ],
+                        "displayDefault": "1"
+                    },
+                    "DynamicMFG": {
+                        "label": "Dinamik MFG (DynamicMFG)",
+                        "labelKey": "modSettings.labels.mfgDynamic",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "DynamicTargetFPS": {
+                        "label": "Dinamik Hedef FPS (0 = ekran tazeleme)",
+                        "labelKey": "modSettings.labels.mfgDynamicFps",
+                        "type": "slider",
+                        "min": 0,
+                        "max": 480,
+                        "step": 1,
+                        "displayDefault": "0"
+                    },
+                    "DynamicReflexSourceCap": {
+                        "label": "Reflex Kaynak Sınırı",
+                        "labelKey": "modSettings.labels.mfgReflexCap",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "HDRCompatibilityMode": {
+                        "label": "HDR Uyumluluk Modu (HDRCompatibilityMode)",
+                        "labelKey": "modSettings.labels.mfgHdrMode",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Native", "labelKey": "modSettings.options.mfgHdrNative" },
+                            { "val": "1", "label": "Arayüzü Zorla", "labelKey": "modSettings.options.mfgHdrForceUi" },
+                            { "val": "2", "label": "Otomatik Koruma", "labelKey": "modSettings.options.mfgHdrAutoGuard" },
+                            { "val": "3", "label": "Son Renk", "labelKey": "modSettings.options.mfgHdrFinalColor" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "DepthEdgeGuardLevel": {
+                        "label": "Derinlik Kenar Koruma (DepthEdgeGuardLevel)",
+                        "labelKey": "modSettings.labels.mfgDepthGuard",
+                        "type": "slider",
+                        "min": 0,
+                        "max": 4,
+                        "step": 1,
+                        "displayDefault": "0"
+                    },
+                    "RuntimeSelectionMode": {
+                        "label": "Çalışma Zamanı Seçimi (RuntimeSelectionMode)",
+                        "labelKey": "modSettings.labels.mfgRuntimeMode",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Oyunun Varsayılanı", "labelKey": "modSettings.options.mfgRuntimeGame" },
+                            { "val": "1", "label": "Yerel Dosyayı Tercih Et", "labelKey": "modSettings.options.mfgRuntimeLocal" },
+                            { "val": "2", "label": "NVIDIA OTA'yı Zorla", "labelKey": "modSettings.options.mfgRuntimeOta" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "ForceFlipMeteringOff": {
+                        "label": "Flip Metering Kapalı (eski pacing)",
+                        "labelKey": "modSettings.labels.mfgFlipMetering",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "RaiseFrameCeiling": {
+                        "label": "Kare Tavanını Yükselt (6x)",
+                        "labelKey": "modSettings.labels.mfgRaiseCeiling",
+                        "type": "dropdown",
+                        "options": [
+                            { "val": "0", "label": "Kapalı", "labelKey": "modSettings.options.disabled" },
+                            { "val": "1", "label": "Açık", "labelKey": "modSettings.options.enabled" }
+                        ],
+                        "displayDefault": "0"
+                    }
+                }
+            },
+            "presets": {
+                "mfg-balanced": {
+                    "name": "Dengeli (Önerilen)",
+                    "nameKey": "modSettings.presets.mfgBalancedName",
+                    "description": "Gelistiricinin varsayilan ayarlari.",
+                    "values": {
+                        "RenoDX.MFGUnlock.Enabled": "1",
+                        "RenoDX.MFGUnlock.ForceMultiplier": "0",
+                        "RenoDX.MFGUnlock.BoundaryArtifactMitigationMode": "1",
+                        "RenoDX.MFGUnlock.TemporalFix": "1"
+                    }
+                },
+                "mfg-max-frames": {
+                    "name": "Maksimum Kare",
+                    "nameKey": "modSettings.presets.mfgMaxFramesName",
+                    "description": "4x zorlanir, kare tavani 6x'e acilir.",
+                    "values": {
+                        "RenoDX.MFGUnlock.Enabled": "1",
+                        "RenoDX.MFGUnlock.ForceMultiplier": "4",
+                        "RenoDX.MFGUnlock.MaxCount": "6",
+                        "RenoDX.MFGUnlock.RaiseFrameCeiling": "1",
+                        "RenoDX.MFGUnlock.BoundaryArtifactMitigationMode": "1"
+                    }
+                },
+                "mfg-max-quality": {
+                    "name": "Maksimum Görüntü Kalitesi",
+                    "nameKey": "modSettings.presets.mfgMaxQualityName",
+                    "description": "Agresif kenar artefakt azaltma, carpan oyuna birakilir.",
+                    "values": {
+                        "RenoDX.MFGUnlock.Enabled": "1",
+                        "RenoDX.MFGUnlock.ForceMultiplier": "0",
+                        "RenoDX.MFGUnlock.BoundaryArtifactMitigationMode": "2",
+                        "RenoDX.MFGUnlock.TemporalFix": "1",
+                        "RenoDX.MFGUnlock.ThinGeometryValidatedWarpBlend": "1"
+                    }
+                },
+                "mfg-hdr": {
+                    "name": "HDR Uyumluluk",
+                    "nameKey": "modSettings.presets.mfgHdrName",
+                    "description": "HUD'siz HDR entegrasyonlari icin otomatik koruma modu.",
+                    "values": {
+                        "RenoDX.MFGUnlock.Enabled": "1",
+                        "RenoDX.MFGUnlock.HDRCompatibilityMode": "2",
+                        "RenoDX.MFGUnlock.BoundaryArtifactMitigationMode": "1"
+                    }
+                }
+            }
+        }
+    ],
+    "detect": {
+        "priority": 15,
+        "depthStrategy": "shallowest",
+        "match": {
+            "anyFileName": [
+                "renodx-mfgunlock.addon64",
+                "renodx-mfgunlock.addon32"
+            ]
+        }
+    },
+    "state": {
+        "flag": "hasMfgUnlock",
+        "versionField": "mfgUnlockVersion",
+        "pathField": "mfgUnlockPath"
+    },
+    "uninstall": {
+        "files": [
+            "renodx-mfgunlock.addon64",
+            "renodx-mfgunlock.addon32"
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "conditions": [
+        {
+            "type": "gpu_vendor",
+            "vendor": "nvidia",
+            "enabled": false,
+            "message": "MFG Unlock yalnizca NVIDIA RTX 40 (ve deneysel olarak 30) serisi kartlarda calisir."
+        }
+    ],
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://github.com/mavismmg/MFGAdaUnlock-RenoDx",
+        "postInstallNoteKey": "mfg.restartNote",
+        "tags": [
+            "mfg",
+            "frame-generation",
+            "dlss",
+            "reshade-addon",
+            "renodx",
+            "rtx40"
+        ],
+        "notes": "Bu bir ReShade ADDON'udur (.addon64) — tek basina calismaz, ReShade'in addon destekli surumu kurulu olmalidir (V-Manager'in ReShade manifesti zaten Addon surumunu indirir). Ayarlar ReShade.ini icinde [RenoDX.MFGUnlock] bolumunde tutulur; oyun ici panele ReShade menusunden ulasilir. Kurulum veya guncelleme sonrasi oyun BIR KEZ yeniden baslatilmalidir (ilk acilista DLSS-G cekirdek derlemesi takilma yapabilir, performans bu ilk acilista olculmemelidir). Direct3D 12 tam destekli; Vulkan destegi 0.6 surumunden beri deneyseldir ve Dynamic MFG Vulkan'da calismaz. Gelistirici guncel bir nvngx_dlssg.dll (310.x) onerir; bu dosya NVIDIA telifli oldugu icin V-Manager onu indirmez, kopyalamaz veya degistirmez — kullanici isterse kendisi gunceller."
+    }
+}

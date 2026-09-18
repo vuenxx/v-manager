@@ -1,0 +1,87 @@
+{
+    "id": "streamline",
+    "name": "Streamline",
+    "description": "NVIDIA Streamline framework dosyaları (sl.interposer.dll, sl.dlss.dll vb.).",
+    "author": "NVIDIA-RTX",
+    "version": "latest",
+    "source": {
+        "type": "github",
+        "repo": "NVIDIA-RTX/Streamline",
+        "release": "latest",
+        "asset": "*.zip",
+        "maxReleases": 10
+    },
+    "install": {
+        "destination": "dynamic_search",
+        "extractRoot": "bin/x64",
+        "cleanStaleVersionFiles": false,
+        "refreshGameOnComplete": true,
+        "detection": {
+            "searchBase": "game_root",
+            "strategy": "shallowest_directory",
+            "files": [
+                "sl.reflex.dll",
+                "sl.pcl.dll",
+                "sl.nvperf.dll",
+                "sl.nis.dll",
+                "sl.interposer.dll",
+                "sl.dlss.dll",
+                "sl.directsr.dll",
+                "sl.deepdvc.dll",
+                "sl.common.dll"
+            ],
+            "fallback": "largest_executable_directory",
+            "allowManualPicker": true
+        },
+        "whitelistFiles": [
+            "sl.reflex.dll",
+            "sl.pcl.dll",
+            "sl.nvperf.dll",
+            "sl.nis.dll",
+            "sl.interposer.dll",
+            "sl.dlss.dll",
+            "sl.directsr.dll",
+            "sl.deepdvc.dll",
+            "sl.common.dll"
+        ]
+    },
+    "backup": {
+        "enabled": true,
+        "strategy": "in_place_suffix",
+        "suffix": ".backup",
+        "recordHashes": true,
+        "rollbackOnFailure": true
+    },
+    "uninstall": {
+        "userRemovable": false,
+        "restoreBackup": true,
+        "strategy": "in_place_suffix",
+        "suffix": ".backup",
+        "gameUpdatedCheck": true,
+        "cleanModOnlyFiles": true
+    },
+    "detect": {
+        "priority": 30,
+        "depthStrategy": "deepest",
+        "sticky": true,
+        "match": {
+            "fileNamePattern": "sl.*.dll"
+        }
+    },
+    "state": {
+        "flag": "hasStreamline",
+        "versionField": "streamlineVersion",
+        "pathField": "streamlinePath",
+        "hashesField": "streamlineHashes",
+        "modVersionField": "streamlineModVersion",
+        "upscalerField": "streamline"
+    },
+    "metadata": {
+        "homepage": "https://github.com/NVIDIA-RTX/Streamline",
+        "tags": [
+            "streamline",
+            "nvidia",
+            "framework"
+        ]
+    }
+}

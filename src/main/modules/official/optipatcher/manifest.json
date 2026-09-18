@@ -1,0 +1,35 @@
+{
+    "id": "optipatcher",
+    "name": "OptiPatcher",
+    "description": "OptiScaler için oyun içi uyumluluk ve otomatik hook sağlayan ASI eklentisi.",
+    "author": "optiscaler",
+    "version": "latest",
+    "source": {
+        "type": "github",
+        "repo": "optiscaler/OptiPatcher",
+        "release": "latest",
+        "asset": "*.asi",
+        "maxReleases": 10,
+        "legacyFolders": [
+            "OptiPatcher"
+        ]
+    },
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "auto",
+        "cleanStaleVersionFiles": true,
+        "refreshGameOnComplete": true
+    },
+    "metadata": {
+        "homepage": "https://github.com/optiscaler/OptiPatcher",
+        "tags": [
+            "optipatcher",
+            "asi",
+            "hook"
+        ],
+        "addonOf": [
+            "optiscaler"
+        ]
+    },
+    "role": "addon"
+}

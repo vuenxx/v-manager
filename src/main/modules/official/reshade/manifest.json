@@ -1,0 +1,172 @@
+{
+    "id": "reshade",
+    "name": "ReShade",
+    "description": "Oyunlara post-process efektleri (SMAA, keskinlestirme, renk duzeltme, HDR tonlama) ekleyen enjektor. Oyunun grafik API'sine gore dogru DLL adiyla kurulur.",
+    "author": "crosire",
+    "version": "latest",
+    "role": "both",
+    "source": {
+        "type": "url",
+        "url": "https://reshade.me/downloads/ReShade_Setup_{version}_Addon.exe",
+        "assetName": "ReShade_Setup_{version}_Addon.exe",
+        "versionCheck": {
+            "type": "html_scrape",
+            "url": "https://reshade.me/",
+            "pattern": "ReShade_Setup_([0-9]+\\.[0-9]+\\.[0-9]+)_Addon\\.exe"
+        }
+    },
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "auto",
+        "refreshGameOnComplete": true,
+        "verifyAntiVirusDelayMs": 1500,
+        "apiTargeting": {
+            "sourceByArch": {
+                "x64": "ReShade64.dll",
+                "x86": "ReShade32.dll"
+            },
+            "renameByApi": {
+                "d3d12": "dxgi.dll",
+                "d3d11": "dxgi.dll",
+                "d3d10": "dxgi.dll",
+                "dxgi": "dxgi.dll",
+                "d3d9": "d3d9.dll",
+                "d3d8": "d3d8.dll",
+                "ddraw": "ddraw.dll",
+                "opengl": "opengl32.dll"
+            },
+            "defaultApi": "auto",
+            "allowUserOverride": true,
+            "backupExisting": true
+        },
+        "extraSources": [
+            {
+                "id": "shaders",
+                "url": "https://github.com/crosire/reshade-shaders/archive/refs/heads/master.zip",
+                "fileName": "reshade-shaders-master.zip",
+                "extractTo": "reshade-shaders",
+                "stripRoot": true,
+                "include": [
+                    "Shaders",
+                    "Textures"
+                ],
+                "skipIfExists": "reshade-shaders/Shaders"
+            }
+        ]
+    },
+    "config": [
+        {
+            "file": "ReShade.ini",
+            "format": "ini",
+            "search": [
+                "ReShade.ini"
+            ],
+            "required": false,
+            "createIfMissing": true,
+            "set": {
+                "GENERAL.EffectSearchPaths": ".\\reshade-shaders\\Shaders",
+                "GENERAL.TextureSearchPaths": ".\\reshade-shaders\\Textures",
+                "GENERAL.IntermediateCachePath": ".\\reshade-shaders\\Cache",
+                "GENERAL.PerformanceMode": "0",
+                "GENERAL.TutorialProgress": "4"
+            },
+            "schema": {
+                "GENERAL": {
+                    "PerformanceMode": {
+                        "label": "Performans Modu (PerformanceMode)",
+                        "labelKey": "modSettings.labels.reshadePerformanceMode",
+                        "type": "dropdown",
+                        "options": [
+                            {
+                                "val": "0",
+                                "label": "Kapalı",
+                                "labelKey": "modSettings.options.disabled"
+                            },
+                            {
+                                "val": "1",
+                                "label": "Açık",
+                                "labelKey": "modSettings.options.enabled"
+                            }
+                        ],
+                        "displayDefault": "0"
+                    },
+                    "EffectSearchPaths": {
+                        "label": "Efekt Klasörü (EffectSearchPaths)",
+                        "labelKey": "modSettings.labels.reshadeEffectPaths",
+                        "type": "text"
+                    },
+                    "TextureSearchPaths": {
+                        "label": "Doku Klasörü (TextureSearchPaths)",
+                        "labelKey": "modSettings.labels.reshadeTexturePaths",
+                        "type": "text"
+                    }
+                }
+            }
+        }
+    ],
+    "detect": {
+        "priority": 20,
+        "depthStrategy": "shallowest",
+        "match": {
+            "proxyDll": {
+                "candidates": [
+                    "dxgi.dll",
+                    "d3d11.dll",
+                    "d3d12.dll",
+                    "d3d10.dll",
+                    "d3d9.dll",
+                    "d3d8.dll",
+                    "ddraw.dll",
+                    "opengl32.dll"
+                ],
+                "descriptionMatch": "reshade"
+            }
+        }
+    },
+    "state": {
+        "flag": "hasReshade",
+        "versionField": "reshadeVersion",
+        "pathField": "reshadePath",
+        "injectionField": "reshadeInjection",
+        "upscalerField": "reshade"
+    },
+    "uninstall": {
+        "files": [
+            "ReShade.ini",
+            "ReShade.log",
+            "ReShadePreset.ini",
+            "reshade-shaders"
+        ],
+        "verifiedDlls": [
+            {
+                "candidates": [
+                    "dxgi.dll",
+                    "d3d11.dll",
+                    "d3d12.dll",
+                    "d3d10.dll",
+                    "d3d9.dll",
+                    "d3d8.dll",
+                    "ddraw.dll",
+                    "opengl32.dll"
+                ],
+                "descriptionMatch": "reshade"
+            }
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://reshade.me/",
+        "tags": [
+            "reshade",
+            "post-process",
+            "shader",
+            "injector"
+        ],
+        "notes": "Kurulum dosyasi reshade.me'den indirilir (GitHub release degil). Icindeki ReShade32/64.dll oyunun bit genisligine gore secilir, oyunun grafik API'sine gore yeniden adlandirilir (DX10/11/12 -> dxgi.dll, DX9 -> d3d9.dll, OpenGL -> opengl32.dll). Vulkan oyunlarinda ReShade kendi kurulumunda sistem katmani olarak yuklenir; bu manifest Vulkan'i hedeflemez. Shader paketi crosire/reshade-shaders deposundan gelir."
+    }
+}

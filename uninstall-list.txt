@@ -1,0 +1,8 @@
+# V-Manager - DLSS Enabler Kaldırma Listesi
+# Buraya oyundan silinmesini istediğiniz dosya isimlerini yazın (her satıra bir dosya)
+
+dlss-enabler.ini
+dlss-enabler.log
+dlssg_to_fsr3_amd_is_better.dll
+OptiScaler.ini
+version.dll
