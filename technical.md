@@ -3,7 +3,7 @@
 > **Bu dosyanın amacı:** Kod tabanında "ne nerede?" sorusunu dosya dosya aramadan cevaplamak.
 > Yeni bir iş isteğinde önce bu dosya okunur, sonra sadece ilgili dosyalar açılır.
 >
-> Oluşturulma: 2026-09-16 · Sürüm: `package.json` → **0.6.0** · Branch: `main`
+> Oluşturulma: 2026-09-16 · Sürüm: `package.json` → **0.7.0** · Branch: `main`
 > **Güncelleme kuralı:** Yeni IPC kanalı, yeni modül/manifest, yeni sekme veya yeni userData dosyası eklendiğinde ilgili tablo güncellenmeli.
 
 ---
