@@ -661,7 +661,7 @@
                 ],
                 "descriptionMatch": "optiscaler"
             },
-            "requireSiblingFile": "nvngx.dll_dlssnr.dll"
+            "requireSiblingFile": "READ ME - DLSS Neural Rendering.txt"
         }
     },
     "state": {
@@ -676,7 +676,6 @@
             { "file": "OptiScaler.ini", "unlessAnyState": [ { "flag": "hasOptiscaler", "value": true }, { "flag": "hasOptiBuilder", "value": true } ] },
             "OptiScaler.log",
             "OptiMX.log",
-            "nvngx.dll_dlssnr.dll",
             "OptiScaler",
             "D3D12_OptiScaler",
             "dlssnr-capture",
@@ -700,6 +699,13 @@
                     "winhttp.dll"
                 ],
                 "descriptionMatch": "optiscaler"
+            },
+            {
+                "_comment": "Pakette gelen Neural Rendering stub'i. Hicbir surum/aciklama metadata'si tasimadigi icin sahipligi yalnizca hash ile kanitlanabilir. Kullanicinin kendi koydugu ya da baska bir aracin biraktigi ayni adli dosya bu sayede silinmez. (Kullanicinin surucuden kopyaladigi nvngx_dlssnr.dll ayri bir dosyadir ve hicbir zaman silinmez.)",
+                "candidates": [
+                    "nvngx.dll_dlssnr.dll"
+                ],
+                "matchModFileHash": true
             }
         ],
         "restoreBackup": false,
