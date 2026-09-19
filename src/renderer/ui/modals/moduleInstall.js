@@ -315,14 +315,25 @@ async function renderApiSection(manifest, game) {
             gameName: game?.name,
             exePath: game?.exePath
         });
+        // Seçenek listesi tespitten bağımsız: exe okunamasa da kullanıcı elle seçebilmeli.
+        options = (res && res.options) || [];
         if (res && res.success) {
             detection = res.detection;
-            options = res.options || [];
         } else if (hint) {
             hint.textContent = t('modModal.apiDetectFailed') + (res && res.error ? ' (' + res.error + ')' : '');
         }
     } catch (e) {
         if (hint) hint.textContent = t('modModal.apiDetectFailed');
+    }
+
+    // IPC tamamen başarısızsa bile manifest'in kendi API→dosya eşlemesinden
+    // liste üretilebilir; kullanıcı yine de "Otomatik" dışında seçim yapabilsin.
+    if (options.length === 0 && targeting.renameByApi) {
+        options = Object.entries(targeting.renameByApi).map(([api, dll]) => ({
+            api,
+            label: api,
+            proxyDll: dll || null
+        }));
     }
 
     // Manifest yalnızca belirli API'leri destekliyorsa listeyi ona göre daralt

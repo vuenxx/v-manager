@@ -624,9 +624,18 @@ function registerIpcHandlers(ipcMain) {
     // ── module-detect-api: Oyun exe'sinin grafik API'si ve bit genisligi ────
     // Kurulum modali, apiTargeting kullanan modullerde (or. ReShade) hedef API'yi
     // on secili gostermek icin bunu cagirir.
+    // `options` (statik API listesi) tespitten bagimsizdir: exe bulunamasa da
+    // kullanici API'yi elle secebilmeli. Bu yuzden hata dallarinda da gonderilir.
     ipcMain.handle('module-detect-api', async (_event, { gameName, exePath } = {}) => {
+        const exeApiDetector = require('./exeApiDetector');
+        let options = [];
         try {
-            const exeApiDetector = require('./exeApiDetector');
+            options = exeApiDetector.getApiOptions();
+        } catch (err) {
+            console.error(`${TAG} getApiOptions hatasi:`, err);
+        }
+
+        try {
             let targetExe = exePath;
 
             if (!targetExe && gameName) {
@@ -634,7 +643,7 @@ function registerIpcHandlers(ipcMain) {
                 targetExe = paths && paths.exe_path ? paths.exe_path : null;
             }
             if (!targetExe) {
-                return { success: false, error: 'Oyun exe yolu bulunamadi.' };
+                return { success: false, error: 'Oyun exe yolu bulunamadi.', options };
             }
 
             const detection = await exeApiDetector.detectApi(targetExe);
@@ -642,11 +651,11 @@ function registerIpcHandlers(ipcMain) {
                 success: detection.success,
                 error: detection.error || null,
                 detection,
-                options: exeApiDetector.getApiOptions()
+                options
             };
         } catch (err) {
             console.error(`${TAG} module-detect-api hatasi:`, err);
-            return { success: false, error: err.message };
+            return { success: false, error: err.message, options };
         }
     });
 
