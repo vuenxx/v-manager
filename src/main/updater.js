@@ -1,6 +1,9 @@
 const { autoUpdater } = require('electron-updater');
 const { app, BrowserWindow } = require('electron');
 const log = require('electron-log');
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
 
 // ─── Loglama ──────────────────────────────────────────────────────────────────
 autoUpdater.logger = log;
@@ -10,6 +13,83 @@ log.info('[UPDATER] updater.js yüklendi.');
 // Kullanıcı onayından sonra manuel indirme yapacağız
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
+
+// ─── Parçalı (differential) indirme önbelleği ─────────────────────────────────
+//
+// electron-updater yeni sürümü indirirken tamamını çekmez: eski kurulum
+// dosyasında zaten var olan blokları kopyalar, sadece değişen kısmı indirir.
+// Bunun için iki şeye bakar (AppUpdater.js → differentialDownloadInstaller):
+//   • %LOCALAPPDATA%\<cacheDir>\installer.exe   → eski kurulum dosyası
+//   • %LOCALAPPDATA%\<cacheDir>\current.blockmap → o dosyanın blok haritası
+//
+// Sorun: blockmap'i önbellekten okurken DOĞRULAMIYOR. İkisi birbirinden
+// koparsa (bizde blockmap Haziran'daki v0.1.8'den, installer.exe ise
+// 0.7.1'den kalmıştı) yeni sürüm bambaşka bir dosyanın haritasına göre
+// parçalanıyor:
+//   1. "yeniden kullanılabilir" oranı çöpe dönüyor — ölçtük: gerçek blockmap
+//      ile %98 kullanılabilirken, bayat blockmap ile %4'e düşüyordu,
+//   2. kopyalanan bloklar yanlış yerden geldiği için birleşen dosya bozuk
+//      çıkıyor, sha512 tutmuyor,
+//   3. updater %100'de "Cannot download differentially" deyip dosyanın
+//      tamamını baştan indiriyor. Kullanıcı aynı dosyayı iki kez indiriyor.
+//
+// Çözüm: çifti her kontrolden önce tutarlılık açısından sınıyoruz. Blockmap'in
+// tarif ettiği toplam boyut installer.exe'nin gerçek boyutuyla uyuşmuyorsa
+// blockmap'i siliyoruz — electron-updater o zaman doğrusunu eski sürümün
+// release'inden indiriyor (~125 KB) ve parçalı indirme düzgün çalışıyor.
+
+/** app-update.yml'deki updaterCacheDirName'den önbellek klasörünü çözer. */
+function getUpdaterCacheDir() {
+    const base = process.env.LOCALAPPDATA;
+    if (!base) return null;
+    try {
+        const yml = fs.readFileSync(path.join(process.resourcesPath, 'app-update.yml'), 'utf-8');
+        const match = yml.match(/^updaterCacheDirName:\s*(.+)$/m);
+        if (match) return path.join(base, match[1].trim());
+    } catch (e) {
+        log.warn(`[UPDATER] app-update.yml okunamadı: ${e.message}`);
+    }
+    return null;
+}
+
+/** Önbellekteki blockmap ile installer.exe uyuşmuyorsa blockmap'i siler. */
+function pruneStaleBlockmap() {
+    const cacheDir = getUpdaterCacheDir();
+    if (!cacheDir) return;
+
+    const blockmapPath = path.join(cacheDir, 'current.blockmap');
+    const installerPath = path.join(cacheDir, 'installer.exe');
+    if (!fs.existsSync(blockmapPath)) return;   // yoksa zaten release'ten inecek
+
+    let reason = null;
+    try {
+        if (!fs.existsSync(installerPath)) {
+            reason = 'eşlik eden installer.exe yok';
+        } else {
+            const map = JSON.parse(zlib.gunzipSync(fs.readFileSync(blockmapPath)).toString());
+            const described = (map.files || []).reduce(
+                (sum, f) => sum + (f.sizes || []).reduce((a, b) => a + b, 0), 0);
+            const actual = fs.statSync(installerPath).size;
+            if (described !== actual) {
+                reason = `blockmap ${described} bayt tarif ediyor, installer.exe ${actual} bayt`;
+            }
+        }
+    } catch (e) {
+        reason = `blockmap okunamadı: ${e.message}`;
+    }
+
+    if (!reason) {
+        log.info('[UPDATER] Önbellek tutarlı — parçalı indirme kullanılabilir.');
+        return;
+    }
+
+    try {
+        fs.unlinkSync(blockmapPath);
+        log.warn(`[UPDATER] Eskimiş blockmap silindi (${reason}). Doğrusu release'ten indirilecek.`);
+    } catch (e) {
+        log.error(`[UPDATER] Eskimiş blockmap silinemedi: ${e.message}`);
+    }
+}
 
 // ─── Yardımcı: aktif pencereye event gönder ───────────────────────────────────
 function sendToRenderer(channel, payload) {
@@ -74,6 +154,9 @@ function initAutoUpdater() {
         return;
     }
 
+    // Bozuk önbellek parçalı indirmeyi sabote ediyor — kontrolden önce ele.
+    pruneStaleBlockmap();
+
     // Uygulama penceresi hazır oluncaya kadar 3 saniye bekle
     setTimeout(() => {
         autoUpdater.checkForUpdates().catch((err) => {
@@ -117,6 +200,7 @@ async function checkForUpdates() {
     }
 
     try {
+        pruneStaleBlockmap();
         return await autoUpdater.checkForUpdates();
     } catch (err) {
         log.error('[UPDATER] Manuel kontrol hatası:', err.message);
@@ -143,4 +227,4 @@ function quitAndInstall() {
     autoUpdater.quitAndInstall();
 }
 
-module.exports = { initAutoUpdater, checkForUpdates, startDownload, quitAndInstall };
+module.exports = { initAutoUpdater, checkForUpdates, startDownload, quitAndInstall, pruneStaleBlockmap };
