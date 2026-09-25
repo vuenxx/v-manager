@@ -38,6 +38,7 @@ const sourceResolver = require('./core/sourceResolver');
 const validator = require('./core/manifestValidator');
 const conflictChecker = require('./core/conflictChecker');
 const moduleManager = require('./core/moduleManager');
+const moduleEngine = require('./core/moduleEngine');
 
 // Sahiplik testleri detect bloklarina dayanir; uygulamada init() acilista
 // cagriliyor, testte elle yapilmali.
@@ -127,6 +128,48 @@ async function run() {
     const ours = await conflictChecker.findForeignTargetConflict(manifest, gameDir, ['dxgi.dll']);
     check('kendi kurulumumuz cakisma sayilmaz', ours === null, ours);
 
+    // ── Onbellek yerlesimi (depo yapisi korunur) ─────────────────────────────
+    console.log('\n--- Onbellek yerlesimi ---');
+    {
+        const cacheDir = path.join(mockUserData, 'cache-layout');
+        fs.mkdirSync(path.join(cacheDir, 'alternatives'), { recursive: true });
+        fs.writeFileSync(path.join(cacheDir, 'version.dll'), 'ROOT');
+        fs.writeFileSync(path.join(cacheDir, 'alternatives', 'd3d12.dll'), 'ALT');
+
+        // Alt klasordeki dosya TAM yoluyla bulunur — kokteki version.dll ile
+        // karismaz; ikisi ayri binary.
+        const resolvedAlt = moduleEngine.resolveRepoPathIn(cacheDir, 'alternatives/d3d12.dll');
+        check('alt klasordeki proxy tam yoluyla bulunur',
+            resolvedAlt === path.join(cacheDir, 'alternatives', 'd3d12.dll'), resolvedAlt);
+
+        const resolvedRoot = moduleEngine.resolveRepoPathIn(cacheDir, 'version.dll');
+        check('kok dizindeki proxy bulunur',
+            resolvedRoot === path.join(cacheDir, 'version.dll'), resolvedRoot);
+
+        check('indirilmemis dosya null doner',
+            moduleEngine.resolveRepoPathIn(cacheDir, 'alternatives/winmm.dll') === null);
+    }
+
+    // Eski (duzlestirilmis) onbellek depo yapisina TASINIR, yeniden indirilmez.
+    {
+        const legacyDir = path.join(mockUserData, 'cache-legacy');
+        fs.mkdirSync(legacyDir, { recursive: true });
+        fs.writeFileSync(path.join(legacyDir, 'version.dll'), 'ROOT');
+        fs.writeFileSync(path.join(legacyDir, 'dxgi.dll'), 'ALT-DXGI');
+
+        moduleEngine.migrateFlatRepoFiles(legacyDir, manifest);
+
+        const moved = path.join(legacyDir, 'alternatives', 'dxgi.dll');
+        check('duz indirilmis proxy alt klasore tasinir',
+            fs.existsSync(moved) && fs.readFileSync(moved, 'utf-8') === 'ALT-DXGI');
+        check('tasindiktan sonra kok dizinde kopya kalmaz',
+            !fs.existsSync(path.join(legacyDir, 'dxgi.dll')));
+        check('kok dizin dosyasina dokunulmaz',
+            fs.existsSync(path.join(legacyDir, 'version.dll')));
+        check('tasinan dosya yeniden indirme gerektirmez',
+            moduleEngine.resolveRepoPathIn(legacyDir, 'alternatives/dxgi.dll') === moved);
+    }
+
     // ── Ag: surum listesi ────────────────────────────────────────────────────
     console.log('\n--- Ag testleri (internet yoksa atlanir) ---');
     try {
@@ -146,7 +189,7 @@ async function run() {
                     manifest.source.repo, latest.tag, ['dlssg_sm86.ini'], destDir
                 );
                 const iniPath = path.join(destDir, 'dlssg_sm86.ini');
-                check('ini duz (flat) olarak indirilir', written.length === 1 && fs.existsSync(iniPath));
+                check('kok dizin dosyasi kok dizine iner', written.length === 1 && fs.existsSync(iniPath));
                 if (fs.existsSync(iniPath)) {
                     const body = fs.readFileSync(iniPath, 'utf-8');
                     check('ini beklenen bolumleri icerir',

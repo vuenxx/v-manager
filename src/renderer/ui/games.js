@@ -361,6 +361,14 @@ function bindGameEvents(el, game) {
     if (modBtn) {
         modBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (state.isScanning) {
+                showInfoModal(
+                    'Tarama Devam Ediyor',
+                    'Tarama bittikten sonra mod kurulumlarını yapabilirsiniz.',
+                    true
+                );
+                return;
+            }
             openModModal(game);
         });
     }

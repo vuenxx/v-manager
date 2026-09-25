@@ -252,16 +252,63 @@ function getRequiredRepoPaths(manifest, proxySourcePath) {
     return list;
 }
 
-/** Depo yollarinin duz (flat) karsiliklari klasorde var mi? */
+/**
+ * `github_files` sürüm klasöründe istenen depo dosyalari zaten duruyor mu?
+ *
+ * Once depo icindeki TAM yol denenir (`alternatives/dxgi.dll`). Bulunamazsa
+ * klasor adiyla ARANIR: eski surumlerde dosyalar duzlestirilerek indiriliyordu
+ * (`dxgi.dll` kokte dururdu), o onbellekler yeniden indirmeye zorlanmasin.
+ */
 function repoPathsPresentIn(dir, repoPaths) {
     if (!dir || repoPaths.length === 0) return true;
-    return repoPaths.every(p => {
+    return repoPaths.every(p => resolveRepoPathIn(dir, p) !== null);
+}
+
+/** Depo ici yolun klasordeki karsiligini dondurur; yoksa null. */
+function resolveRepoPathIn(dir, repoPath) {
+    if (!dir || !repoPath) return null;
+    const rel = String(repoPath).replace(/\\/g, '/');
+    try {
+        const exact = path.join(dir, ...rel.split('/'));
+        if (fs.existsSync(exact)) return exact;
+
+        const matches = findFileInDir(dir, path.basename(rel), 3);
+        if (matches && matches.length > 0) return matches[0];
+    } catch (e) {
+        return null;
+    }
+    return null;
+}
+
+/**
+ * Eski (duzlestirilmis) onbellekleri depo yapisina tasir.
+ *
+ * Onceden `alternatives/dxgi.dll` surum klasorunun KOKUNE `dxgi.dll` olarak
+ * iniyordu; kok dizindeki `version.dll`'in yaninda durunca ayni dosyanin
+ * kopyasi gibi gorunuyordu. Burada dosya silinmez, ait oldugu alt klasore
+ * TASINIR — boylece yeniden indirme gerekmez.
+ */
+function migrateFlatRepoFiles(dir, manifest) {
+    const map = manifest?.install?.proxyDetection?.sourceByTarget;
+    if (!dir || !map || !fs.existsSync(dir)) return;
+
+    for (const repoPath of Object.values(map)) {
+        const rel = String(repoPath).replace(/\\/g, '/');
+        if (!rel.includes('/')) continue; // kok dizin dosyasi — zaten dogru yerde
+
+        const properPath = path.join(dir, ...rel.split('/'));
+        const flatPath = path.join(dir, path.basename(rel));
         try {
-            return fs.existsSync(path.join(dir, path.basename(String(p).replace(/\\/g, '/'))));
+            if (fs.existsSync(properPath) || !fs.existsSync(flatPath)) continue;
+            if (!fs.statSync(flatPath).isFile()) continue;
+
+            fs.mkdirSync(path.dirname(properPath), { recursive: true });
+            fs.renameSync(flatPath, properPath);
+            console.log(`${TAG} Onbellek tasindi: ${path.basename(rel)} → ${rel}`);
         } catch (e) {
-            return false;
+            console.warn(`${TAG} Onbellek tasinamadi (${rel}): ${e.message}`);
         }
-    });
+    }
 }
 
 function findExistingLocalModDir(manifest, releaseTarget, release = null) {
@@ -578,6 +625,7 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
         const requiredRepoPaths = isFileSource ? getRequiredRepoPaths(manifest, proxySourcePath) : [];
         const localDirUsable = (dir) => {
             if (!dir || !isFileSource) return Boolean(dir);
+            migrateFlatRepoFiles(dir, manifest);
             if (repoPathsPresentIn(dir, requiredRepoPaths)) return true;
             console.log(`${TAG} Yerel klasorde eksik dosya var, indirme yapilacak: ${dir}`);
             return false;
@@ -652,13 +700,29 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                     throw new Error("'source.files' bos ve enjeksiyon dosyasi cozulemedi; indirilecek dosya yok.");
                 }
 
+                // Klasorde ZATEN duran dosya yeniden indirilmez — kontrol
+                // kopyalama sirasinda degil, burada klasor aranarak yapilir.
+                // (Enjeksiyon tipi degistiginde yalnizca yeni proxy DLL'i iner,
+                // `dlssg_sm86.ini` gibi ortak dosyalar tekrar cekilmez.)
+                migrateFlatRepoFiles(targetModDir, manifest);
+                const missingRepoPaths = options?.forceRefresh
+                    ? requiredRepoPaths
+                    : requiredRepoPaths.filter(p => resolveRepoPathIn(targetModDir, p) === null);
+                const alreadyThere = requiredRepoPaths.filter(p => !missingRepoPaths.includes(p));
+
+                if (alreadyThere.length > 0) {
+                    logger.skip({ tr: `Zaten mevcut, indirilmedi: ${alreadyThere.join(', ')}`, en: `Already present, not downloaded: ${alreadyThere.join(', ')}` });
+                }
+
                 onProgress({ step: 9, message: 'Dosyalar indiriliyor...', percent: 50 });
-                logger.info({ tr: `İndirilecek dosyalar: ${requiredRepoPaths.join(', ')}`, en: `Files to download: ${requiredRepoPaths.join(', ')}` });
+                if (missingRepoPaths.length > 0) {
+                    logger.info({ tr: `İndirilecek dosyalar: ${missingRepoPaths.join(', ')}`, en: `Files to download: ${missingRepoPaths.join(', ')}` });
+                }
 
                 await sourceResolver.downloadFiles(
                     manifest.source.repo,
                     release.tag,
-                    requiredRepoPaths,
+                    missingRepoPaths,
                     targetModDir,
                     (info) => onProgress({
                         step: 9,
@@ -666,7 +730,9 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                         percent: 50 + Math.round(info.percent * 0.15)
                     })
                 );
-                logger.step({ tr: `${requiredRepoPaths.length} dosya indirildi → ${targetModDir}`, en: `${requiredRepoPaths.length} file(s) downloaded → ${targetModDir}` });
+                if (missingRepoPaths.length > 0) {
+                    logger.step({ tr: `${missingRepoPaths.length} dosya indirildi → ${targetModDir}`, en: `${missingRepoPaths.length} file(s) downloaded → ${targetModDir}` });
+                }
 
                 sourceDir = targetModDir;
             } else {
@@ -940,7 +1006,10 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
         const skippedByRule = { whitelist: [], include: [], exclude: [] };
 
         const installFilesRecursive = (src, dest) => {
-            if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+            // Hedef klasor DOSYA yazilmadan hemen once acilir. Kaynak klasorde
+            // whitelist disinda kalan alt klasorler olabilir (ornegin
+            // `github_files` icin korunan `alternatives/`); pesinen mkdir
+            // yapilirsa oyun klasorune bos klasorler birakilirdi.
             const entries = fs.readdirSync(src, { withFileTypes: true });
 
             for (const entry of entries) {
@@ -974,12 +1043,13 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                         for (const r of manifest.install.rename) {
                             if (matchGlob(relPath, r.from) || matchGlob(entry.name, r.from)) {
                                 destPath = path.join(destDir, r.to);
-                                const fDir = path.dirname(destPath);
-                                if (!fs.existsSync(fDir)) fs.mkdirSync(fDir, { recursive: true });
                                 break;
                             }
                         }
                     }
+
+                    const fileDir = path.dirname(destPath);
+                    if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true });
 
                     fs.copyFileSync(srcPath, destPath);
                     rollbackState.installedPaths.push(destPath);
@@ -1606,8 +1676,15 @@ async function uninstall(manifest, gameName, exePath) {
                             }
 
                             if (useHash) {
-                                const sourcePath = path.join(modSourceDir, dllName);
-                                if (!fs.existsSync(sourcePath)) continue;
+                                // `github_files` onbelleginde dosya depo yapisini
+                                // korur (ornegin `alternatives/d3d12.dll`), bu yuzden
+                                // kok dizine bakmak yetmez — klasorde aranir.
+                                let sourcePath = path.join(modSourceDir, dllName);
+                                if (!fs.existsSync(sourcePath)) {
+                                    const srcMatches = findFileInDir(modSourceDir, dllName, 3);
+                                    sourcePath = (srcMatches && srcMatches.length > 0) ? srcMatches[0] : null;
+                                }
+                                if (!sourcePath || !fs.existsSync(sourcePath)) continue;
                                 const [installedHash, sourceHash] = await Promise.all([
                                     utils.getFileHash(dllPath),
                                     utils.getFileHash(sourcePath)
@@ -2125,5 +2202,7 @@ module.exports = {
     resolveDestinationDir,
     findDynamicSearchDir,
     getModFolderCandidates,
-    findExistingLocalModDir
+    findExistingLocalModDir,
+    resolveRepoPathIn,
+    migrateFlatRepoFiles
 };

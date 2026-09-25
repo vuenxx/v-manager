@@ -206,10 +206,16 @@ async function fetchGithubFileReleases(manifest, options = {}) {
 }
 
 /**
- * `github_files` indirmesi: depo içi yolları hedef klasöre DÜZ (flat) indirir —
- * kaydedilen ad her zaman yolun son parçasıdır (ör. `alternatives/dxgi.dll`
- * → `dxgi.dll`), böylece kopyalama adımı arşivden çıkmış bir klasörle
- * çalışıyormuş gibi davranır.
+ * `github_files` indirmesi: depo içi KLASÖR YAPISINI KORUYARAK indirir —
+ * `alternatives/dxgi.dll` sürüm klasörüne `alternatives/dxgi.dll` olarak iner.
+ *
+ * Eskiden yol düzleştiriliyordu (flat). Bunun sorunu: depodaki her proxy adı
+ * AYRI bir binary olduğu için (`version.dll` ≠ `alternatives/dxgi.dll`),
+ * düzleştirme kökteki `version.dll` ile alt klasörden gelen `dxgi.dll`'i aynı
+ * klasöre yığıyor ve sürüm klasörü aynı dosyanın kopyalarıyla doluymuş gibi
+ * görünüyordu. Yapı korununca hangi binary'nin nereden geldiği belli olur;
+ * oyuna kopyalama adımı dosyayı zaten seçilen enjeksiyon adına göre yeniden
+ * adlandırıyor.
  *
  * @param {string} repo      "owner/repo"
  * @param {string} tag       release etiketi
@@ -219,16 +225,20 @@ async function fetchGithubFileReleases(manifest, options = {}) {
  * @returns {Promise<string[]>} indirilen dosyaların tam yolları
  */
 async function downloadFiles(repo, tag, paths, destDir, onProgress) {
+    const path = require('path');
     const githubFetcherRef = require('./githubFetcher');
     const written = [];
     const total = paths.length;
 
     for (let i = 0; i < total; i++) {
         const filePath = paths[i];
-        const fileName = String(filePath).replace(/\\/g, '/').split('/').pop();
+        const relPath = String(filePath).replace(/\\/g, '/');
+        const fileName = relPath.split('/').pop();
+        const subDir = relPath.slice(0, relPath.length - fileName.length).replace(/\/+$/, '');
+        const fileDestDir = subDir ? path.join(destDir, ...subDir.split('/')) : destDir;
         const url = rawFileUrl(repo, tag, filePath);
 
-        const result = await githubFetcherRef.downloadAsset(url, destDir, fileName, (percent) => {
+        const result = await githubFetcherRef.downloadAsset(url, fileDestDir, fileName, (percent) => {
             if (onProgress) {
                 onProgress({
                     index: i,
@@ -239,7 +249,7 @@ async function downloadFiles(repo, tag, paths, destDir, onProgress) {
             }
         });
         written.push(result.path);
-        console.log(`${TAG} ${repo}@${tag} → ${fileName} indirildi`);
+        console.log(`${TAG} ${repo}@${tag} → ${relPath} indirildi`);
     }
 
     return written;

@@ -373,9 +373,9 @@ async function processAndStreamGame(game, event, scanSettings) {
     if (existingGame) {
         // Apply manual game name and source protection/updates
         if (game.source === 'manual') {
-            console.log(`[SCANNER] Updating name and source to manual -> name="${game.name}"`);
+            console.log(`[SCANNER] Updating name, preserving original source -> name="${game.name}"`);
             existingGame.name = game.name;
-            existingGame.source = 'manual';
+            if (!existingGame.source) existingGame.source = 'manual';
         } else if (existingGame.source === 'manual') {
             console.log(`[SCANNER] Protecting existing manual game info for "${existingGame.name}" against automatic source "${game.source}"`);
             // Protect manual name and source
@@ -460,7 +460,16 @@ async function processAndStreamGame(game, event, scanSettings) {
 
         // Update basic non-mod info
         if (game.exePath && game.exePath !== existingGame.exePath) {
-            existingGame.exePath = game.exePath;
+            let shouldUpdate = true;
+            if (existingGame.exePath && existingGame.exePath.toLowerCase().endsWith('.exe')) {
+                if (!game.exePath.toLowerCase().endsWith('.exe') && fs.existsSync(existingGame.exePath)) {
+                    shouldUpdate = false;
+                    console.log(`[SCANNER] Protecting existing .exe path for "${finalizedName}" against directory overwrite.`);
+                }
+            }
+            if (shouldUpdate) {
+                existingGame.exePath = game.exePath;
+            }
         }
         const derivedRoot = game.gameRoot || (game.exePath && fs.existsSync(game.exePath) && fs.statSync(game.exePath).isDirectory() ? game.exePath : path.dirname(game.exePath));
         if (derivedRoot) {
