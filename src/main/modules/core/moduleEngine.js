@@ -560,6 +560,16 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                         } catch (e) { /* ignore */ }
                     }
                 }
+            } else if (pd.markerFileMatch) {
+                const markerPath = path.join(destDir, pd.markerFileMatch);
+                if (fs.existsSync(markerPath)) {
+                    try {
+                        const targetDll = fs.readFileSync(markerPath, 'utf8').trim();
+                        if (targetDll && pd.candidates.some(c => c.toLowerCase() === targetDll.toLowerCase())) {
+                            existingFound = targetDll;
+                        }
+                    } catch (e) { /* ignore */ }
+                }
             } else if (manifest.state?.injectionField) {
                 // descriptionMatch yoksa "mevcut kurulum" bilgisi games.json'daki
                 // kayitli enjeksiyon adindan gelir (state.injectionField).
@@ -1376,6 +1386,20 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                         dbGame.upscalers[manifest.state.upscalerField] = true;
                     }
                 }
+                
+                // NEW: Write effectiveProxyTarget to marker file if defined
+                if (effectiveProxyTarget && manifest.install?.proxyDetection?.markerFileMatch) {
+                    const markerPath = path.join(destDir, manifest.install.proxyDetection.markerFileMatch);
+                    try {
+                        const existingContent = fs.existsSync(markerPath) ? fs.readFileSync(markerPath, 'utf8').trim() : '';
+                        if (existingContent.toLowerCase() !== effectiveProxyTarget.toLowerCase()) {
+                            fs.writeFileSync(markerPath, effectiveProxyTarget, 'utf8');
+                            logger.step({ tr: `İşaretçi dosyası güncellendi: ${manifest.install.proxyDetection.markerFileMatch} -> ${effectiveProxyTarget}`, en: `Marker file updated: ${manifest.install.proxyDetection.markerFileMatch} -> ${effectiveProxyTarget}` });
+                        }
+                    } catch (e) {
+                        logger.warn({ tr: `İşaretçi dosyası yazılamadı (${manifest.install.proxyDetection.markerFileMatch}): ${e.message}`, en: `Could not write marker file (${manifest.install.proxyDetection.markerFileMatch}): ${e.message}` });
+                    }
+                }
                 config.saveGamesState();
                 logger.step({ tr: 'Oyun durumu (games.json) güncellendi', en: 'Game state (games.json) updated' });
             } else {
@@ -1615,6 +1639,32 @@ async function uninstall(manifest, gameName, exePath) {
             for (const vd of manifest.uninstall.verifiedDlls) {
                 const candidates = vd.candidates || [];
                 const matchString = (vd.descriptionMatch || '').toLowerCase();
+                
+                // NEW: Use marker file to find and delete target DLL
+                if (vd.markerFileMatch) {
+                    const markerPath = path.join(destDir, vd.markerFileMatch);
+                    if (fs.existsSync(markerPath)) {
+                        try {
+                            const targetDll = fs.readFileSync(markerPath, 'utf8').trim();
+                            if (targetDll && candidates.some(c => c.toLowerCase() === targetDll.toLowerCase())) {
+                                const dllPath = path.join(destDir, targetDll);
+                                if (fs.existsSync(dllPath)) {
+                                    fs.unlinkSync(dllPath);
+                                    deletedFiles++;
+                                    deletedPaths.push(dllPath);
+                                    logger.step({ tr: `DLL silindi (işaretçi dosya eşleşmesi): ${dllPath}`, en: `DLL deleted (marker file match): ${dllPath}` });
+                                }
+                            }
+                            fs.unlinkSync(markerPath);
+                            deletedFiles++;
+                            deletedPaths.push(markerPath);
+                            logger.step({ tr: `İşaretçi dosya silindi: ${markerPath}`, en: `Marker file deleted: ${markerPath}` });
+                        } catch (e) {
+                            logger.warn({ tr: `İşaretçi dosya ile silme başarısız: ${e.message}`, en: `Marker file deletion failed: ${e.message}` });
+                        }
+                    }
+                    continue; // Skip descriptionMatch logic below for this vd
+                }
 
                 // `matchModFileHash`: bazı modların DLL'lerinde sürüm kaynağı
                 // (FileDescription) hiç yoktur — sahiplik, indirilmiş mod

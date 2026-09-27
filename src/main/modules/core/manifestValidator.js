@@ -191,8 +191,12 @@ function validate(manifest) {
                             }
                         }
                     }
-                } else if (!pd.descriptionMatch || typeof pd.descriptionMatch !== 'string') {
+                } else if (!pd.descriptionMatch && !pd.markerFileMatch) {
+                    errors.push("'install.proxyDetection' içinde 'descriptionMatch', 'sourceByTarget' veya 'markerFileMatch' tanımlanmalıdır.");
+                } else if (pd.descriptionMatch && typeof pd.descriptionMatch !== 'string') {
                     errors.push("'install.proxyDetection.descriptionMatch' string olmalıdır.");
+                } else if (pd.markerFileMatch && typeof pd.markerFileMatch !== 'string') {
+                    errors.push("'install.proxyDetection.markerFileMatch' string olmalıdır.");
                 }
                 if (!pd.defaultTarget || typeof pd.defaultTarget !== 'string') {
                     errors.push("'install.proxyDetection.defaultTarget' string olmalıdır.");
@@ -503,8 +507,9 @@ function validate(manifest) {
                             errors.push(`'uninstall.verifiedDlls[${idx}].matchModFileHash' boolean olmalıdır.`);
                         }
                         if (vd.matchModFileHash !== true &&
-                            (!vd.descriptionMatch || typeof vd.descriptionMatch !== 'string')) {
-                            errors.push(`'uninstall.verifiedDlls[${idx}].descriptionMatch' string olmalıdır.`);
+                            (!vd.descriptionMatch || typeof vd.descriptionMatch !== 'string') &&
+                            (!vd.markerFileMatch || typeof vd.markerFileMatch !== 'string')) {
+                            errors.push(`'uninstall.verifiedDlls[${idx}]' için 'descriptionMatch', 'markerFileMatch' veya 'matchModFileHash: true' gereklidir.`);
                         }
                     });
                 }

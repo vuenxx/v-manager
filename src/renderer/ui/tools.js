@@ -1,5 +1,5 @@
 import { t } from '../i18n/i18n.js';
-import { showInfoModal } from './modals/info.js';
+import { showInfoModal, showConfirmDialog } from './modals/info.js';
 
 const DEFAULT_TOOLS = [
     {
@@ -36,6 +36,19 @@ const DEFAULT_TOOLS = [
         icon: '🛠️',
         descriptionKey: 'tools.utoolboxDesc',
         officialUrl: 'https://github.com/obteknoloji/u-toolbox',
+        isInstalled: false,
+        installedVersion: null,
+        availableVersion: null,
+        hasUpdate: false
+    },
+    {
+        id: 'Orbmu2k.nvidiaProfileInspector',
+        slug: 'nvidia-profile-inspector',
+        name: 'NVIDIA Profile Inspector',
+        categoryKey: 'tools.catSystem',
+        icon: '🎮',
+        descriptionKey: 'tools.nvidiaInspectorDesc',
+        officialUrl: 'https://github.com/Orbmu2k/nvidiaProfileInspector',
         isInstalled: false,
         installedVersion: null,
         availableVersion: null,
@@ -399,6 +412,14 @@ function appendLogToUI(toolId, text, type) {
  */
 async function handleToolOperation(operation, tool) {
     if (!window.electronAPI) return;
+
+    if (operation === 'uninstall') {
+        const confirmTitle = t('tools.uninstallConfirmTitle') || 'Kaldırmayı Onayla';
+        const confirmMsgTemplate = t('tools.uninstallConfirmMessage') || '{0} aracını sistemden kaldırmak istediğinize emin misiniz?';
+        const confirmMsg = confirmMsgTemplate.replace('{0}', tool.name);
+        const confirmed = await showConfirmDialog(confirmTitle, confirmMsg);
+        if (!confirmed) return;
+    }
 
     // Reset or initialize active operation
     toolsState.activeOperations[tool.id] = {

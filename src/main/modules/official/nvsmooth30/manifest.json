@@ -1,0 +1,77 @@
+{
+    "id": "nvsmooth30",
+    "name": "NVSmooth-30",
+    "description": "Nvidia RTX 30 serisi kartlarda Smooth Motion özelliğinin kilidini açar. Upscaler gerektirmez fakat Nvidia Inspector ayarlarına ihtiyacı vardır.",
+    "conflicts": [],
+    "author": "vuenxx",
+    "version": "latest",
+    "source": {
+        "type": "github",
+        "repo": "vuenxx/v-30",
+        "release": "latest",
+        "asset": "*.zip",
+        "maxReleases": 10
+    },
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "auto",
+        "proxyDetection": {
+            "sourceFile": "version.dll",
+            "candidates": [
+                "version.dll",
+                "dxgi.dll",
+                "winmm.dll",
+                "d3d12.dll",
+                "dbghelp.dll",
+                "wininet.dll",
+                "winhttp.dll"
+            ],
+            "markerFileMatch": "v-30.txt",
+            "defaultTarget": "version.dll"
+        }
+    },
+    "detect": {
+        "priority": 40,
+        "depthStrategy": "shallowest",
+        "match": {
+            "anyFileName": [
+                "v-30.txt"
+            ]
+        }
+    },
+    "state": {
+        "flag": "hasNVSmooth30",
+        "versionField": "nvsmooth30Version",
+        "pathField": "nvsmooth30Path",
+        "injectionField": "nvsmooth30Injection"
+    },
+    "uninstall": {
+        "verifiedDlls": [
+            {
+                "candidates": [
+                    "version.dll",
+                    "dxgi.dll",
+                    "winmm.dll",
+                    "d3d12.dll",
+                    "dbghelp.dll",
+                    "wininet.dll",
+                    "winhttp.dll"
+                ],
+                "markerFileMatch": "v-30.txt"
+            }
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://github.com/vuenxx/v-30",
+        "tags": [
+            "frame-generation",
+            "nvsmooth"
+        ]
+    }
+}

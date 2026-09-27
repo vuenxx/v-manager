@@ -46,6 +46,20 @@ const TOOLS_CATALOG = [
             path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Ü Toolbox', 'Ü Toolbox.exe'),
             path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Ü Toolbox', 'Ü Toolbox.exe')
         ]
+    },
+    {
+        id: 'Orbmu2k.nvidiaProfileInspector',
+        slug: 'nvidia-profile-inspector',
+        name: 'NVIDIA Profile Inspector',
+        categoryKey: 'tools.catSystem',
+        icon: '🎮',
+        descriptionKey: 'tools.nvidiaInspectorDesc',
+        officialUrl: 'https://github.com/Orbmu2k/nvidiaProfileInspector',
+        exeCandidates: () => [
+            path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Links', 'nvpi.exe'),
+            path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Packages', 'Orbmu2k.nvidiaProfileInspector_Microsoft.Winget.Source_8wekyb3d8bbwe', 'nvidiaProfileInspector.exe'),
+            path.join(process.env.LOCALAPPDATA || '', 'Programs', 'nvidiaProfileInspector', 'nvidiaProfileInspector.exe')
+        ]
     }
 ];
 
