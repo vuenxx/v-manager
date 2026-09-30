@@ -1,14 +1,14 @@
 /**
- * vlss5.js — VLSS5 kurulum modalı (#vlss5-modal)
+ * vlss5.js — VLSS5 sekmesi (#vlss5)
  *
- * Header'daki VLSS5 butonundan açılır. Kur / Güncelle / Aç durum makinesi,
+ * Üst navigasyondaki VLSS5 sekmesiyle açılır. Kur / Güncelle / Aç durum makinesi,
  * indirme ilerlemesi ve nvngx_dlssnr.dll için sürükle-bırak burada.
  *
  * Durum tamamen main tarafındaki `vlss5:get-status` yanıtından sürülür;
  * burada kurulu olup olmadığına dair yerel varsayım tutulmaz.
  */
 
-import { openModal, showNotification } from './base.js';
+import { showNotification } from './base.js';
 import { showInfoModal, showConfirmDialog } from './info.js';
 import { t } from '../../i18n/i18n.js';
 
@@ -25,8 +25,9 @@ export function initVlss5Modal() {
     if (listenersBound) return;
     listenersBound = true;
 
-    const headerBtn = document.getElementById('vlss5-header-btn');
-    if (headerBtn) headerBtn.addEventListener('click', openVlss5Modal);
+    document.addEventListener('tab-activated', (e) => {
+        if (e.detail && e.detail.tabId === 'vlss5') openVlss5Modal();
+    });
 
     const primaryBtn = document.getElementById('vlss5-primary-btn');
     if (primaryBtn) primaryBtn.addEventListener('click', handlePrimaryAction);
@@ -67,7 +68,6 @@ export function initVlss5Modal() {
 }
 
 export async function openVlss5Modal() {
-    openModal('vlss5-modal');
     showError(null);
 
     // Arka planda bir güncelleme sürüyor olabilir (açılışta başlatılan otomatik

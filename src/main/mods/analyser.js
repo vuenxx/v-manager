@@ -49,6 +49,12 @@ function Safe-Scan($currentPath) {
 
         foreach ($item in $items) {
             if ($item.PSIsContainer) {
+                # BUG FIX: skip reparse-point directories (junctions/symlinks) before recursing.
+                # Files already skipped these, but directories did not -- a self-referential or
+                # circular junction (seen in some game/mod-manager installs, OneDrive placeholder
+                # folders, etc.) caused unbounded recursion here (reproduced: a single self-linking
+                # junction drives the path length to 1000+ chars within seconds with no exit).
+                if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { continue }
                 # Recurse into subdirectories
                 Safe-Scan $item.FullName
             } else {

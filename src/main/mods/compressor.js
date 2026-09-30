@@ -154,9 +154,17 @@ class WindowsCompressor {
     _parseProgress(text, callback) {
         // H-02: Support both \r and \n line endings from compact.exe
         const lines = text.split(/\r?\n|\r/).filter(l => l.trim().length > 0);
-        if (lines.length > 0) {
-            callback(lines[lines.length - 1].trim());
-        }
+        if (lines.length === 0) return;
+
+        // BUG FIX: stdout from compact.exe is pipe-buffered (not a TTY), so many
+        // "[OK] file.txt" / "[SKIPPED] file.txt" result lines can arrive batched
+        // in a single data chunk when processing lots of small files quickly.
+        // Only forwarding the LAST line per chunk (previous behavior) silently
+        // undercounts completed files in the renderer's per-file progress counter
+        // — verified: 500 quickly-emitted lines arrived as ~470 chunks, several
+        // containing 2-14 lines each. Count every qualifying line in the chunk.
+        const okCount = lines.reduce((n, l) => n + ((l.includes('[OK]') || l.includes('[SKIPPED]')) ? 1 : 0), 0);
+        callback({ text: lines[lines.length - 1].trim(), okCount });
     }
 
 

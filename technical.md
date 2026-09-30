@@ -337,7 +337,7 @@ permissions[], metadata:{ homepage, tags[], notes }
 > **Yeni kanal eklerken 3 yer:** `ipc.js` (handler) + `preload.js` (expose) + renderer çağrısı.
 
 ### 6.1 Uygulama & ayarlar
-`get-app-version` · `get-settings` · `save-settings` · `get-system-info` · `log-to-main` · `open-external-link` · `get-system-drives`
+`get-app-version` · `get-settings` · `save-settings` · `log-to-main` · `open-external-link` · `get-system-drives`
 
 ### 6.2 Oyun kütüphanesi
 `get-games` · `start-scan` (→ `game-found`, `scan-progress`, `scan-complete` event'leri) · `refresh-single-game` · `launch-game` · `add-manual-game` · `save-manual-game` · `remove-game` · `toggle-favorite` · `compare-versions`
@@ -411,7 +411,6 @@ Event'ler (main → renderer):
 | `free-games.js` | 343 | Ücretsiz oyunlar (GamerPower API) |
 | `blacklist.js` | 158 | Kara liste yönetimi + sayfalama |
 | `videos.js` | 112 | YouTube RSS video listesi |
-| `system-info.js` | 107 | Ana sayfa sistem bilgisi paneli |
 | `navigation.js` | 92 | Sekme geçişi (`switchTab`) |
 | `theme.js` | 30 | Dark/light tema (`data-theme` attr) |
 
@@ -433,8 +432,7 @@ Event'ler (main → renderer):
 
 | `data-target` / id | Sekme | Renderer dosyası |
 |---|---|---|
-| `home` | Ana Sayfa | `system-info.js`, `games.js` (istatistik) |
-| `games` | Oyunlar | `games.js`, `blacklist.js` |
+| `games` | Oyunlar (varsayılan açılış sekmesi) | `games.js`, `blacklist.js` |
 | `modes` | Modlar (alt: `mods-sub-versions`, `mods-sub-builder`) | `mods-tab.js`, `manifest-builder.js` |
 | `compress` | Sıkıştır (alt: `compress-tools`, `compress-history`) | `compress.js` |
 | `updates` | Güncellemeler | `updates-tab.js` |
@@ -445,8 +443,8 @@ Event'ler (main → renderer):
 
 ### 7.5 i18n
 
-- `src/renderer/i18n/i18n.js` — `t('nav.home')` nokta notasyonu, TR fallback, `localStorage['vmanager-lang']`, ilk açılışta sistem diline göre otomatik
-- `tr.js` / `en.js` — üst düzey gruplar: `nav, header, lang, home, games, mods, updates, compress, settings, videos, scan, modModal, manualAdd, confirmModal, dlss, opti, update, modSettings, info, freeGames, tools, bugReport, releaseCache, systemInfo, wizard, exePicker, modsTab, manifestBuilder`. `dlss`/`opti` grupları eski (kaldırılmış) kurulum modallerinden kalma — yalnızca genel `errorTitle`/`successTitle`/`yesBtn`/`noBtn`/`unexpectedError`/`standaloneLoadError` anahtarları kaldı, hâlâ genel amaçlı hata/başarı diyaloglarında kullanılıyor. `streamline`/`optiBuilder` grupları tamamen kaldırıldı (kullanılmıyordu)
+- `src/renderer/i18n/i18n.js` — `t('nav.games')` nokta notasyonu, TR fallback, `localStorage['vmanager-lang']`, ilk açılışta sistem diline göre otomatik
+- `tr.js` / `en.js` — üst düzey gruplar: `nav, header, lang, home, games, mods, updates, compress, settings, videos, scan, modModal, manualAdd, confirmModal, dlss, opti, update, modSettings, info, freeGames, tools, bugReport, releaseCache, wizard, exePicker, modsTab, manifestBuilder`. `dlss`/`opti` grupları eski (kaldırılmış) kurulum modallerinden kalma — yalnızca genel `errorTitle`/`successTitle`/`yesBtn`/`noBtn`/`unexpectedError`/`standaloneLoadError` anahtarları kaldı, hâlâ genel amaçlı hata/başarı diyaloglarında kullanılıyor. `streamline`/`optiBuilder` grupları tamamen kaldırıldı (kullanılmıyordu). `home` grubu Ana Sayfa sekmesiyle birlikte kaldırıldı; yalnızca Oyunlar sekmesindeki "Destek Listesi" modalinin kullandığı 4 anahtar kaldı. `systemInfo` grubu (Ana Sayfa'nın GPU/CPU/RAM paneline aitti) tamamen kaldırıldı
 - HTML'de: `data-i18n="key"`, `data-i18n-title="key"` → `applyTranslations()`
 - ⚠️ **Yeni metin eklerken İKİ dosyaya da eklenecek**
 
@@ -678,7 +676,7 @@ Sıkıştırma sürerken pencere kapatılamaz (`window.js` → `ipc.isCompressio
 | **Kurulum pipeline'ı** | `src/main/modules/core/moduleEngine.js` → `install()` |
 | **Manifest alanı ekle** | `manifestValidator.js` (doğrulama) + `moduleEngine.js` (uygulama) + `manifest-builder.js` (UI) |
 | **Yeni winget aracı** | `src/main/modules/tools/toolsManager.js` → `TOOLS_CATALOG` + i18n açıklama anahtarları |
-| **VLSS5 davranışı** | `src/main/modules/vlss5/vlss5Manager.js` (mantık) + `src/renderer/ui/modals/vlss5.js` (UI durum makinesi) + `index.html` `#vlss5-modal` |
+| **VLSS5 davranışı** | `src/main/modules/vlss5/vlss5Manager.js` (mantık) + `src/renderer/ui/modals/vlss5.js` (UI durum makinesi) + `index.html` `#vlss5` sekmesi |
 | **Stil** | `styles.css` — 9117 satır, bölüm yorumlarıyla ayrılmış; ilgili bölümü `grep "/\* Bölüm"` ile bul |
 
 ---

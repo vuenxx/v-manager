@@ -16,7 +16,6 @@ const moduleWizardEngine = require('./modules/core/moduleWizardEngine');
 
 let isScanning = false;
 let isCompressing = false;
-let cachedSystemInfo = null;
 // C-06: Prevent duplicate IPC handler registration
 let ipcRegistered = false;
 
@@ -335,121 +334,6 @@ function registerIpcHandlers() {
         return await utils.checkDx12Support(exePath);
     });
 
-    ipcMain.handle('get-system-info', async (event, { forceRefresh } = {}) => {
-        if (!cachedSystemInfo) {
-            try {
-                const settings = config.getSettings();
-                if (settings && settings.systemInfo) {
-                    cachedSystemInfo = settings.systemInfo;
-                }
-            } catch (e) {
-                console.error('[IPC] Failed to read systemInfo from settings:', e);
-            }
-        }
-
-        if (cachedSystemInfo && !forceRefresh) {
-            return cachedSystemInfo;
-        }
-
-        return new Promise((resolve) => {
-            const psCommand = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ` +
-                `$gpu = ''; try { ` +
-                `  $gpus = Get-CimInstance Win32_VideoController | Where-Object { $_.Status -eq 'OK' } | Select-Object Name, AdapterRAM; ` +
-                `  $discretePatterns = 'NVIDIA GeForce|NVIDIA RTX|NVIDIA Quadro|NVIDIA T\\d|AMD Radeon RX|AMD Radeon Pro|Radeon\\(TM\\)\\s*RX|Intel\\(R\\)\\s*Arc A\\d'; ` +
-                `  $discrete = $gpus | Where-Object { $_.Name -match $discretePatterns }; ` +
-                `  if ($discrete) { ` +
-                `    $gpu = ($discrete | Select-Object -First 1).Name ` +
-                `  } else { ` +
-                `    $integratedPatterns = 'Intel\\(R\\)\\s*(HD|UHD|Iris)|Radeon\\(TM\\)\\s*Graphics$|Vega\\s*\\d*\\s*Graphics$'; ` +
-                `    $nonIntegrated = $gpus | Where-Object { $_.Name -notmatch $integratedPatterns }; ` +
-                `    $gpu = if ($nonIntegrated) { ($nonIntegrated | Select-Object -First 1).Name } else { ($gpus | Select-Object -First 1).Name } ` +
-                `  } ` +
-                `} catch {}; ` +
-                `$cpu = ''; try { $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name } catch {}; ` +
-                `$ramGb = '0'; try { $ramGb = [Math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) } catch {}; ` +
-                `$d3d12Max = 0; ` +
-                `try { ` +
-                `  $dx = Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\DirectX' -ErrorAction SilentlyContinue; ` +
-                `  if ($dx -ne $null -and $dx.D3D12MaxFeatureLevel -ne $null) { $d3d12Max = $dx.D3D12MaxFeatureLevel }; ` +
-                `  $subkeys = Get-ChildItem -Path 'HKLM:\\SOFTWARE\\Microsoft\\DirectX' -ErrorAction SilentlyContinue; ` +
-                `  if ($subkeys -ne $null) { ` +
-                `    foreach ($sub in $subkeys) { ` +
-                `      $subProps = Get-ItemProperty -Path $sub.PSPath -ErrorAction SilentlyContinue; ` +
-                `      if ($subProps -ne $null -and $subProps.D3D12MaxFeatureLevel -ne $null) { ` +
-                `        if ($subProps.D3D12MaxFeatureLevel -gt $d3d12Max) { $d3d12Max = $subProps.D3D12MaxFeatureLevel } ` +
-                `      } ` +
-                `    } ` +
-                `  } ` +
-                `} catch {}; ` +
-                `$dx12Supported = 'False'; $dx12FeatureLevel = 'Yok'; ` +
-                `if ($d3d12Max -gt 0) { ` +
-                `  if ($d3d12Max -ge 49664) { $dx12Supported = 'True'; $dx12FeatureLevel = '12_2 (Ultimate)' } ` +
-                `  elseif ($d3d12Max -ge 49408) { $dx12Supported = 'True'; $dx12FeatureLevel = '12_1' } ` +
-                `  elseif ($d3d12Max -ge 48000) { $dx12Supported = 'True'; $dx12FeatureLevel = '12_0' } ` +
-                `} else { ` +
-                `  $dx12Supported = 'True'; $dx12FeatureLevel = 'Genel (Bilinmiyor)' ` +
-                `}; ` +
-                `$gpuTrim = if ($gpu) { $gpu.Trim() } else { 'Bilinmiyor' }; ` +
-                `$cpuTrim = if ($cpu) { $cpu.Trim() } else { 'Bilinmiyor' }; ` +
-                `Write-Output ($gpuTrim + ';' + $cpuTrim + ';' + $ramGb + ';' + $dx12Supported + ';' + $dx12FeatureLevel)`;
-
-            const { spawn } = require('child_process');
-            const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', psCommand], {
-                shell: false
-            });
-
-            let stdout = '';
-            let stderr = '';
-
-            child.stdout.setEncoding('utf8');
-            child.stdout.on('data', (data) => {
-                stdout += data.toString();
-            });
-
-            child.stderr.on('data', (data) => {
-                stderr += data.toString();
-            });
-
-            child.on('close', (code) => {
-                if (code !== 0) {
-                    console.error('[IPC] get-system-info process exited with code', code, 'stderr:', stderr);
-                    resolve({ success: false, error: stderr || `Exited with code ${code}` });
-                    return;
-                }
-                const parts = stdout.trim().split(';');
-                if (parts.length >= 5) {
-                    const info = {
-                        success: true,
-                        gpu: parts[0].trim() || 'Bilinmiyor',
-                        cpu: parts[1].trim() || 'Bilinmiyor',
-                        ram: (parts[2].trim() !== '0' ? parts[2].trim() + ' GB' : 'Bilinmiyor'),
-                        dx12Supported: parts[3].trim() === 'True',
-                        dx12FeatureLevel: parts[4].trim()
-                    };
-                    cachedSystemInfo = info;
-                    try {
-                        const settings = config.getSettings();
-                        settings.systemInfo = info;
-                        config.saveSettings(settings);
-                    } catch (e) {
-                        console.error('[IPC] Failed to save systemInfo to settings:', e);
-                    }
-                    resolve(info);
-                } else {
-                    resolve({
-                        success: false,
-                        error: 'Format error: ' + stdout
-                    });
-                }
-            });
-
-            child.on('error', (err) => {
-                console.error('[IPC] get-system-info spawn error:', err);
-                resolve({ success: false, error: err.message });
-            });
-        });
-    });
-
     // ── Dual-layer Game Path System IPCs ──────────────────────────────────────
 
     /** Returns the full user-games.json map */
@@ -549,9 +433,6 @@ function registerIpcHandlers() {
     ipcMain.handle('run-compression', async (event, { folderPath, algorithm }) => {
         isCompressing = true;
         const startTime = Date.now();
-        // Sıkıştırma öncesi analiz
-        let beforeStats = { uncompressedBytes: 0, compressedBytes: 0, fileCount: 0, ratio: '1.0' };
-        try { beforeStats = await analyser.analyze(folderPath); } catch (_) {}
         try {
             const result = await compressor.compress(folderPath, algorithm, {}, (progress) => {
                 // M-18: Guard against sending to destroyed window
@@ -559,8 +440,8 @@ function registerIpcHandlers() {
                     event.sender.send('compression-progress', { folderPath, progress });
                 }
             });
-            // Sıkıştırma sonrası analiz → geçmişe kaydet
-            let afterStats = { uncompressedBytes: beforeStats.uncompressedBytes, compressedBytes: 0, ratio: '1.0' };
+            // Sıkıştırma sonrası analiz → geçmişe kaydet + renderer'a döndür (gereksiz ikinci tarama önlenir)
+            let afterStats = { uncompressedBytes: 0, compressedBytes: 0, fileCount: 0, ratio: '1.0' };
             try { afterStats = await analyser.analyze(folderPath); } catch (_) {}
             const durationMs = Date.now() - startTime;
             const savedBytes = Math.max(0, afterStats.uncompressedBytes - afterStats.compressedBytes);
@@ -585,7 +466,9 @@ function registerIpcHandlers() {
                 durationMs,
                 success: true
             });
-            return result;
+            // H-XX: afterStats renderer'a döndürülüyor ki refreshFolderState
+            // aynı klasörü tekrar (3. kez) taramak zorunda kalmasın.
+            return { ...result, stats: afterStats };
         } finally {
             isCompressing = false;
         }
@@ -593,10 +476,6 @@ function registerIpcHandlers() {
 
     ipcMain.handle('run-uncompression', async (event, { folderPath }) => {
         isCompressing = true;
-        const startTime = Date.now();
-        // Geri alma öncesi analiz
-        let beforeStats = { uncompressedBytes: 0, compressedBytes: 0, fileCount: 0, ratio: '1.0' };
-        try { beforeStats = await analyser.analyze(folderPath); } catch (_) {}
         try {
             const result = await compressor.uncompress(folderPath, (progress) => {
                 // M-18: Guard against sending to destroyed window
@@ -606,7 +485,12 @@ function registerIpcHandlers() {
             });
             // Geri alma başarılıysa o klasörün tüm geçmiş kayıtlarını sil
             await compressionDb.removeEntriesByPath(folderPath);
-            return result;
+            // Geri alma sonrası analiz → renderer'a döndürülüyor (gereksiz ikinci tarama önlenir).
+            // H-XX: Öncesinde burada kullanılmayan bir "beforeStats" tam klasör taraması
+            // yapılıyordu (sonucu hiçbir yerde okunmuyordu) — kaldırıldı.
+            let afterStats = null;
+            try { afterStats = await analyser.analyze(folderPath); } catch (_) {}
+            return { ...result, stats: afterStats };
         } finally {
             isCompressing = false;
         }

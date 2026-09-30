@@ -13,7 +13,6 @@ import { initModsTab } from './ui/mods-tab.js';
 import { initVideos } from './ui/videos.js';
 import { initUpdatesTab } from './ui/updates-tab.js';
 import { initFreeGames } from './ui/free-games.js';
-import { initSystemInfo } from './ui/system-info.js';
 import { initI18n, setLanguage, getCurrentLang, applyTranslations, t } from './i18n/i18n.js';
 import { initCacheWarningModal } from './ui/modals/cacheHelpers.js';
 import { initManifestBuilder } from './ui/manifest-builder.js';
@@ -25,9 +24,6 @@ import { initWindowControls } from './ui/window-controls.js';
 document.addEventListener('DOMContentLoaded', async () => {
     // 0. i18n — must run before any UI renders
     initI18n();
-    if (window.electronAPI && window.electronAPI.logToMain) {
-        window.electronAPI.logToMain('LANG TEST: currentLang=' + getCurrentLang() + ' t(nav.home)=' + t('nav.home'));
-    }
 
     // Language select dropdown (top-right)
     const langSelect = document.getElementById('lang-select');
@@ -67,7 +63,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initVideos();
     initUpdatesTab();
     initFreeGames();
-    initSystemInfo();
     initManifestBuilder();
     initTools();
 
@@ -144,17 +139,10 @@ async function initDlssEnablerList() {
             renderList(searchInput.value);
         });
 
-        // Open Modal Trigger
-        const openBtn = document.getElementById('open-dlss-list-btn');
+        // Open Modal Trigger (Oyunlar sekmesindeki "Destek Listesi" rozeti)
+        const openBtn = document.getElementById('games-tab-support-list-btn');
         if (openBtn) {
             openBtn.addEventListener('click', () => {
-                openModal('dlss-supported-games-modal');
-            });
-        }
-
-        const openBtn2 = document.getElementById('games-tab-support-list-btn');
-        if (openBtn2) {
-            openBtn2.addEventListener('click', () => {
                 openModal('dlss-supported-games-modal');
             });
         }
@@ -168,6 +156,6 @@ async function initDlssEnablerList() {
         }
 
     } catch (err) {
-        console.error('Failed to initialize DLSS Enabler list on home page:', err);
+        console.error('Failed to initialize DLSS Enabler supported-games list:', err);
     }
 }

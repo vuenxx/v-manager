@@ -19,18 +19,11 @@
             <div class="header-brand">
                 <img src="program_logo.png" alt="V-Manager Logo" class="header-logo">
                 <h3>Manager</h3>
-                <button id="vlss5-header-btn" class="vlss5-badge-btn" data-i18n-title="vlss5.headerTooltip"
-                    title="VLSS5 — RTX kartlarda pencere yöntemiyle DLSS5">
-                    <img src="icons/vlss5-logo.png" alt="VLSS5" class="vlss5-badge-icon">
-                    <span data-i18n="vlss5.headerBtn">VLSS5</span>
-                </button>
             </div>
 
             <nav class="header-nav">
                 <ul class="nav-list">
-                    <li><button class="nav-item active" data-target="home" data-i18n="nav.home">Ana Sayfa</button>
-                    </li>
-                    <li><button class="nav-item" data-target="games" data-i18n="nav.games">Oyunlar</button></li>
+                    <li><button class="nav-item active" data-target="games" data-i18n="nav.games">Oyunlar</button></li>
                     <li><button class="nav-item" data-target="modes" data-i18n="nav.mods">Modlar</button></li>
                     <li><button class="nav-item" data-target="compress" data-i18n="nav.compress">Sıkıştır</button>
                     </li>
@@ -38,6 +31,9 @@
                     </li>
                     <li><button class="nav-item" data-target="videos" data-i18n="nav.videos">Videolar</button></li>
                     <li><button class="nav-item" data-target="tools" data-i18n="nav.tools">Araçlar</button></li>
+                    <li><button id="vlss5-header-btn" class="nav-item vlss5-nav-item" data-target="vlss5"
+                            data-i18n="vlss5.headerBtn" data-i18n-title="vlss5.headerTooltip"
+                            title="VLSS5 — RTX kartlarda pencere yöntemiyle DLSS5">VLSS5</button></li>
                 </ul>
             </nav>
 
@@ -87,201 +83,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="tab-content active" id="home">
-                <!-- Welcome Hero Banner & System Information Panel -->
-                <div class="home-hero system-info-hero">
-                    <div class="system-info-container">
-                        <div class="system-specs">
-                            <div class="spec-item">
-                                <div class="spec-details">
-                                    <span class="spec-label" data-i18n="systemInfo.gpu">Ekran Kartı (GPU)</span>
-                                    <span class="spec-value" id="sys-gpu">-</span>
-                                </div>
-                            </div>
-                            <div class="spec-item">
-                                <div class="spec-details">
-                                    <span class="spec-label" data-i18n="systemInfo.cpu">İşlemci (CPU)</span>
-                                    <span class="spec-value" id="sys-cpu">-</span>
-                                </div>
-                            </div>
-                            <div class="spec-item">
-                                <div class="spec-details">
-                                    <span class="spec-label" data-i18n="systemInfo.ram">Bellek (RAM)</span>
-                                    <span class="spec-value" id="sys-ram">-</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="dx12-status-card" id="dx12-status-card">
-                            <span class="dx12-icon" id="dx12-icon">⏳</span>
-                            <div class="dx12-details">
-                                <span class="dx12-title" id="dx12-title" data-i18n="systemInfo.checking">Sistem Kontrol
-                                    Ediliyor...</span>
-                                <span class="dx12-desc" id="dx12-desc">-</span>
-                            </div>
-                            <button id="sys-refresh-btn" class="sys-refresh-btn" title="Sistem Bilgisini Yenile"
-                                data-i18n-title="systemInfo.refreshTooltip">🔄</button>
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card stat-games">
-                        <div class="stat-icon">🎮</div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="home-stat-games-count">-</span>
-                            <span class="stat-label" data-i18n="home.statsTotalGames">Kayıtlı Oyun</span>
-                        </div>
-                    </div>
-                    <div class="stat-card stat-mods">
-                        <div class="stat-icon">⚡</div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="home-stat-mods-count">-</span>
-                            <span class="stat-label" data-i18n="home.statsModdedGames">Modlu Oyun</span>
-                        </div>
-                    </div>
-                    <div class="stat-card stat-status">
-                        <div class="stat-icon">🛠️</div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="home-stat-version-value">-</span>
-                            <span class="stat-label" id="home-stat-version-label" data-i18n="home.statsLabel">Durum:
-                                Güncel</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Warnings & Requirements Section -->
-                <h3 class="section-title" data-i18n="home.infoSectionTitle">Önemli Bilgilendirme & Uyarılar</h3>
-                <div class="alerts-grid">
-                    <div class="alert-card warning-alert">
-                        <div class="alert-header">
-                            <span class="alert-icon">⚠️</span>
-                            <h4 data-i18n="home.warningTitle">Anti-Cheat Uyarısı</h4>
-                        </div>
-                        <p data-i18n="home.warningDesc" data-i18n-html>Çevrimiçi rekabetçi oyunlarda modları
-                            <strong>kesinlikle kullanmayın</strong>, ban yiyebilirsiniz.
-                        </p>
-                    </div>
-
-                    <div class="alert-card info-alert">
-                        <div class="alert-header">
-                            <span class="alert-icon">💡</span>
-                            <h4 data-i18n="home.supportTitle">Gereksinimler</h4>
-                        </div>
-                        <p data-i18n="home.supportDesc" data-i18n-html>Modların çalışması için oyunun resmi olarak
-                            <strong>DLSS Frame Generation</strong> desteği olmalıdır.
-                        </p>
-                    </div>
-
-                    <div class="alert-card star-alert">
-                        <div class="alert-header">
-                            <span class="alert-icon">⭐</span>
-                            <h4 data-i18n="home.starTitle">Projeyi Yıldızla</h4>
-                        </div>
-                        <p data-i18n="home.starDesc" data-i18n-html>Projemiz hoşunuza gittiyse GitHub repomuzu
-                            yıldızlayarak destek olabilirsiniz!</p>
-                    </div>
-                </div>
-
-                <!-- Quick Navigation -->
-                <h3 class="section-title" data-i18n="home.quickMenu">Hızlı Menü & Keşfet</h3>
-                <div class="quick-nav-grid">
-                    <div class="quick-action-card games-action" data-target="games">
-                        <div class="action-icon-box">🎮</div>
-                        <div class="action-details">
-                            <h4 data-i18n="home.promoGamesTitle">Oyun Kütüphanesi</h4>
-                            <p data-i18n="home.promoGamesDesc">Buradan oyunlarınıza DLSS Enabler, Optiscaler kurabilir
-                                ve Streamline dosyalarını güncelleyebilirsiniz.</p>
-                            <span class="action-link" data-i18n="home.promoGamesBtn">Oyunları Yönet ➔</span>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card mods-action" data-target="modes">
-                        <div class="action-icon-box">📦</div>
-                        <div class="action-details">
-                            <h4 data-i18n="home.promoModsTitle">Mod Sürümleri</h4>
-                            <p data-i18n="home.promoModsDesc">Modlar yerinden programda olan modların (DLSS Enabler,
-                                Optiscaler vs) sürümlerini güncelleyebilirsiniz.</p>
-                            <span class="action-link" data-i18n="home.promoModsBtn">Sürümleri İncele ➔</span>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card videos-action" data-target="videos">
-                        <div class="action-icon-box">🎬</div>
-                        <div class="action-details">
-                            <h4 data-i18n="home.promoVideosTitle">YouTube Rehberleri</h4>
-                            <p data-i18n="home.promoVideosDesc">Videolar yerinden YouTube kanalımda işinize
-                                yarayabilecek rehber içeriklerini görüntüleyin.</p>
-                            <span class="action-link" data-i18n="home.promoVideosBtn">Videoları İzle ➔</span>
-                        </div>
-                    </div>
-
-                    <div class="quick-action-card tools-action" data-target="compress">
-                        <div class="action-icon-box">🗜️</div>
-                        <div class="action-details">
-                            <h4 data-i18n="home.promoCompressTitle">Sıkıştırma Aracı</h4>
-                            <p data-i18n="home.promoCompressDesc">Oyun klasörlerinizin boyutunu küçülterek disk alanı
-                                kazanın.</p>
-                            <span class="action-link" data-i18n="home.promoCompressBtn">Sıkıştır ➔</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Compatibility Accordion / Widget -->
-                <div class="compatibility-widget-card">
-                    <div class="widget-left">
-                        <div class="widget-icon">🛡️</div>
-                        <div class="widget-text">
-                            <h4 data-i18n="home.dlssListTitle">DLSS Enabler (MFG) Destekleyen Oyunlar Listesi</h4>
-                            <p data-i18n="home.dlssListSubtitle">DLSS Enabler ve OptiScaler tarafından tam uyumluluk
-                                listesindeki tüm oyunlar</p>
-                        </div>
-                    </div>
-                    <button id="open-dlss-list-btn" class="widget-btn" data-i18n="home.listBtn">Listele</button>
-                </div>
-
-                <!-- Social Links Row -->
-                <div class="social-links-row">
-                    <a href="#" class="social-pill youtube external-link" data-url="https://www.youtube.com/@vuenxxmx">
-                        <span class="social-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path
-                                    d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.508a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.508 9.388.508 9.388.508s7.517 0 9.388-.508a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                            </svg>
-                        </span>
-                        <span>YouTube</span>
-                    </a>
-                    <a href="#" class="social-pill discord external-link"
-                        data-url="https://discord.com/invite/SnRpn3ADNF">
-                        <span class="social-icon">
-                            <svg width="16" height="16" viewBox="0 0 127.14 96.36" fill="currentColor">
-                                <path
-                                    d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a77.7,77.7,0,0,0,6.63-10.85,68.43,68.43,0,0,1-10.4-5c.87-.64,1.71-1.32,2.51-2a68.1,68.1,0,0,0,72.69,0c.8,0.7,1.64,1.37,2.51,2a68.43,68.43,0,0,1-10.4,5,77.7,77.7,0,0,0,6.63,10.85,105.73,105.73,0,0,0,31.06-18.83C129.87,50.22,123.82,27.35,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z" />
-                            </svg>
-                        </span>
-                        <span>Discord</span>
-                    </a>
-                    <a href="#" class="social-pill github external-link" data-url="https://github.com/vuenxx/v-manager">
-                        <span class="social-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                <path fill-rule="evenodd" clip-rule="evenodd"
-                                    d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.138 20.164 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
-                            </svg>
-                        </span>
-                        <span>GitHub</span>
-                    </a>
-                </div>
-
-                <!-- License Agreement Link -->
-                <div class="footer-notice" data-i18n="home.footerNotice" data-i18n-html>
-                    Bu uygulamayı kullanarak <a href="#" class="external-link"
-                        data-url="https://github.com/vuenxx/v-manager/blob/main/LICENSE">kullanıcı sözleşmesini</a>
-                    kabul etmiş sayılırsınız.
-                </div>
-            </div>
-
-            <div class="tab-content" id="games">
+            <div class="tab-content active" id="games">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; position: relative; z-index: 50;">
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <h2 data-i18n="games.title">Oyunlar</h2>
@@ -1667,6 +1469,88 @@
                     </div>
                 </div>
             </div>
+
+            <!-- VLSS5 Tab -->
+            <div class="tab-content" id="vlss5" style="display: none;">
+                <div class="vlss5-layout">
+                    <!-- Sol: logo + isim -->
+                    <aside class="vlss5-left">
+                        <img src="icons/vlss5-logo.png" alt="VLSS5" class="vlss5-logo">
+                        <h2 class="vlss5-title">VLSS5</h2>
+                        <span id="vlss5-installed-version" class="vlss5-version-chip">—</span>
+                    </aside>
+
+                    <!-- Sağ: açıklama + durum + aksiyonlar -->
+                    <section class="vlss5-right">
+                        <h3 class="vlss5-heading" data-i18n="vlss5.modalTitle">VLSS5 Nedir?</h3>
+                        <p class="vlss5-desc" data-i18n="vlss5.description">
+                            RTX 20'den 50'ye kadar kartlarda pencere yöntemiyle DLSS5 açabilirsiniz.
+                        </p>
+
+                        <button class="vlss5-github-link external-link" data-url="https://github.com/vuenxx/VLSS5">
+                            <span data-i18n="vlss5.githubBtn">GitHub'da Görüntüle</span> ➔
+                        </button>
+
+                        <div id="vlss5-gpu-warning" class="vlss5-gpu-warning" style="display: none;"></div>
+
+                        <!-- Kurulum durumu -->
+                        <div class="vlss5-checklist">
+                            <div class="vlss5-check-row" id="vlss5-check-exe">
+                                <span class="vlss5-check-icon">•</span>
+                                <span class="vlss5-check-label" data-i18n="vlss5.checkExe">VLSS5 programı</span>
+                            </div>
+                            <div class="vlss5-check-row" id="vlss5-check-dll">
+                                <span class="vlss5-check-icon">•</span>
+                                <span class="vlss5-check-label" data-i18n="vlss5.checkDll">nvngx_dlssnr.dll (DLSS5 modeli)</span>
+                            </div>
+                        </div>
+                        <div class="vlss5-ready-banner" id="vlss5-ready-banner" style="display: none;">
+                            <span data-i18n="vlss5.readyBanner">✓ Kurulum tamam</span>
+                        </div>
+
+                        <!-- nvngx_dlssnr.dll sürükle-bırak -->
+                        <div id="vlss5-dropzone" class="vlss5-dropzone">
+                            <div class="vlss5-dropzone-icon">🧩</div>
+                            <p class="vlss5-dropzone-text" data-i18n="vlss5.dropText">
+                                nvngx_dlssnr.dll dosyasını buraya sürükleyin
+                            </p>
+                            <span class="vlss5-dropzone-hint" data-i18n="vlss5.dropHint">
+                                Bu dosya NVIDIA sürücüsünden gelir; telifli olduğu için uygulamayla dağıtılamaz.
+                            </span>
+                            <div class="vlss5-dropzone-actions">
+                                <button id="vlss5-find-dll-btn" class="vlss5-btn vlss5-btn-ghost"
+                                    data-i18n="vlss5.findDllBtn">Sürücüden Bul</button>
+                                <button id="vlss5-pick-dll-btn" class="vlss5-btn vlss5-btn-ghost"
+                                    data-i18n="vlss5.pickDllBtn">Dosya Seç</button>
+                            </div>
+                        </div>
+
+                        <!-- İlerleme -->
+                        <div id="vlss5-progress-wrap" class="vlss5-progress-wrap" style="display: none;">
+                            <div class="vlss5-progress-bar">
+                                <div id="vlss5-progress-fill" class="vlss5-progress-fill"></div>
+                            </div>
+                            <span id="vlss5-progress-text" class="vlss5-progress-text">—</span>
+                        </div>
+
+                        <div id="vlss5-error" class="vlss5-error" style="display: none;"></div>
+
+                        <!-- Aksiyonlar -->
+                        <div class="vlss5-actions">
+                            <button id="vlss5-uninstall-btn" class="vlss5-btn vlss5-btn-ghost"
+                                data-i18n="vlss5.uninstallBtn" style="display: none;">Kaldır</button>
+                            <button id="vlss5-check-updates-btn" class="vlss5-btn vlss5-btn-ghost"
+                                data-i18n="vlss5.checkUpdatesBtn" style="display: none;">Güncellemeleri Kontrol Et</button>
+                            <button id="vlss5-folder-btn" class="vlss5-btn vlss5-btn-ghost"
+                                data-i18n="vlss5.openFolderBtn" style="display: none;">Klasörü Aç</button>
+                            <button id="vlss5-secondary-btn" class="vlss5-btn vlss5-btn-ghost"
+                                data-i18n="vlss5.launchBtn" style="display: none;">Aç</button>
+                            <button id="vlss5-primary-btn" class="vlss5-btn vlss5-btn-primary"
+                                data-i18n="vlss5.installBtn">Kur</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -2382,92 +2266,6 @@
             <div class="confirm-btn-group">
                 <button id="info-modal-ok-btn" class="btn-confirm-no" data-i18n="info.okBtn"
                     style="background-color: var(--accent-color); color: white; border: none; padding: 8px 24px;">Tamam</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- VLSS5 Modal -->
-    <div id="vlss5-modal" class="modal">
-        <div class="modal-content vlss5-modal-content">
-            <span class="close-modal" data-target="vlss5-modal">&times;</span>
-
-            <div class="vlss5-layout">
-                <!-- Sol: logo + isim -->
-                <aside class="vlss5-left">
-                    <img src="icons/vlss5-logo.png" alt="VLSS5" class="vlss5-logo">
-                    <h2 class="vlss5-title">VLSS5</h2>
-                    <span id="vlss5-installed-version" class="vlss5-version-chip">—</span>
-                </aside>
-
-                <!-- Sağ: açıklama + durum + aksiyonlar -->
-                <section class="vlss5-right">
-                    <h3 class="vlss5-heading" data-i18n="vlss5.modalTitle">VLSS5 Nedir?</h3>
-                    <p class="vlss5-desc" data-i18n="vlss5.description">
-                        RTX 20'den 50'ye kadar kartlarda pencere yöntemiyle DLSS5 açabilirsiniz.
-                    </p>
-
-                    <button class="vlss5-github-link external-link" data-url="https://github.com/vuenxx/VLSS5">
-                        <span data-i18n="vlss5.githubBtn">GitHub'da Görüntüle</span> ➔
-                    </button>
-
-                    <div id="vlss5-gpu-warning" class="vlss5-gpu-warning" style="display: none;"></div>
-
-                    <!-- Kurulum durumu -->
-                    <div class="vlss5-checklist">
-                        <div class="vlss5-check-row" id="vlss5-check-exe">
-                            <span class="vlss5-check-icon">•</span>
-                            <span class="vlss5-check-label" data-i18n="vlss5.checkExe">VLSS5 programı</span>
-                        </div>
-                        <div class="vlss5-check-row" id="vlss5-check-dll">
-                            <span class="vlss5-check-icon">•</span>
-                            <span class="vlss5-check-label" data-i18n="vlss5.checkDll">nvngx_dlssnr.dll (DLSS5 modeli)</span>
-                        </div>
-                    </div>
-                    <div class="vlss5-ready-banner" id="vlss5-ready-banner" style="display: none;">
-                        <span data-i18n="vlss5.readyBanner">✓ Kurulum tamam</span>
-                    </div>
-
-                    <!-- nvngx_dlssnr.dll sürükle-bırak -->
-                    <div id="vlss5-dropzone" class="vlss5-dropzone">
-                        <div class="vlss5-dropzone-icon">🧩</div>
-                        <p class="vlss5-dropzone-text" data-i18n="vlss5.dropText">
-                            nvngx_dlssnr.dll dosyasını buraya sürükleyin
-                        </p>
-                        <span class="vlss5-dropzone-hint" data-i18n="vlss5.dropHint">
-                            Bu dosya NVIDIA sürücüsünden gelir; telifli olduğu için uygulamayla dağıtılamaz.
-                        </span>
-                        <div class="vlss5-dropzone-actions">
-                            <button id="vlss5-find-dll-btn" class="vlss5-btn vlss5-btn-ghost"
-                                data-i18n="vlss5.findDllBtn">Sürücüden Bul</button>
-                            <button id="vlss5-pick-dll-btn" class="vlss5-btn vlss5-btn-ghost"
-                                data-i18n="vlss5.pickDllBtn">Dosya Seç</button>
-                        </div>
-                    </div>
-
-                    <!-- İlerleme -->
-                    <div id="vlss5-progress-wrap" class="vlss5-progress-wrap" style="display: none;">
-                        <div class="vlss5-progress-bar">
-                            <div id="vlss5-progress-fill" class="vlss5-progress-fill"></div>
-                        </div>
-                        <span id="vlss5-progress-text" class="vlss5-progress-text">—</span>
-                    </div>
-
-                    <div id="vlss5-error" class="vlss5-error" style="display: none;"></div>
-
-                    <!-- Aksiyonlar -->
-                    <div class="vlss5-actions">
-                        <button id="vlss5-uninstall-btn" class="vlss5-btn vlss5-btn-ghost"
-                            data-i18n="vlss5.uninstallBtn" style="display: none;">Kaldır</button>
-                        <button id="vlss5-check-updates-btn" class="vlss5-btn vlss5-btn-ghost"
-                            data-i18n="vlss5.checkUpdatesBtn" style="display: none;">Güncellemeleri Kontrol Et</button>
-                        <button id="vlss5-folder-btn" class="vlss5-btn vlss5-btn-ghost"
-                            data-i18n="vlss5.openFolderBtn" style="display: none;">Klasörü Aç</button>
-                        <button id="vlss5-secondary-btn" class="vlss5-btn vlss5-btn-ghost"
-                            data-i18n="vlss5.launchBtn" style="display: none;">Aç</button>
-                        <button id="vlss5-primary-btn" class="vlss5-btn vlss5-btn-primary"
-                            data-i18n="vlss5.installBtn">Kur</button>
-                    </div>
-                </section>
             </div>
         </div>
     </div>

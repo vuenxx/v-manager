@@ -63,9 +63,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // C-02: Cleanup function for compression progress listeners to prevent memory leaks
     removeCompressionProgressListeners: () => ipcRenderer.removeAllListeners('compression-progress'),
 
-    // System Info
-    getSystemInfo: (args) => ipcRenderer.invoke('get-system-info', args),
-
     // Compression History
     getCompressionHistory: () => ipcRenderer.invoke('get-compression-history'),
     removeHistoryEntry: (id) => ipcRenderer.invoke('remove-history-entry', id),

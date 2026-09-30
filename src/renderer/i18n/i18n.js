@@ -3,7 +3,7 @@
  * Lightweight internationalization: TR (default) + EN
  * Usage:
  *   import { t, setLanguage, getCurrentLang, applyTranslations } from '../i18n/i18n.js';
- *   t('nav.home')           → "Home" or "Ana Sayfa"
+ *   t('nav.games')          → "Games" or "Oyunlar"
  *   setLanguage('en')       → switch all UI to English
  */
 
@@ -23,7 +23,7 @@ if (!currentLang) {
 }
 
 /**
- * Translate a key. Supports nested keys via dot notation: t('nav.home')
+ * Translate a key. Supports nested keys via dot notation: t('nav.games')
  * Falls back to Turkish if key is missing in current locale.
  */
 export function t(key) {

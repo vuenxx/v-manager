@@ -27,23 +27,6 @@ export function initNavigation() {
         });
     });
 
-    // Tab switching from home page quick actions
-    document.addEventListener('click', (e) => {
-        const quickAction = e.target.closest('.quick-action-card');
-        if (quickAction) {
-            const targetTab = quickAction.getAttribute('data-target');
-            if (targetTab) {
-                const navItem = document.querySelector(`.nav-item[data-target="${targetTab}"]`);
-                if (navItem) {
-                    navItem.click();
-                } else if (targetTab === 'settings-tab') {
-                    const settingsBtn = document.querySelector('.settings-nav-btn');
-                    if (settingsBtn) settingsBtn.click();
-                }
-            }
-        }
-    });
-
     // System tray navigation listener
     if (window.electronAPI && window.electronAPI.onNavigateTab) {
         window.electronAPI.onNavigateTab((tabId) => {

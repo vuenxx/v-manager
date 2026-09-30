@@ -148,10 +148,14 @@ export async function initCompress() {
         const progressBar = document.getElementById('realtime-progress-bar');
         
         if (progressText && data.progress) {
-            // compact.exe output parser — detect [OK] or [SKIPPED] per file
-            if (data.progress.includes('[OK]') || data.progress.includes('[SKIPPED]')) {
-                compCount++;
-                
+            // compact.exe output parser — data.progress.okCount is the number of
+            // [OK]/[SKIPPED] result lines found in this stdout chunk (can be >1:
+            // compact.exe's output is pipe-buffered, so many lines can batch into
+            // a single chunk — counting only 1 per chunk previously undercounted).
+            const okCount = data.progress.okCount || 0;
+            if (okCount > 0) {
+                compCount += okCount;
+
                 // M-06: Guard against compTotal being 0
                 if (compTotal > 0) {
                     const percent = Math.min(99, Math.round((compCount / compTotal) * 100));
@@ -159,7 +163,7 @@ export async function initCompress() {
                     progressText.textContent = formatPercent(percent);
                     if (progressBar) progressBar.style.width = `${percent}%`;
                     // H-10: Use textContent to avoid XSS
-                    if (statusText) statusText.textContent = `${compCount} / ${compTotal} ${t('compress.filesProcessed')}`;
+                    if (statusText) statusText.textContent = `${Math.min(compCount, compTotal)} / ${compTotal} ${t('compress.filesProcessed')}`;
                 }
             } else if (
                 // H-06: Locale-independent completion detection: if compCount reaches compTotal
@@ -225,8 +229,9 @@ export async function initCompress() {
             // C-01: Locale-aware
             document.getElementById('realtime-progress-text').textContent = formatPercent(0);
 
+            let result = null;
             try {
-                const result = await window.electronAPI.runCompression({
+                result = await window.electronAPI.runCompression({
                     folderPath: folder.path,
                     algorithm: folder.method
                 });
@@ -246,8 +251,8 @@ export async function initCompress() {
                 toggleProcessing(false);
                 const progressContainerFinal = document.getElementById('realtime-progress-container');
                 if (progressContainerFinal) progressContainerFinal.style.display = 'none';
-                
-                await refreshFolderState(folder);
+
+                await refreshFolderState(folder, result?.stats || null);
             }
         });
     }
@@ -308,8 +313,9 @@ async function _runUncompressForFolder(folder) {
     if (progressText) progressText.style.display = 'none';
     if (statusText) statusText.textContent = t('compress.processing');
 
+    let result = null;
     try {
-        const result = await window.electronAPI.runUncompression({ folderPath: folder.path });
+        result = await window.electronAPI.runUncompression({ folderPath: folder.path });
         if (result.success) {
             if (statusText) statusText.textContent = t('compress.completed');
         }
@@ -325,8 +331,8 @@ async function _runUncompressForFolder(folder) {
         if (progressText) progressText.style.display = '';
         const progressContainerFinal = document.getElementById('realtime-progress-container');
         if (progressContainerFinal) progressContainerFinal.style.display = 'none';
-        
-        await refreshFolderState(folder);
+
+        await refreshFolderState(folder, result?.stats || null);
     }
 }
 
@@ -384,14 +390,19 @@ async function _removeHistoryMatchForPath(folderPath) {
     }
 }
 
-async function refreshFolderState(folder) {
-    folder.isAnalyzing = true;
-    folder.size = t('compress.analyzing');
-    renderFolderList();
-    updateDetailsView(folder);
+async function refreshFolderState(folder, precomputedStats = null) {
+    // precomputedStats: run-compression/run-uncompression zaten bir analiz sonucu
+    // döndürdüyse (main sürecinde), aynı ağır klasör taramasını burada tekrar
+    // yapmak yerine o sonucu doğrudan kullanırız.
+    if (!precomputedStats) {
+        folder.isAnalyzing = true;
+        folder.size = t('compress.analyzing');
+        renderFolderList();
+        updateDetailsView(folder);
+    }
 
     try {
-        const stats = await window.electronAPI.analyzeFolder(folder.path);
+        const stats = precomputedStats || await window.electronAPI.analyzeFolder(folder.path);
 
         folder.size = formatBytes(stats.uncompressedBytes);
         folder.rawUncompressedBytes = stats.uncompressedBytes;
@@ -400,6 +411,10 @@ async function refreshFolderState(folder) {
         folder.fileCount = stats.fileCount.toLocaleString();
         folder.isCompressed = stats.isCompressed;
         folder.compressionRatio = stats.ratio;
+        // BUG FIX: analyser's detected algorithm (e.g. "XPRESS4K"/"LZX") was being
+        // read by updateDetailsView() via folder.gameInfo.algorithm, but nothing
+        // ever set folder.gameInfo — the "detected method" badge was permanently dead.
+        folder.detectedAlgorithm = stats.algorithm || null;
         folder.isAnalyzing = false;
 
         if (selectedFolderIndex === addedFolders.indexOf(folder)) {
@@ -555,9 +570,9 @@ function updateDetailsView(folder) {
             // Update Statistics Bar — show method but NOT size savings (per user requirement)
             const methodContainer = document.getElementById('detected-method-container');
             const methodNameEl = document.getElementById('detected-method-name');
-            if (methodContainer && methodNameEl && folder.gameInfo && folder.gameInfo.algorithm) {
+            if (methodContainer && methodNameEl && folder.detectedAlgorithm && folder.detectedAlgorithm !== 'None') {
                 methodContainer.style.display = 'flex';
-                methodNameEl.textContent = folder.gameInfo.algorithm;
+                methodNameEl.textContent = folder.detectedAlgorithm;
             } else if (methodContainer) {
                 methodContainer.style.display = 'none';
             }

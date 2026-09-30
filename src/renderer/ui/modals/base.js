@@ -82,11 +82,9 @@ export function initBaseModals() {
     const manualAddModal = document.getElementById('manual-add-modal');
 
     const settingsModal = document.getElementById('settings-modal');
-    const vlss5Modal = document.getElementById('vlss5-modal');
 
     window.addEventListener('click', (e) => {
         if (e.target === modModal) closeModal('mod-modal');
-        if (e.target === vlss5Modal) closeModal('vlss5-modal');
         if (e.target === confirmModal) closeModal('confirm-modal');
         if (e.target === manageModal) closeModal('manage-modal');
         if (e.target === uninstallModal) closeModal('uninstall-modal');
