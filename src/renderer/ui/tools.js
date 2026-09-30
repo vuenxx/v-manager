@@ -355,7 +355,13 @@ function createToolCard(tool) {
     logHeader.querySelector('.log-toggle-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         logDrawer.classList.remove('expanded');
-        delete toolsState.activeOperations[tool.id];
+        // İşlem hâlâ çalışıyorsa busy-state'i silme — aksi halde sekme değişip
+        // geri dönüldüğünde (veya yenilendiğinde) buton yeniden aktif hale gelir
+        // ve kullanıcı aynı paket için, öncekisi arka planda hâlâ sürerken,
+        // ikinci bir winget işlemi başlatabilir.
+        if (toolsState.activeOperations[tool.id]?.status !== 'running') {
+            delete toolsState.activeOperations[tool.id];
+        }
     });
 
     const logConsole = document.createElement('div');

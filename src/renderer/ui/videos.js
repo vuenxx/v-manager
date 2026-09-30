@@ -1,5 +1,14 @@
 import { t } from '../i18n/i18n.js';
 
+/** Harici (RSS) metinleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 export function initVideos() {
     // Listen for tab activation to load the videos automatically
     document.addEventListener('tab-activated', (e) => {
@@ -84,10 +93,10 @@ async function loadVideos() {
 
             card.innerHTML = `
                 <div class="video-thumbnail-wrapper">
-                    <img class="video-thumbnail" src="${maxresUrl}" alt="${title}" onerror="this.onerror=null; this.src='${hqUrl}';">
+                    <img class="video-thumbnail" src="${maxresUrl}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='${hqUrl}';">
                 </div>
                 <div class="video-info">
-                    <h3 class="video-title">${title}</h3>
+                    <h3 class="video-title">${escapeHtml(title)}</h3>
                 </div>
             `;
 
@@ -96,8 +105,6 @@ async function loadVideos() {
                 console.log('[Videos Debug] Video card clicked, opening external link:', link);
                 if (window.electronAPI && window.electronAPI.openExternalLink) {
                     window.electronAPI.openExternalLink(link);
-                } else if (window.electronAPI && window.electronAPI.openExternal) {
-                    window.electronAPI.openExternal(link);
                 }
             });
 

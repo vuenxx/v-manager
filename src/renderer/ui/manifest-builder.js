@@ -6,6 +6,15 @@
 
 import { showInfoModal } from './modals/info.js';
 
+/** Manifest içeriğinden gelen (community/hand-edited) metinleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 let isEditorActive = false;
 let validationDebounceTimer = null;
 let currentEditingManifest = null;
@@ -296,9 +305,20 @@ export function initManifestBuilder() {
     const setRawTextarea = document.getElementById('mb-cfg-set');
     if (setRawTextarea) {
         setRawTextarea.addEventListener('input', () => {
-            const parsed = parseConfigSetInput(setRawTextarea.value);
-            if (parsed) {
-                currentSetObj = parsed;
+            const raw = setRawTextarea.value;
+            if (!raw.trim()) {
+                // Kullanıcı alanı tamamen boşalttı — parseConfigSetInput boş girdide
+                // `undefined` döner ve aşağıdaki `if (parsed)` bunu atlardı, yani
+                // currentSetObj eski (bayat) değerlerde kalıp kaydedilirdi. Raw Schema
+                // alanındaki davranışla tutarlı olarak burada açıkça temizliyoruz.
+                currentSetObj = {};
+            } else {
+                const parsed = parseConfigSetInput(raw);
+                if (parsed) {
+                    currentSetObj = parsed;
+                }
+                // parsed undefined ise (ör. kullanıcı hâlâ geçersiz bir JSON yazıyor)
+                // önceki iyi durumu koru — yazma bitene kadar veri kaybı olmasın.
             }
             triggerLiveUpdate();
         });
@@ -842,14 +862,14 @@ function renderFilteredCards() {
                 <span class="manifest-version-badge">v${mod.version || mod.manifest?.version || '1.0.0'}</span>
             </div>
             <div class="manifest-card-header">
-                <h4 class="manifest-card-title">${mod.name || mod.id}</h4>
-                <span class="manifest-card-id">#${mod.id}</span>
+                <h4 class="manifest-card-title">${escapeHtml(mod.name || mod.id)}</h4>
+                <span class="manifest-card-id">#${escapeHtml(mod.id)}</span>
             </div>
-            <p class="manifest-card-desc">${mod.description || mod.manifest?.description || 'Açıklama belirtilmemiş.'}</p>
+            <p class="manifest-card-desc">${escapeHtml(mod.description || mod.manifest?.description || 'Açıklama belirtilmemiş.')}</p>
             <div class="manifest-card-meta-chips">
-                <span class="manifest-meta-chip" title="GitHub Deposu">📦 ${mod.source?.repo || mod.manifest?.source?.repo || 'Repo Yok'}</span>
-                <span class="manifest-meta-chip" title="Kurulum Hedefi">🎯 ${dest}</span>
-                ${configFile ? `<span class="manifest-meta-chip" title="Yapılandırma Dosyası">⚙️ ${configFile}</span>` : ''}
+                <span class="manifest-meta-chip" title="GitHub Deposu">📦 ${escapeHtml(mod.source?.repo || mod.manifest?.source?.repo || 'Repo Yok')}</span>
+                <span class="manifest-meta-chip" title="Kurulum Hedefi">🎯 ${escapeHtml(dest)}</span>
+                ${configFile ? `<span class="manifest-meta-chip" title="Yapılandırma Dosyası">⚙️ ${escapeHtml(configFile)}</span>` : ''}
                 ${mod.manifest?.wizard ? `<span class="manifest-meta-chip" title="Kurulum Sihirbazı Tanımlı" style="color: var(--accent-color); border-color: rgba(59, 130, 246, 0.35);">🧙‍♂️ Sihirbaz</span>` : ''}
             </div>
             <div class="manifest-card-actions">
@@ -2510,9 +2530,13 @@ function buildManifestFromForm() {
     const unFilesRaw = getVal('mb-un-files');
     const unVerifiedRaw = getVal('mb-un-verified');
     if (unFilesRaw || unVerifiedRaw) {
-        manifest.uninstall = {
-            restoreBackup: false
-        };
+        // Üstteki "Backup & Uninstall Strategy" bloğu (in_place_suffix seçiliyse)
+        // manifest.uninstall'ı zaten ayarlamış olabilir — burada TAM ÜZERİNE
+        // YAZMAK yerine MERGE ediyoruz, aksi halde restoreBackup:true, strategy,
+        // suffix, gameUpdatedCheck, cleanModOnlyFiles alanları sessizce kaybolur.
+        if (!manifest.uninstall) {
+            manifest.uninstall = { restoreBackup: false };
+        }
 
         if (unFilesRaw) {
             manifest.uninstall.files = unFilesRaw.split(',').map(s => s.trim()).filter(Boolean);
@@ -2533,10 +2557,22 @@ function buildManifestFromForm() {
     // (ör. resmi bir manifesti fork ederken) editörün modellemediği bloklar
     // kaynaktan aynen taşınır. `detect` (tarayıcı mod tespiti) bunların başında gelir.
     if (currentEditingManifest && typeof currentEditingManifest === 'object') {
-        const carryOverKeys = ['detect', 'aliases', 'conditions', 'permissions', 'metadata', 'state'];
+        const carryOverKeys = ['detect', 'aliases', 'conditions', 'permissions', 'metadata', 'state', 'requires'];
         for (const key of carryOverKeys) {
             if (manifest[key] === undefined && currentEditingManifest[key] !== undefined) {
                 manifest[key] = currentEditingManifest[key];
+            }
+        }
+
+        // `manifest.uninstall` formun modellemediği alt-alanlar taşıyabilir
+        // (ör. `userRemovable: false` — kullanıcının elle kaldırmasını engelleyen
+        // bir bayrak). Yukarıdaki üst-seviye carry-over bunu kapsamaz çünkü
+        // `uninstall` objesi bu fonksiyon tarafından zaten set edilmiş olabilir.
+        if (currentEditingManifest.uninstall && manifest.uninstall) {
+            for (const k of Object.keys(currentEditingManifest.uninstall)) {
+                if (manifest.uninstall[k] === undefined) {
+                    manifest.uninstall[k] = currentEditingManifest.uninstall[k];
+                }
             }
         }
     }

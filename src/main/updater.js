@@ -224,6 +224,39 @@ function startDownload() {
 /** İndirilen güncellemeyi uygular ve uygulamayı yeniden başlatır. */
 function quitAndInstall() {
     log.info('[UPDATER] quitAndInstall çağrıldı.');
+
+    // electron-updater'ın quitAndInstall()'ı app.quit()'tan ÖNCE, senkron olarak
+    // yükleyiciyi başlatır — window.js'in kapatma kilidi bunu hiç göremiyordu.
+    // Sıkıştırma/VLSS5/winget işlemlerinden biri sürüyorsa, yükleyiciyi
+    // başlatmadan önce burada da durduruyoruz; aksi halde uygulama dosyalarının
+    // üzerine yazılırken bu işlemler yarıda kesilip bozuk bir duruma yol açabilir.
+    try {
+        const ipc = require('./ipc');
+        if (ipc.isCompressionRunning && ipc.isCompressionRunning()) {
+            log.warn('[UPDATER] quitAndInstall engellendi — sıkıştırma sürüyor.');
+            sendToRenderer('update-error', 'Sıkıştırma işlemi sürerken güncelleme kurulamaz. Lütfen işlemin bitmesini bekleyin.');
+            return;
+        }
+    } catch (err) { /* ignore */ }
+
+    try {
+        const vlss5Manager = require('./modules/vlss5/vlss5Manager');
+        if (vlss5Manager.isBusy && vlss5Manager.isBusy()) {
+            log.warn('[UPDATER] quitAndInstall engellendi — VLSS5 işlemi sürüyor.');
+            sendToRenderer('update-error', 'VLSS5 işlemi sürerken güncelleme kurulamaz. Lütfen işlemin bitmesini bekleyin.');
+            return;
+        }
+    } catch (err) { /* ignore */ }
+
+    try {
+        const toolsManager = require('./modules/tools/toolsManager');
+        if (toolsManager.isBusy && toolsManager.isBusy()) {
+            log.warn('[UPDATER] quitAndInstall engellendi — araç kurulum/kaldırma işlemi sürüyor.');
+            sendToRenderer('update-error', 'Bir araç işlemi sürerken güncelleme kurulamaz. Lütfen işlemin bitmesini bekleyin.');
+            return;
+        }
+    } catch (err) { /* ignore */ }
+
     autoUpdater.quitAndInstall();
 }
 

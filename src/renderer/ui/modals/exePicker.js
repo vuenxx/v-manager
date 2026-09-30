@@ -1,6 +1,15 @@
 import { t } from '../../i18n/i18n.js';
 import { openModal, closeModal, showNotification } from './base.js';
 
+/** Dosya sisteminden gelen isimleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 let activeScanId = null;
 
 export function selectExeWithPicker(gameName, gameRoot) {
@@ -109,7 +118,7 @@ export function selectExeWithPicker(gameName, gameRoot) {
                     
                     item.innerHTML = `
                         <span style="font-size: 16px;">🎮</span>
-                        <span class="exe-name" style="font-size: 13px; font-weight: 500; word-break: break-all; color: var(--text-primary);">${basename}</span>
+                        <span class="exe-name" style="font-size: 13px; font-weight: 500; word-break: break-all; color: var(--text-primary);">${escapeHtml(basename)}</span>
                     `;
 
                     item.addEventListener('click', () => {

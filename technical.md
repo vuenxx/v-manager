@@ -111,7 +111,7 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 | Dosya | Satır | Sorumluluk | Önemli semboller |
 |---|---|---|---|
 | `index.js` | 133 | Single-instance lock → lisans kontrolü → `createActivationWindow()` veya `bootApp()` | `bootApp()`, `createActivationWindow()` |
-| `config.js` | 708 | **Tüm kalıcı state + yol çözümleme.** En sık dokunulan dosya | `getGamePaths()`, `resolveActualGameRoot()`, `normalizeGameKey()`, `deduplicateState()`, `atomicWriteFile()` |
+| `config.js` | 708 | **Tüm kalıcı state + yol çözümleme.** En sık dokunulan dosya | `getGamePaths()`, `resolveActualGameRoot()`, `isSameGame()`, `normalizeGameKey()`, `deduplicateState()`, `atomicWriteFile()` |
 | `ipc.js` | 1268 | ~95 IPC handler kaydı; iş mantığını `mods/*` ve `modules/*`'a devreder | `registerIpcHandlers()`, `isCompressionRunning()` |
 | `scanner.js` | 1109 | Oyun keşfi (Steam/Epic/Xbox/Registry/Manuel) + mod tespiti | `runScan()`, `detectUpscalers()`, `processAndStreamGame()`, `isIgnoredGame()` |
 | `utils.js` | 418 | Dosya hash/versiyon/açıklama, sürücü listesi, DX12 kontrolü, exe tarama | `getFileVersion()`, `getFileDescription()`, `checkDx12Support()`, `getSystemDrives()`, `isGameRunning()` |
@@ -121,22 +121,12 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 | `updater.js` | 146 | `electron-updater` sarmalayıcı; renderer'a event yayını | `initAutoUpdater()`, `checkForUpdates()`, `startDownload()`, `quitAndInstall()` |
 | `discord.js` | 170 | Discord Rich Presence + exponential backoff reconnect (`CLIENT_ID` sabit) | `initDiscordRpc()`, `setPresence()` |
 
-### 4.2 `src/main/mods/` — ESKİ nesil (hardcoded) mod kurucular
+### 4.2 `src/main/mods/` — mod kurulumuyla ilgisiz yardımcı modüller
 
-> Her modun kendi dosyası var; `ipc.js` doğrudan çağırıyor. **Manifest sistemi (§5) bunların yerini almak için yazıldı ama ikisi hâlâ paralel çalışıyor.**
+> Eski (hardcoded) mod kurucular ve mod-özel IPC kanalları kaldırıldı — tüm mod kurulumu artık yalnızca §5'teki manifest tabanlı motor üzerinden yürüyor. Bu klasörde geriye yalnızca mod kurulumuyla doğrudan ilgisi olmayan (veya hem eski hem yeni sistemin ortak kullandığı) genel yardımcılar kaldı.
 
 | Dosya | Satır | Ne yapar |
 |---|---|---|
-| `dlssEnabler.js` | 762 | DLSS Enabler kurulumu, proxy DLL seçimi, zip'ten kurulum, GitHub release listesi |
-| `dlssWizard.js` | 593 | DLSS Enabler **otomatik DLL testi sihirbazı** (oyunu başlatır, `dlss-enabler.ini` oluşumunu izler, DLL'leri sırayla dener) |
-| `optiScaler.js` | 515 | OptiScaler kurulumu (+ isteğe bağlı OptiPatcher & FSR4 birlikte kurulum) |
-| `optiWizard.js` | 536 | OptiScaler sihirbazı |
-| `optiBuilder.js` | 413 | OptiBuilder kurulumu (OptiScaler ≥ 0.10 varyantı) |
-| `optiBuilderWizard.js` | 440 | OptiBuilder sihirbazı |
-| `optiPatcher.js` | 159 | OptiPatcher `.asi` eklentisi indirme |
-| `fsr4Files.js` | 225 | FSR4/FSR3.1 DLL paketleri (`.7z`) |
-| `streamline.js` | 969 | NVIDIA Streamline `sl.*.dll` dosyaları; `.backup` suffix stratejisi, hash kaydı, dinamik dizin arama |
-| `uninstaller.js` | 285 | Eski nesil mod kaldırma |
 | `launcher.js` | 245 | Oyun başlatma: Steam (`steam://`), Epic (`com.epicgames.launcher://`), Xbox (`shell:AppsFolder`), doğrudan exe |
 | `iniEditor.js` | 393 | INI okuma/yazma + `findIniPath()` recursive arama |
 | `releaseCache.js` | ~120 | GitHub release JSON önbelleği — **TTL 1 saat**, `userData/releases-cache/<modId>.json`. Kayıtta `repo` da tutulur: manifest kaynağı değişirse önbellek TTL dolmadan geçersiz olur |
@@ -151,7 +141,7 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 |---|---|---|
 | `core/moduleManager.js` | 678 | Manifest keşfi/yükleme, doğrulama, **17 adet `module-*` IPC handler'ı**, custom manifest kaydet/sil |
 | `core/moduleEngine.js` | 1171 | **18 adımlı kurulum pipeline'ı** + `uninstall`, `getReleases`, `downloadRelease`, `resolveDestinationDir`, `findDynamicSearchDir` |
-| `core/moduleWizardEngine.js` | ~680 | Manifest'ten sürülen evrensel otomatik-test sihirbazı (eski `dlssWizard.js`'in genel hâli). İndirme `moduleEngine.downloadRelease`, kopyalama `copyModFiles`, çakışma kontrolü `manifest.conditions` üzerinden — modülden bağımsız |
+| `core/moduleWizardEngine.js` | ~700 | Manifest'ten sürülen evrensel otomatik-test sihirbazı. İndirme `moduleEngine.downloadRelease`, kopyalama `copyModFiles`, çakışma kontrolü `manifest.conditions` üzerinden — modülden bağımsız. Ayrıca `config.isSameGame()` ile oyunu games.json'da bulur ve sihirbaz log klasörlerini (`userData/logs/*-wizard`) yönetir (`getWizardLogsInfo`/`clearWizardLogs`/`openWizardLogsDir`) |
 | `core/manifestValidator.js` | 387 | Manifest şema doğrulaması (hata + uyarı listesi) |
 | `core/backup.js` | 204 | `userData/module-backups/<oyun>/<modId>/<timestamp>/` + `backup-meta.json`, SHA-256 hash, 3 yedek sakla |
 | `core/githubFetcher.js` | 140 | GitHub releases çekme, asset glob eşleme, indirme + progress |
@@ -358,19 +348,11 @@ permissions[], metadata:{ homepage, tags[], notes }
 ### 6.4 Çift katmanlı yol sistemi
 `get-user-games` · `save-user-game` · `delete-user-game` · `get-developer-games` · `get-dlss-enabler-games` · `resolve-game-paths`
 
-### 6.5 Eski nesil mod kanalları
+### 6.5 Mod kurulumuyla ilgili genel kanallar
 
-| Mod | Kanallar |
-|---|---|
-| DLSS Enabler | `get-dlss-versions`, `execute-dlss-install`, `auto-install-dlss`, `dlss-parse-zip`, `dlss-install-from-zip`, `get-dlss-enabler-releases`, `download-dlss-enabler-release` |
-| OptiScaler | `get-optiscaler-releases`, `download-optiscaler-release`, `install-optiscaler` |
-| OptiBuilder | `get-optibuilder-releases`, `download-optibuilder-release`, `install-optibuilder`, `run-optibuilder-wizard`, `abort-optibuilder-wizard` |
-| OptiPatcher | `get-optipatcher-releases`, `download-optipatcher-release` |
-| FSR4 | `get-fsr4-releases`, `download-fsr4-release` |
-| Streamline | `get-streamline-versions`, `check-streamline-backup`, `install-streamline`, `restore-streamline`, `get-streamline-releases`, `download-streamline-release` |
-| Ortak | `uninstall-mod`, `select-exe`, `scan-folder-for-exes`, `delete-mod-version`, `open-mod-folder`, `read-mod-ini`, `write-mod-ini`, `mod-presets:read`, `mod-presets:write` |
+Mod-özel (dlssenabler/optiscaler/optibuilder/... için ayrı ayrı tanımlı) eski IPC kanalları kaldırıldı — sürüm listeleme/indirme/kurulum artık yalnızca §6.6'daki `module-*` kanalları üzerinden yürüyor. Geriye kalan, tüm modüller için ortak kullanılan genel kanallar:
 
-**Sihirbaz kanalları:** `run-dlss-wizard` / `abort-dlss-wizard` · `run-opti-wizard` / `abort-opti-wizard` · `check-dx12-support` · `clear-wizard-logs` · `get-wizard-logs-info` · `open-wizard-logs-dir`
+`select-exe`, `scan-folder-for-exes`, `delete-mod-version`, `open-mod-folder`, `read-mod-ini`, `write-mod-ini`, `mod-presets:read`, `mod-presets:write`, `check-dx12-support`, `clear-wizard-logs`, `get-wizard-logs-info`, `open-wizard-logs-dir` (son üçü `moduleWizardEngine`'e bağlanır, sihirbaz motorundan bağımsız — hangi modülün sihirbazı çalışmış olursa olsun aynı log klasörlerini yönetir).
 
 ### 6.6 Manifest modül sistemi (`moduleManager.registerIpcHandlers`)
 `module-list` · `module-get-info` · `module-get-active-for-game` · `module-install` · `module-uninstall` · `module-get-releases` · `module-download-release` · `module-check-conditions` · `module-list-backups` · `module-read-config` · `module-apply-config-changes` · `module-validate-manifest` · `module-save-manifest` · `module-delete-custom-manifest` · `module-wizard-run` · `module-wizard-abort` · `module-reload` · `module-detect-api` · `module-check-requirements` · `module-check-conflicts`
@@ -438,20 +420,11 @@ Event'ler (main → renderer):
 | Dosya | Satır | Modal |
 |---|---|---|
 | `settings.js` | 1446 | **Oyun başına mod ayarları** (INI şema formu, presetler) — `settings-modal` |
-| `opti.js` | 680 | `optiscaler-modal` — OptiScaler kurulum (+OptiPatcher/FSR4) |
 | `iniSchema.js` | 460 | ⚠️ Eski hardcoded INI şemaları (`DLSS_ENABLER_SCHEMA`, `OPTISCALER_*_KEYS`). Manifest'lere migrate edildi, geriye dönük kalıntı |
 | `moduleInstall.js` | ~420 | `module-install-modal` — **manifest tabanlı genel kurulum modali**. Ortak yardımcılar: `resolveExeForGame()`, `getSelectedRelease()`, `getSelectedPreset()` |
-| `streamline.js` | 380 | `streamline-modal` |
-| `dlss.js` | 362 | `dlss-modal` |
-| `optiBuilder.js` | 331 | `optibuilder-modal` |
-| `dlssWizard.js` | ~285 | `dlss-wizard-modal` — canlı log terminali. **Tüm modüllerin sihirbazı buradan çalışır**; `moduleCtx` verilirse manifest motoru, verilmezse eski DLSS akışı |
+| `dlssWizard.js` | ~250 | `dlss-wizard-modal` — canlı log terminali. **Tüm modüllerin sihirbazı buradan çalışır** (`moduleRunWizard`/`moduleAbortWizard`); `moduleInstall.js` manifest.wizard tanımlıysa açar |
 | `exePicker.js` | 197 | `exe-picker-modal` — exe seçme |
-| `optiWizard.js` | 183 | `opti-wizard-modal` |
 | `base.js` | 180 | `openModal` / `closeModal` / `showNotification` + kapanma guard'ları |
-| `dlssVersions.js` | 173 | `dlss-versions-modal` / `dlss-upload-modal` |
-| `optiBuilderWizard.js` | 173 | `ob-wizard-modal` |
-| `fsr4.js` | 162 | `fsr4-versions-modal` |
-| `optiPatcher.js` | 158 | `optipatcher-versions-modal` |
 | `info.js` | 155 | `info-modal`, `general-confirm-modal`, launcher uyarısı |
 | `modSelection.js` | 150 | `mod-modal` — oyun için mod seçim ızgarası (`moduleList`'ten dinamik) |
 | `cacheHelpers.js` | 96 | Release cache yaşı rozeti + `release-cache-warning-modal` |
@@ -473,7 +446,7 @@ Event'ler (main → renderer):
 ### 7.5 i18n
 
 - `src/renderer/i18n/i18n.js` — `t('nav.home')` nokta notasyonu, TR fallback, `localStorage['vmanager-lang']`, ilk açılışta sistem diline göre otomatik
-- `tr.js` / `en.js` — **867'şer satır, 30 üst düzey grup**: `nav, header, lang, home, games, mods, updates, compress, settings, videos, scan, modModal, manualAdd, confirmModal, dlss, opti, streamline, update, modSettings, info, freeGames, tools, bugReport, releaseCache, systemInfo, wizard, optiBuilder, exePicker, modsTab, manifestBuilder`
+- `tr.js` / `en.js` — üst düzey gruplar: `nav, header, lang, home, games, mods, updates, compress, settings, videos, scan, modModal, manualAdd, confirmModal, dlss, opti, update, modSettings, info, freeGames, tools, bugReport, releaseCache, systemInfo, wizard, exePicker, modsTab, manifestBuilder`. `dlss`/`opti` grupları eski (kaldırılmış) kurulum modallerinden kalma — yalnızca genel `errorTitle`/`successTitle`/`yesBtn`/`noBtn`/`unexpectedError`/`standaloneLoadError` anahtarları kaldı, hâlâ genel amaçlı hata/başarı diyaloglarında kullanılıyor. `streamline`/`optiBuilder` grupları tamamen kaldırıldı (kullanılmıyordu)
 - HTML'de: `data-i18n="key"`, `data-i18n-title="key"` → `applyTranslations()`
 - ⚠️ **Yeni metin eklerken İKİ dosyaya da eklenecek**
 
@@ -695,8 +668,7 @@ Sıkıştırma sürerken pencere kapatılamaz (`window.js` → `ipc.isCompressio
 | İş | Dokunulacak dosyalar |
 |---|---|
 | **Yeni IPC kanalı** | `src/main/ipc.js` (handler) → `preload.js` (expose) → ilgili renderer dosyası |
-| **Yeni mod ekle (önerilen yol)** | Sadece `src/main/modules/official/<id>/manifest.json` — `ipc.js`'e de `scanner.js`'e de dokunmaya gerek yok (tespit için manifest'e `detect` + `state` yaz) |
-| **Yeni mod ekle (eski yol)** | `src/main/mods/<mod>.js` + `ipc.js` + `preload.js` + `src/renderer/ui/modals/<mod>.js` + `index.html` modal + `styles.css` + i18n×2 |
+| **Yeni mod ekle** | Sadece `src/main/modules/official/<id>/manifest.json` — `ipc.js`'e de `scanner.js`'e de dokunmaya gerek yok (tespit için manifest'e `detect` + `state` yaz). Eski (hardcoded, `src/main/mods/<mod>.js` + özel modal) yol kaldırıldı |
 | **Yeni UI sekmesi** | `index.html` (`nav-item` + `tab-content`) → `src/renderer/ui/<yeni>.js` → `src/renderer/index.js` (`init` çağrısı) → `styles.css` → `tr.js`+`en.js` |
 | **Yeni modal** | `index.html` modal bloğu → `src/renderer/ui/modals/<yeni>.js` → `base.js`'in `openModal()`'ı → `index.js` init |
 | **Yeni metin/çeviri** | `src/renderer/i18n/tr.js` **ve** `en.js` (aynı anahtar) |
@@ -713,7 +685,7 @@ Sıkıştırma sürerken pencere kapatılamaz (`window.js` → `ipc.isCompressio
 
 ## 12. Dikkat Edilecek Tuzaklar
 
-1. **İki paralel mod sistemi var** — `src/main/mods/*` (eski, hardcoded) ve `src/main/modules/*` (yeni, manifest). Yeni iş manifest tarafında yapılmalı; eski taraf hâlâ canlı IPC'lerle kullanılıyor, silinmedi.
+1. **Tek mod sistemi var** — eski (hardcoded, `src/main/mods/<mod>.js`) kurucular ve mod-özel IPC kanalları kaldırıldı. Tüm mod kurulumu artık `src/main/modules/*` (manifest tabanlı) üzerinden yürüyor; yeni iş her zaman manifest tarafında yapılmalı.
 2. **`iniSchema.js` kalıntı** — şemalar manifest'lere migrate edildi ama dosya duruyor; tek doğruluk kaynağı artık manifest.
 3. **`preload.js` unutulmaz** — main'de handler yazıp preload'a eklemezsen renderer göremez.
 4. **i18n çift dosya** — sadece `tr.js`'e eklersen EN'de metin eksik kalır (fallback TR'ye döner).

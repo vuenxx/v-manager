@@ -270,7 +270,6 @@ function runWingetOperation(operation, toolId, event) {
             });
 
             activeProcess.on('close', async (code) => {
-                activeProcess = null;
                 const isSuccess = (code === 0);
                 if (isSuccess) {
                     sendLog(`\n[V-Manager] İşlem başarıyla tamamlandı! (Çıkış Kodu: 0)\n`, 'success');
@@ -278,8 +277,12 @@ function runWingetOperation(operation, toolId, event) {
                     sendLog(`\n[V-Manager] İşlem tamamlandı (Çıkış Kodu: ${code})\n`, 'warning');
                 }
 
-                // Check updated status
+                // Kilidi, durum kontrolü (bu da kendi winget sürecini başlatıyor)
+                // tamamlanana kadar tutmalıyız — aksi halde kilit erken açılıp yeni
+                // bir işlem, hâlâ süren bu "winget list" ile aynı anda başlayabilir;
+                // winget'in kendi tekil-örnek kilidi ikisinden birini reddedebilir.
                 const updatedStatus = await checkSingleToolStatus(tool);
+                activeProcess = null;
                 resolve({
                     success: isSuccess || updatedStatus.isInstalled,
                     code,
@@ -332,9 +335,20 @@ async function launchTool(toolId) {
     }
 }
 
+/**
+ * Şu an aktif bir winget işlemi (kurulum/kaldırma/güncelleme) var mı?
+ * window.js'in pencere kapatma kilidi ve updater.js'in quitAndInstall'ı bunu
+ * kullanır — aksi halde uygulama, arka planda bir winget süreci hâlâ
+ * çalışırken kapanıp o süreci yarıda kesebiliyordu.
+ */
+function isBusy() {
+    return activeProcess !== null;
+}
+
 module.exports = {
     TOOLS_CATALOG,
     getToolsStatus,
     runWingetOperation,
-    launchTool
+    launchTool,
+    isBusy
 };

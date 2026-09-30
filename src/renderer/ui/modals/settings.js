@@ -75,6 +75,12 @@ let currentSettingsData = {};
 let currentActiveMod = null;
 let currentActiveModsList = [];
 let currentActiveModInfo = null;
+// loadModSettings farklı oyunlar için hızlıca peş peşe çağrılabiliyor (Settings'i
+// kapat, başka bir oyun için tekrar aç). Fonksiyonun kendi await'lerinden sonraki
+// kısmı bu sayaç olmadan hangi çağrının "hâlâ güncel" olduğunu bilmiyordu — eski
+// bir çağrının geç gelen yanıtı, yeni oyunun doğru render edilmiş ekranını
+// üzerine yazabiliyordu (versionSelect._vmGen'deki desenle aynı fikir).
+let _loadModSettingsGen = 0;
 let userPresets = [];           // Kullanıcının kaydettiği presetler
 let activePresetId = null;      // Şu an seçili preset ID'si (null = hiçbiri)
 let isDirty = false;            // Kaydedilmemiş değişiklik var mı?
@@ -324,6 +330,8 @@ function updateTabActiveState(activeModId) {
 
 // ─── Mod ayarlarını yükle (Generic + Fallback) ───────────────────────────────
 async function loadModSettings(modId) {
+    const myGen = ++_loadModSettingsGen;
+    const isStillCurrent = () => myGen === _loadModSettingsGen;
     const game = state.currentSelectedGame;
     currentActiveMod = modId;
     activePresetId = null;
@@ -455,6 +463,12 @@ async function loadModSettings(modId) {
             versionSelect.innerHTML = `<option value="" disabled selected>${t('update.loadingVersions') || 'Sürümler yükleniyor...'}</option>`;
             changeVersionBtn.disabled = true;
 
+            // E16: Kullanıcı sürümler yüklenirken başka bir mod sekmesine
+            // geçerse, bu isteğin geç gelen yanıtı yeni sekmenin dropdown'ını
+            // ezmesin diye bir üretim (generation) tokeni tutuyoruz.
+            versionSelect._vmGen = (versionSelect._vmGen || 0) + 1;
+            const myGen = versionSelect._vmGen;
+
             // Arka planda sürümleri çek
             (async () => {
                 try {
@@ -465,6 +479,8 @@ async function loadModSettings(modId) {
                             releases = relRes.releases;
                         }
                     }
+
+                    if (versionSelect._vmGen !== myGen) return; // Sekme değişti, bu yanıt artık geçersiz.
 
                     if (releases && releases.length > 0) {
                         versionSelect.innerHTML = '';
@@ -484,6 +500,7 @@ async function loadModSettings(modId) {
                     }
                 } catch (e) {
                     console.warn('[RENDERER settings.js] Sürümler yüklenemedi:', e);
+                    if (versionSelect._vmGen !== myGen) return;
                     versionSelect.innerHTML = `<option value="" disabled>${t('update.loadError') || 'Hata oluştu'}</option>`;
                     changeVersionBtn.disabled = true;
                 }
@@ -601,8 +618,10 @@ async function loadModSettings(modId) {
     // 6. Kullanıcı presetlerini yükle
     try {
         const presetsResult = await window.electronAPI.readModPresets(manifestId);
+        if (!isStillCurrent()) return; // Kullanıcı bu arada başka bir mod/oyun için Settings'i tekrar açtı.
         userPresets = (presetsResult && presetsResult.success) ? (presetsResult.presets || []) : [];
     } catch (_) {
+        if (!isStillCurrent()) return;
         userPresets = [];
     }
 
@@ -611,11 +630,13 @@ async function loadModSettings(modId) {
     try {
         if (window.electronAPI && window.electronAPI.moduleGetInfo) {
             const infoRes = await window.electronAPI.moduleGetInfo(manifestId);
+            if (!isStillCurrent()) return;
             if (infoRes && infoRes.success && infoRes.module?.manifest) {
                 manifest = infoRes.module.manifest;
             }
         }
     } catch (_) {
+        if (!isStillCurrent()) return;
         manifest = null;
     }
 
@@ -628,6 +649,7 @@ async function loadModSettings(modId) {
                 gameName: game.name,
                 exePath: game.exePath
             });
+            if (!isStillCurrent()) return; // Bu arada başka bir mod/oyun için tekrar açıldı — bu yanıt artık geçersiz.
 
             if (!readRes || !readRes.exists) {
                 console.log('[RENDERER settings.js] INI file does not exist (moduleReadConfig)');
@@ -650,6 +672,7 @@ async function loadModSettings(modId) {
             }, presetsSource);
             return;
         } catch (err) {
+            if (!isStillCurrent()) return; // Bu arada başka bir mod/oyun için tekrar açıldı.
             console.error('[RENDERER settings.js] Error reading generic config:', err);
             showError(t('modSettings.iniError') + err.message);
             contentDiv.innerHTML = `

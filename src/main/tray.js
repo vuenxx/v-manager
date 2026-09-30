@@ -5,6 +5,18 @@ const config = require('./config');
 let tray = null;
 let currentMainWindow = null;
 
+// Tray menüsü daha önce hiç yerelleştirilmemişti — uygulama ayarlarda İngilizce'ye
+// çevrilse bile tepsi menüsü kalıcı olarak Türkçe kalıyordu (discord.js'deki
+// TRANSLATIONS deseniyle aynı fikir).
+const TRANSLATIONS = {
+    tr: { games: 'Oyunlar', mods: 'Modlar', settings: 'Ayarlar', exit: 'Çıkış' },
+    en: { games: 'Games', mods: 'Mods', settings: 'Settings', exit: 'Exit' }
+};
+function getTrayStrings() {
+    const lang = (config.getSettings().language === 'en') ? 'en' : 'tr';
+    return TRANSLATIONS[lang];
+}
+
 function createTray(mainWindow) {
     currentMainWindow = mainWindow;
     if (tray) {
@@ -63,28 +75,29 @@ function updateTrayMenu() {
         template.push({ type: 'separator' });
     }
 
+    const strings = getTrayStrings();
     template.push(
         {
-            label: 'Oyunlar',
+            label: strings.games,
             click: () => {
                 showWindowAndNavigate(currentMainWindow, 'games');
             }
         },
         {
-            label: 'Modlar',
+            label: strings.mods,
             click: () => {
                 showWindowAndNavigate(currentMainWindow, 'modes');
             }
         },
         {
-            label: 'Ayarlar',
+            label: strings.settings,
             click: () => {
                 showWindowAndNavigate(currentMainWindow, 'settings-tab');
             }
         },
         { type: 'separator' },
         {
-            label: 'Çıkış',
+            label: strings.exit,
             click: () => {
                 app.isQuitting = true;
                 app.quit();

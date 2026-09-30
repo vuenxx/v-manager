@@ -1061,6 +1061,22 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                     const fileDir = path.dirname(destPath);
                     if (!fs.existsSync(fileDir)) fs.mkdirSync(fileDir, { recursive: true });
 
+                    // Hedefte önceden bir dosya varsa (başka bir mod veya kullanıcının
+                    // kendi dosyası olabilir) üzerine yazmadan önce yedekle — apiTarget
+                    // dalındaki (.bak yeniden adlandırma) ile aynı mekanizma; rollback'teki
+                    // renamedBaks geri yükleme adımı bunu otomatik olarak kapsar.
+                    if (fs.existsSync(destPath)) {
+                        const bakPath = destPath + '.bak';
+                        if (!fs.existsSync(bakPath)) {
+                            try {
+                                fs.renameSync(destPath, bakPath);
+                                rollbackState.renamedBaks.push({ original: destPath, backup: bakPath });
+                            } catch (bkErr) {
+                                logger.warn({ tr: `Mevcut dosya yedeklenemedi (${bkErr.message}), üzerine yazılıyor: ${entry.name}`, en: `Existing file could not be backed up (${bkErr.message}); overwriting: ${entry.name}` });
+                            }
+                        }
+                    }
+
                     fs.copyFileSync(srcPath, destPath);
                     rollbackState.installedPaths.push(destPath);
                     installedFileCount++;
@@ -1234,8 +1250,20 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                                 continue;
                             }
                             const dst = path.join(targetSub, item);
+                            const dstPreExisted = fs.existsSync(dst);
                             fs.cpSync(src, dst, { recursive: true, force: true });
-                            rollbackState.installedPaths.push(dst);
+                            if (!dstPreExisted) {
+                                // Bu yol tamamen bu kurulumla oluşturuldu — başarısızlıkta
+                                // güvenle tamamen silinebilir.
+                                rollbackState.installedPaths.push(dst);
+                            } else {
+                                // Zaten var olan bir klasör/dosyanın içine birleştirildi
+                                // (ör. kullanıcının kendi shader'ları) — rollback'te bunu
+                                // otomatik silmek, içindeki önceden var olan içeriği de
+                                // yok eder. Veri kaybını önlemek için burayı rollback
+                                // listesine EKLEMİYORUZ.
+                                logger.warn({ tr: `"${item}" zaten mevcuttu, üzerine birleştirildi — kurulum başarısız olursa otomatik geri alınmayacak (veri kaybını önlemek için)`, en: `"${item}" already existed and content was merged into it — it will NOT be auto-removed on failure (to avoid data loss)` });
+                            }
                             extraCopied++;
                         }
 
@@ -1517,7 +1545,14 @@ async function uninstall(manifest, gameName, exePath) {
             en: `Uninstall started: ${manifest.name || manifest.id} — game: ${gameName}`
         });
 
-        const destDir = resolveDestinationDir(manifest, gameName, exePath);
+        let destDir = resolveDestinationDir(manifest, gameName, exePath);
+        if (!destDir) {
+            // install()'daki gameRoot fallback'inin aynısı — aksi halde
+            // config.getGamePaths geçici olarak başarısız olduğunda (taşınmış/yeniden
+            // bağlanmış oyun, bayat user-games.json kaydı), başarıyla kurulmuş bir mod
+            // bu yüzden kaldırılamaz hale geliyordu.
+            destDir = config.resolveActualGameRoot(gameName, exePath);
+        }
         if (!destDir) {
             return { success: false, message: 'Hedef klasör bulunamadı.' };
         }

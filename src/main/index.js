@@ -88,10 +88,17 @@ function createActivationWindow() {
         if (result.success) {
             // Close activation window and boot the main app
             setTimeout(() => {
-                if (activationWin && !activationWin.isDestroyed()) {
-                    activationWin.close();
-                    activationWin = null;
+                // Kullanıcı, bu 800ms bekleme sırasında aktivasyon penceresini
+                // kendisi kapattıysa (activationWin zaten null/destroyed olur),
+                // window-all-closed handler'ı zaten app.quit() çağırmış olur.
+                // Bu durumda ana pencereyi açmaya çalışmak, uygulama kapanırken
+                // yeni bir pencere oluşturmaya (veya "kapandı ama geri geldi"
+                // gibi kafa karıştırıcı bir duruma) yol açardı.
+                if (!activationWin || activationWin.isDestroyed()) {
+                    return;
                 }
+                activationWin.close();
+                activationWin = null;
                 bootApp();
             }, 800); // Small delay so the user sees the success message
         }

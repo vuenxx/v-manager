@@ -285,26 +285,8 @@ export async function loadModReleases(forceRefresh = false, silent = false) {
 
     try {
         let result;
-        // Try unified manifest release fetcher first
         if (window.electronAPI && window.electronAPI.moduleGetReleases) {
             result = await window.electronAPI.moduleGetReleases({ moduleId: currentMod, forceRefresh });
-        }
-
-        // Fallback to legacy APIs if manifest release fetcher fails or is not available
-        if (!result || result.error || !result.success) {
-            if (currentMod === 'dlssenabler' && window.electronAPI.getDlssEnablerReleases) {
-                result = await window.electronAPI.getDlssEnablerReleases(forceRefresh);
-            } else if (currentMod === 'optiscaler' && window.electronAPI.getOptiScalerReleases) {
-                result = await window.electronAPI.getOptiScalerReleases(forceRefresh);
-            } else if (currentMod === 'optibuilder' && window.electronAPI.getOptiBuilderReleases) {
-                result = await window.electronAPI.getOptiBuilderReleases(forceRefresh);
-            } else if (currentMod === 'optipatcher' && window.electronAPI.getOptiPatcherReleases) {
-                result = await window.electronAPI.getOptiPatcherReleases(forceRefresh);
-            } else if (currentMod === 'fsr4' && window.electronAPI.getFsr4Releases) {
-                result = await window.electronAPI.getFsr4Releases(forceRefresh);
-            } else if (currentMod === 'streamline' && window.electronAPI.getStreamlineReleases) {
-                result = await window.electronAPI.getStreamlineReleases(forceRefresh);
-            }
         }
 
         if (result && result.error) throw new Error(result.error);
@@ -394,7 +376,7 @@ function renderReleases() {
 
         card.innerHTML = `
             <div class="version-info">
-                <div class="version-name">${r.name || tag}</div>
+                <div class="version-name">${escapeHtml(r.name || tag)}</div>
                 <div class="version-meta">
                     ${sizeStr ? `<span class="version-size">${sizeStr}</span>` : ''}
                     ${sizeStr && dateStr ? '<span class="meta-dot">•</span>' : ''}
@@ -420,7 +402,11 @@ function renderReleases() {
             openBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
             openBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                await window.electronAPI.openModFolder({ modName: currentMod, name: r.name, tag: r.tag });
+                try {
+                    await window.electronAPI.openModFolder({ modName: currentMod, name: r.name, tag: r.tag });
+                } catch (err) {
+                    showInfoModal(t('opti.errorTitle') || 'Hata', err.message || String(err), true);
+                }
             });
 
             // Delete button
@@ -435,11 +421,15 @@ function renderReleases() {
                     (t('modsTab.deleteConfirmMsg') || '"{version}" sürümünü silmek istediğinize emin misiniz?').replace('{version}', r.name || tag)
                 );
                 if (confirmed) {
-                    const delResult = await window.electronAPI.deleteModVersion({ modName: currentMod, name: r.name, tag: r.tag });
-                    if (delResult.success) {
-                        await loadModReleases(false, true); // reload list silently
-                    } else {
-                        showInfoModal(t('opti.errorTitle') || 'Hata', delResult.error || t('modsTab.deleteFailed') || 'Silme işlemi başarısız oldu.', true);
+                    try {
+                        const delResult = await window.electronAPI.deleteModVersion({ modName: currentMod, name: r.name, tag: r.tag });
+                        if (delResult.success) {
+                            await loadModReleases(false, true); // reload list silently
+                        } else {
+                            showInfoModal(t('opti.errorTitle') || 'Hata', delResult.error || t('modsTab.deleteFailed') || 'Silme işlemi başarısız oldu.', true);
+                        }
+                    } catch (err) {
+                        showInfoModal(t('opti.errorTitle') || 'Hata', err.message || String(err), true);
                     }
                 }
             });
@@ -572,36 +562,13 @@ async function startDownload(item) {
         }
     };
 
-    // Bind unified module download progress listener
     if (window.electronAPI && window.electronAPI.onModuleDownloadProgress) {
         window.electronAPI.removeModuleDownloadProgressListeners();
         window.electronAPI.onModuleDownloadProgress(progressCallback);
     }
 
-    // Also bind legacy progress listeners for backwards compatibility
-    if (item.modName === 'dlssenabler' && window.electronAPI.onDlssEnablerDownloadProgress) {
-        window.electronAPI.removeDlssEnablerProgressListeners();
-        window.electronAPI.onDlssEnablerDownloadProgress(progressCallback);
-    } else if (item.modName === 'optiscaler' && window.electronAPI.onOptiscalerDownloadProgress) {
-        window.electronAPI.removeOptiScalerProgressListeners();
-        window.electronAPI.onOptiscalerDownloadProgress(progressCallback);
-    } else if (item.modName === 'optibuilder' && window.electronAPI.onOptiBuilderDownloadProgress) {
-        window.electronAPI.removeOptiBuilderProgressListeners();
-        window.electronAPI.onOptiBuilderDownloadProgress(progressCallback);
-    } else if (item.modName === 'optipatcher' && window.electronAPI.onOptipatcherDownloadProgress) {
-        window.electronAPI.removeOptiPatcherProgressListeners();
-        window.electronAPI.onOptipatcherDownloadProgress(progressCallback);
-    } else if (item.modName === 'fsr4' && window.electronAPI.onFsr4DownloadProgress) {
-        window.electronAPI.removeFsr4ProgressListeners();
-        window.electronAPI.onFsr4DownloadProgress(progressCallback);
-    } else if (item.modName === 'streamline' && window.electronAPI.onStreamlineDownloadProgress) {
-        window.electronAPI.removeStreamlineProgressListeners();
-        window.electronAPI.onStreamlineDownloadProgress(progressCallback);
-    }
-
     try {
         let result;
-        // Try unified manifest download first
         if (window.electronAPI && window.electronAPI.moduleDownloadRelease) {
             result = await window.electronAPI.moduleDownloadRelease({
                 moduleId: item.modName,
@@ -610,24 +577,7 @@ async function startDownload(item) {
             });
         }
 
-        // Fallback to legacy APIs if moduleDownloadRelease fails or is unavailable
-        if (!result || !result.success) {
-            if (item.modName === 'dlssenabler' && window.electronAPI.downloadDlssEnablerRelease) {
-                result = await window.electronAPI.downloadDlssEnablerRelease({ name: item.name, downloadUrl: item.downloadUrl });
-            } else if (item.modName === 'optiscaler' && window.electronAPI.downloadOptiScalerRelease) {
-                result = await window.electronAPI.downloadOptiScalerRelease({ tag: item.tag, downloadUrl: item.downloadUrl });
-            } else if (item.modName === 'optibuilder' && window.electronAPI.downloadOptiBuilderRelease) {
-                result = await window.electronAPI.downloadOptiBuilderRelease({ tag: item.tag, downloadUrl: item.downloadUrl });
-            } else if (item.modName === 'optipatcher' && window.electronAPI.downloadOptiPatcherRelease) {
-                result = await window.electronAPI.downloadOptiPatcherRelease({ tag: item.tag, downloadUrl: item.downloadUrl });
-            } else if (item.modName === 'fsr4' && window.electronAPI.downloadFsr4Release) {
-                result = await window.electronAPI.downloadFsr4Release({ name: item.name, downloadUrl: item.downloadUrl });
-            } else if (item.modName === 'streamline' && window.electronAPI.downloadStreamlineRelease) {
-                result = await window.electronAPI.downloadStreamlineRelease({ tag: item.tag, downloadUrl: item.downloadUrl });
-            }
-        }
-
-        cleanupProgressListeners(item.modName);
+        cleanupProgressListeners();
 
         if (result && result.success) {
             // Success! Remove from failed list if it was there
@@ -644,7 +594,7 @@ async function startDownload(item) {
             }
         }
     } catch (e) {
-        cleanupProgressListeners(item.modName);
+        cleanupProgressListeners();
         failedDownloads[`${item.modName}-${item.tag}`] = e.message;
         if (currentMod === item.modName) {
             renderReleases();
@@ -656,14 +606,8 @@ async function startDownload(item) {
     }
 }
 
-function cleanupProgressListeners(modName) {
+function cleanupProgressListeners() {
     if (window.electronAPI && window.electronAPI.removeModuleDownloadProgressListeners) {
         window.electronAPI.removeModuleDownloadProgressListeners();
     }
-    if (modName === 'dlssenabler' && window.electronAPI.removeDlssEnablerProgressListeners) window.electronAPI.removeDlssEnablerProgressListeners();
-    else if (modName === 'optiscaler' && window.electronAPI.removeOptiScalerProgressListeners) window.electronAPI.removeOptiScalerProgressListeners();
-    else if (modName === 'optibuilder' && window.electronAPI.removeOptiBuilderProgressListeners) window.electronAPI.removeOptiBuilderProgressListeners();
-    else if (modName === 'optipatcher' && window.electronAPI.removeOptiPatcherProgressListeners) window.electronAPI.removeOptiPatcherProgressListeners();
-    else if (modName === 'fsr4' && window.electronAPI.removeFsr4ProgressListeners) window.electronAPI.removeFsr4ProgressListeners();
-    else if (modName === 'streamline' && window.electronAPI.removeStreamlineProgressListeners) window.electronAPI.removeStreamlineProgressListeners();
 }

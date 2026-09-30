@@ -8,7 +8,6 @@ const scanner = require('../../scanner');
 const utils = require('../../utils');
 const launcher = require('../../mods/launcher');
 const iniEditor = require('../../mods/iniEditor');
-const dlssEnabler = require('../../mods/dlssEnabler');
 const conditionChecker = require('./conditionChecker');
 
 const INI_WAIT_SECONDS = 10;
@@ -327,7 +326,7 @@ function cleanupCopiedFiles(targetExeDir, currentDll, otherFiles, watchFile) {
     }
 }
 
-async function rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile) {
+async function rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName) {
     logMsg(event, logPath, 'info', t('rollback'));
     try {
         cleanupCopiedFiles(targetExeDir, currentDll, otherFiles, watchFile);
@@ -336,7 +335,21 @@ async function rollbackAttempt(event, logPath, t, originalGamesState, targetExeD
         logMsg(event, logPath, 'warn', t('rollbackCleanErr', { err: cleanupErr.message }));
     }
 
-    config.setExistingGamesState(JSON.parse(JSON.stringify(originalGamesState)));
+    // TÜM diziyi işlem başındaki eski bir kopyayla değiştirmek yerine sadece bu
+    // işlemin dokunduğu tek oyun kaydını eski haline döndür — aksi halde bu
+    // sihirbaz çalışırken eşzamanlı tamamlanmış başka bir oyunun (veya başka bir
+    // sihirbazın) kaydı bu rollback tarafından silinir (dlssWizard.js/optiWizard.js
+    // ile aynı sınıf bug, bkz. C7).
+    const liveGames = config.getExistingGamesState();
+    const originalEntry = originalGamesState.find(g => g && g.name === gameName);
+    const liveIdx = liveGames.findIndex(g => g && g.name === gameName);
+    if (originalEntry) {
+        if (liveIdx >= 0) liveGames[liveIdx] = originalEntry;
+        else liveGames.push(originalEntry);
+    } else if (liveIdx >= 0) {
+        liveGames.splice(liveIdx, 1);
+    }
+    config.setExistingGamesState(liveGames);
     config.saveGamesState();
     logMsg(event, logPath, 'info', t('rollbackDb'));
 }
@@ -572,7 +585,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
 
         if (shouldAbort && shouldAbort()) {
             logMsg(event, logPath, 'warn', 'Kurulum kullanıcı tarafından iptal edildi.');
-            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile);
+            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName);
             return { success: false, error: 'ABORTED', logPath };
         }
 
@@ -584,7 +597,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
             if (normTargetName && g.name.toLowerCase().replace(/[^a-z0-9]/g, '') === normTargetName) {
                 return true;
             }
-            return dlssEnabler.isSameGame(g, exePath);
+            return config.isSameGame(g, exePath);
         });
 
         const resolvedGameRoot = config.resolveActualGameRoot(targetExeName, exePath) || targetExeDir;
@@ -638,7 +651,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
 
         if (shouldAbort && shouldAbort()) {
             logMsg(event, logPath, 'warn', 'Kurulum kullanıcı tarafından iptal edildi.');
-            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile);
+            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName);
             return { success: false, error: 'ABORTED', logPath };
         }
 
@@ -647,7 +660,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
         const launchResult = await launcher.launchGame(dbGame);
         if (!launchResult.success) {
             logMsg(event, logPath, 'err', t('errLaunchFailed', { err: launchResult.error || 'Bilinmeyen hata' }), '[ERR_005]');
-            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile);
+            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName);
             event.sender.send('wizard-log', {
                 type: 'dll-attempt',
                 data: { attemptIndex: attemptNum, totalAttempts, dllName: currentDll, status: 'failed' }
@@ -667,7 +680,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
             if (runStatus.status === 'not_running') {
                 logMsg(event, logPath, 'err', t('gameNotRunningErr'), '[ERR_005]');
                 await terminateProcess(exePath);
-                await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile);
+                await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName);
                 event.sender.send('wizard-log', {
                     type: 'dll-attempt',
                     data: { attemptIndex: attemptNum, totalAttempts, dllName: currentDll, status: 'failed' }
@@ -694,7 +707,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
             if (shouldAbort && shouldAbort()) {
                 logMsg(event, logPath, 'warn', 'Sihirbaz zorla kapatılıyor... Değişiklikler geri alınıyor...');
                 await terminateProcess(exePath);
-                await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile);
+                await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName);
                 return { success: false, error: 'ABORTED', logPath };
             }
 
@@ -802,7 +815,7 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
                 data: { attemptIndex: attemptNum, totalAttempts, dllName: currentDll, status: 'failed', durationMs }
             });
 
-            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile);
+            await rollbackAttempt(event, logPath, t, originalGamesState, targetExeDir, currentDll, otherFiles, watchFile, gameName);
         }
     }
 
@@ -818,12 +831,50 @@ async function runModuleWizard(event, { manifest, game, version, dllName, downlo
     }
 }
 
+// Sihirbaz log klasörlerinin tümünü döner (manifest.wizard.logFolder ne olursa olsun) —
+// sabit iki modül adına (dlss/opti) bağlı kalmak yerine userData/logs altındaki her
+// "*-wizard" klasörünü tarar.
+function getWizardLogDirs() {
+    const parentDir = path.join(app.getPath('userData'), 'logs');
+    try {
+        return fs.readdirSync(parentDir, { withFileTypes: true })
+            .filter(e => e.isDirectory() && e.name.endsWith('-wizard'))
+            .map(e => path.join(parentDir, e.name));
+    } catch (e) {
+        return [];
+    }
+}
+
 async function getWizardLogsInfo() {
-    return dlssEnabler.getWizardLogsInfo ? dlssEnabler.getWizardLogsInfo() : { count: 0, sizeBytes: 0 };
+    let count = 0;
+    let sizeBytes = 0;
+    for (const dir of getWizardLogDirs()) {
+        try {
+            const files = await fs.promises.readdir(dir);
+            for (const file of files) {
+                if (!file.endsWith('.log')) continue;
+                const stats = await fs.promises.stat(path.join(dir, file));
+                count++;
+                sizeBytes += stats.size;
+            }
+        } catch (e) {}
+    }
+    return { count, sizeBytes };
 }
 
 async function clearWizardLogs() {
-    return dlssEnabler.clearWizardLogs ? dlssEnabler.clearWizardLogs() : { success: true };
+    try {
+        for (const dir of getWizardLogDirs()) {
+            const files = await fs.promises.readdir(dir);
+            for (const file of files) {
+                if (!file.endsWith('.log')) continue;
+                await fs.promises.unlink(path.join(dir, file));
+            }
+        }
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
 }
 
 async function openWizardLogsDir() {

@@ -509,8 +509,13 @@ function _markdownToHtml(md) {
     html = html.replace(/`([^`]+)`/g, '<code class="rn-code">$1</code>');
 
     // Link
-    html = html.replace(/\[(.+?)\]\((.+?)\)/g,
-        '<a class="rn-link" href="#" onclick="event.preventDefault(); window.electronAPI.openExternalLink(\'$2\')">$1</a>');
+    // NOT: $2 (URL) burada _escSafe'den geçmiş HTML metni içinde ama tek tırnak (')
+    // _escSafe tarafından kaçırılmıyor — onclick içindeki tek-tırnaklı JS string'inden
+    // kaçıp script çalıştırmak için kullanılabilir. Ekstra bir JS-string kaçışı gerekli.
+    html = html.replace(/\[(.+?)\]\((.+?)\)/g, (m, text, url) => {
+        const jsSafeUrl = url.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return `<a class="rn-link" href="#" onclick="event.preventDefault(); window.electronAPI.openExternalLink('${jsSafeUrl}')">${text}</a>`;
+    });
 
     // Normalize newlines and split into lines
     const lines = html.replace(/\r\n/g, '\n').split('\n');

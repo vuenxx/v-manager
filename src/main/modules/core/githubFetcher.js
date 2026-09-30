@@ -67,16 +67,34 @@ async function fetchReleases(moduleId, repo, options = {}) {
             }
             
             if (matchingAssets.length > 0) {
-                for (const asset of matchingAssets) {
-                    mappedReleases.push({
-                        name: release.name || release.tag_name,
-                        tag: release.tag_name,
-                        downloadUrl: asset.browser_download_url,
-                        size: asset.size,
-                        publishedAt: release.published_at,
-                        assetName: asset.name
-                    });
-                }
+                // If multiple assets match, pick the best one.
+                // Penalize ARM/debug variants and prefer shorter names (standard binaries)
+                matchingAssets.sort((a, b) => {
+                    const aName = a.name.toLowerCase();
+                    const bName = b.name.toLowerCase();
+                    
+                    const aIsArm = aName.includes('arm') || aName.includes('aarch64');
+                    const bIsArm = bName.includes('arm') || bName.includes('aarch64');
+                    if (aIsArm && !bIsArm) return 1;
+                    if (!aIsArm && bIsArm) return -1;
+                    
+                    const aIsDebug = aName.includes('debug');
+                    const bIsDebug = bName.includes('debug');
+                    if (aIsDebug && !bIsDebug) return 1;
+                    if (!aIsDebug && bIsDebug) return -1;
+
+                    return aName.length - bName.length;
+                });
+
+                const asset = matchingAssets[0];
+                mappedReleases.push({
+                    name: release.name || release.tag_name,
+                    tag: release.tag_name,
+                    downloadUrl: asset.browser_download_url,
+                    size: asset.size,
+                    publishedAt: release.published_at,
+                    assetName: asset.name
+                });
                 count++;
             }
         }
@@ -123,16 +141,24 @@ async function downloadAsset(downloadUrl, destDir, fileName, onProgress) {
     let downloadedSize = 0;
     
     const fileStream = fs.createWriteStream(destPath);
-    
-    for await (const chunk of response.body) {
-        downloadedSize += chunk.length;
-        fileStream.write(chunk);
-        if (onProgress && totalSize) {
-            const percent = Math.round((downloadedSize / totalSize) * 100);
-            onProgress(percent, downloadedSize, totalSize);
+
+    try {
+        for await (const chunk of response.body) {
+            downloadedSize += chunk.length;
+            fileStream.write(chunk);
+            if (onProgress && totalSize) {
+                const percent = Math.round((downloadedSize / totalSize) * 100);
+                onProgress(percent, downloadedSize, totalSize);
+            }
         }
+    } catch (err) {
+        // Stream ortasında hata (bağlantı koptu vb.) — dosya tanıtıcısını kapat
+        // ve yarım-inmiş dosyayı temizle, aksi halde fd sızar ve bozuk dosya kalır.
+        fileStream.destroy();
+        try { fs.unlinkSync(destPath); } catch (_) {}
+        throw err;
     }
-    
+
     await new Promise((resolve, reject) => {
         fileStream.on('finish', resolve);
         fileStream.on('error', reject);

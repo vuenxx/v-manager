@@ -28,7 +28,11 @@ const TAG = '[EXE_API]';
 /** Bilinen API'ler ve onları ele veren DLL/string parçaları */
 const API_SIGNATURES = {
     d3d12: { dlls: ['d3d12.dll', 'd3d12core.dll'], label: 'DirectX 12' },
-    d3d11: { dlls: ['d3d11.dll', 'd3dx11', 'd3dcompiler_4'], label: 'DirectX 11' },
+    // d3dcompiler_4x.dll (bkz. eski liste) DX11'e özgü değil — DX9'dan DX12'ye kadar
+    // hemen her Direct3D oyunu HLSL derleme için bunu kullanır; d3d11 kanıtı olarak
+    // saymak, d3d12.dll'i statik import etmeyip d3dcompiler_47.dll'i eden DX12
+    // oyunlarını (yaygın bir UE derleme deseni) yanlışlıkla DX11 olarak tespit ediyordu.
+    d3d11: { dlls: ['d3d11.dll', 'd3dx11'], label: 'DirectX 11' },
     d3d10: { dlls: ['d3d10.dll', 'd3d10_1.dll', 'd3dx10'], label: 'DirectX 10' },
     d3d9: { dlls: ['d3d9.dll', 'd3dx9'], label: 'DirectX 9' },
     d3d8: { dlls: ['d3d8.dll'], label: 'DirectX 8' },
@@ -347,7 +351,11 @@ async function detectApi(exePath) {
         success: true,
         exePath,
         arch: pe.arch,
-        is64Bit: pe.arch !== 'x86',
+        // Sadece kesin x64 tespit edildiğinde true — `!== 'x86'` önceden arm64 veya
+        // tanınmayan bir makine tipini de (moduleEngine.js'in x64/x86 seçimi için)
+        // sessizce x64 sayıyordu; buradaki tek gerçek varyant listesi x64/x86
+        // olduğundan, emin olunamayan durumda x86'ya (daha yaygın/güvenli) düşülüyor.
+        is64Bit: pe.arch === 'x64',
         detected: ranked,
         recommendedApi,
         recommendedProxyDll: recommendedApi ? (API_TO_PROXY_DLL[recommendedApi] || null) : null,

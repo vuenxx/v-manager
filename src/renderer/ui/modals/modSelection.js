@@ -2,6 +2,15 @@ import { state } from '../../state.js';
 import { openModal, closeModal } from './base.js';
 import { openModuleInstallModal, initModuleInstallModalListeners } from './moduleInstall.js';
 
+/** Manifest'ten gelen (community/hand-edited) metinleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 export async function renderModSelectionModal(game) {
     if (!game) return;
     state.currentSelectedGame = game;
@@ -115,7 +124,7 @@ export async function renderModSelectionModal(game) {
                 if (missing.length > 0) {
                     const names = missing.map(r => {
                         const target = modules.find(m => m.id === r.moduleId);
-                        return target?.manifest?.name || r.moduleId;
+                        return escapeHtml(target?.manifest?.name || r.moduleId);
                     });
                     prereqHint = `<span class="mod-option-prereq-hint">⚠️ ${names.join(', ')} gerekir</span>`;
                 }
@@ -134,10 +143,10 @@ export async function renderModSelectionModal(game) {
             card.innerHTML = `
                 <div>
                     <div class="mod-option-card-header">
-                        <span class="mod-option-name" title="${modName}">${modName}</span>
+                        <span class="mod-option-name" title="${escapeHtml(modName)}">${escapeHtml(modName)}</span>
                         <span class="mod-card-badge badge-${modType}">${typeBadgeText}</span>
                     </div>
-                    <div class="mod-option-desc" title="${modDesc}">${modDesc || 'Özel modül paketi.'}</div>
+                    <div class="mod-option-desc" title="${escapeHtml(modDesc)}">${escapeHtml(modDesc) || 'Özel modül paketi.'}</div>
                     ${wizardHint}
                     ${prereqHint}
                 </div>

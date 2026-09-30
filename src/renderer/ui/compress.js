@@ -256,7 +256,12 @@ export async function initCompress() {
         uncompressSelectedBtn.addEventListener('click', async () => {
             if (selectedFolderIndex === -1 || isProcessing) return;
             const folder = addedFolders[selectedFolderIndex];
-            await _runUncompressForFolder(folder);
+            try {
+                await _runUncompressForFolder(folder);
+            } catch (_) {
+                // Hata zaten _runUncompressForFolder içinde kullanıcıya gösterildi;
+                // burada sadece yakalanmayan promise reddini önlüyoruz.
+            }
         });
     }
 

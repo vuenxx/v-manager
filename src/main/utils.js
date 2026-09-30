@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { exec, spawn } = require('child_process');
+const { dialog, BrowserWindow } = require('electron');
 
 const crypto = require('crypto');
 
@@ -129,11 +130,22 @@ function getFileDescription(filePath) {
 }
 
 function compareVersions(v1, v2) {
-    const normalize = (v) => (v || '0.0.0.0').replace(/,/g, '.').replace(/[^0-9.]/g, '').split('.').map(Number);
+    // Non-numeric karakterleri SİLMEK yerine ayraç say — aksi halde "1.2.0-rc1"
+    // gibi etiketlerdeki rakamlar önceki sayısal parçayla birleşip (örn. "1.2.01")
+    // yanlış sonuç üretiyordu (bkz. moduleDetector.js versionParts/compareVersions).
+    const normalize = (v) => String(v || '0.0.0.0')
+        .trim()
+        .replace(/^v/i, '')
+        .split(/[.,\-+_\s]/)
+        .map(p => {
+            const m = /^\d+/.exec(p);
+            return m ? parseInt(m[0], 10) : 0;
+        });
     const parts1 = normalize(v1);
     const parts2 = normalize(v2);
-    
-    for (let i = 0; i < 4; i++) {
+    const len = Math.max(parts1.length, parts2.length, 4);
+
+    for (let i = 0; i < len; i++) {
         const a = parts1[i] || 0;
         const b = parts2[i] || 0;
         if (a < b) return -1;
@@ -401,6 +413,22 @@ function scanFolderForExes(folderPath) {
     return results;
 }
 
+async function selectExe(event) {
+    const config = require('./config');
+    const window = BrowserWindow.fromWebContents(event.sender);
+    const settings = config.getSettings();
+    const isEn = (settings.language || 'tr') === 'en';
+
+    const { canceled, filePaths } = await dialog.showOpenDialog(window, {
+        title: isEn ? 'Select Game (.exe)' : 'Oyun Seç (.exe)',
+        filters: [{ name: 'Executables', extensions: ['exe'] }],
+        properties: ['openFile']
+    });
+
+    if (canceled || filePaths.length === 0) return null;
+    return filePaths[0];
+}
+
 module.exports = {
     downloadImage,
     isGameRunning,
@@ -414,5 +442,6 @@ module.exports = {
     compareVersions,
     getSystemDrives,
     checkDx12Support,
-    scanFolderForExes
+    scanFolderForExes,
+    selectExe
 };

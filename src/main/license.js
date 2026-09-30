@@ -185,7 +185,17 @@ async function checkLicense() {
         return { activated: true, hwid };
     }
 
-    const hwid = await getMachineId();
+    // getMachineId() burada (BYPASS dalının aksine) hiç korunmuyordu — bazı
+    // VM/kısıtlanmış Windows kurulumlarında node-machine-id başarısız olursa bu
+    // reddedilen promise index.js'te hiç yakalanmıyor (app.whenReady().then(async...)
+    // içinde .catch yok), yani aktivasyon PENCERESİ DE ANA PENCERE DE hiç açılmadan
+    // uygulama sessizce takılı kalıyordu.
+    let hwid;
+    try {
+        hwid = await getMachineId();
+    } catch (e) {
+        return { activated: false, hwid: null, error: 'Makine kimliği alınamadı: ' + (e && e.message ? e.message : String(e)) };
+    }
     const saved = loadLicense();
 
     if (!saved) {

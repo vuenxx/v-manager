@@ -54,7 +54,13 @@ const BUSY_LOCK_TIMEOUT_MS = 5 * 60 * 1000;
 function isBusy() {
     if (activeOperation === null) return false;
     if (Date.now() - operationStartedAt > BUSY_LOCK_TIMEOUT_MS) {
-        console.warn(`${TAG} İşlem ${Math.round(BUSY_LOCK_TIMEOUT_MS / 60000)} dakikadır sürüyor, kapatma kilidi bırakıldı.`);
+        // Kilidi sadece "meşgul değil" raporlamak yetmez — activeOperation'ı da
+        // temizlemezsek, install()/uninstall()/checkForUpdatesManual() (bunlar
+        // isBusy() değil ham `activeOperation` kontrolü kullanıyor) süresiz kilitli
+        // kalır: indirme/açma askıda kalırsa `finally` hiç çalışmaz ve uygulama
+        // yeniden başlatılana kadar HER işlem BUSY döner.
+        console.warn(`${TAG} İşlem ${Math.round(BUSY_LOCK_TIMEOUT_MS / 60000)} dakikadır sürüyor, kilit bırakıldı (askıda kalmış olabilir).`);
+        activeOperation = null;
         return false;
     }
     return true;
@@ -357,7 +363,9 @@ function findFileRecursive(rootDir, targetNameLow, depth = 0) {
  * @param {{ tag?: string, autoCloseRunningApp?: boolean, silent?: boolean }} opts
  */
 async function install(event, opts = {}) {
-    if (activeOperation) {
+    if (isBusy()) {
+        // isBusy() süresi geçmiş bir kilidi burada temizler (bkz. yukarıdaki
+        // tanım) — ham `activeOperation` kontrolü bunu tetiklemiyordu.
         return { success: false, errorCode: 'BUSY', error: 'Başka bir VLSS5 işlemi devam ediyor.' };
     }
     activeOperation = 'install';
@@ -420,10 +428,20 @@ async function install(event, opts = {}) {
         const insp = inspectInstallDir();
         if (insp.exeExists) {
             const probe = insp.exePath + '.old';
+            let renamedToProbe = false;
             try {
                 fs.renameSync(insp.exePath, probe);
+                renamedToProbe = true;
                 fs.renameSync(probe, insp.exePath);
+                renamedToProbe = false;
             } catch (e) {
+                // İkinci rename (probe -> orijinal ad) başarısız olursa, dosyayı
+                // orijinal adına geri döndürmeyi dene — aksi halde kullanıcının
+                // çalışır durumdaki kurulumu kalıcı olarak "VLSS5.exe.old" adında
+                // kalır ve inspectInstallDir() bir daha "kurulu değil" görür.
+                if (renamedToProbe) {
+                    try { fs.renameSync(probe, insp.exePath); } catch (restoreErr) { /* best effort */ }
+                }
                 if (e.code === 'EBUSY' || e.code === 'EPERM' || e.code === 'EACCES') {
                     return {
                         success: false,
@@ -709,7 +727,9 @@ async function openInstallFolder() {
 
 /** Kurulum klasörünü tamamen siler (kullanıcının model DLL'i de gider). */
 async function uninstall() {
-    if (activeOperation) {
+    if (isBusy()) {
+        // isBusy() süresi geçmiş bir kilidi burada temizler (bkz. yukarıdaki
+        // tanım) — ham `activeOperation` kontrolü bunu tetiklemiyordu.
         return { success: false, errorCode: 'BUSY', error: 'Başka bir VLSS5 işlemi devam ediyor.' };
     }
     activeOperation = 'uninstall';
@@ -859,7 +879,9 @@ async function checkForUpdatesOnStartup(opts = {}) {
  * @param {Electron.IpcMainInvokeEvent} event
  */
 async function checkForUpdatesManual(event) {
-    if (activeOperation) {
+    if (isBusy()) {
+        // isBusy() süresi geçmiş bir kilidi burada temizler (bkz. yukarıdaki
+        // tanım) — ham `activeOperation` kontrolü bunu tetiklemiyordu.
         return { success: false, errorCode: 'BUSY', error: 'Başka bir VLSS5 işlemi devam ediyor.' };
     }
 

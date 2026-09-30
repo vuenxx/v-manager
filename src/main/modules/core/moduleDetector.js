@@ -247,7 +247,7 @@ function applyDetections(target, detections, detectors) {
             if (st.versionField) target[st.versionField] = target[st.versionField] || null;
             if (st.pathField) target[st.pathField] = target[st.pathField] || null;
             if (st.injectionField) target[st.injectionField] = target[st.injectionField] || null;
-            if (st.upscalerField) target.upscalers[st.upscalerField] = target[st.flag] || false;
+            if (st.upscalerField) target.upscalers[st.upscalerField] = target.upscalers[st.upscalerField] || false;
             continue;
         }
 

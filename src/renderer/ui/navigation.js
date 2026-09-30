@@ -10,8 +10,6 @@ export function initNavigation() {
             if (url && window.electronAPI) {
                 if (window.electronAPI.openExternalLink) {
                     window.electronAPI.openExternalLink(url);
-                } else if (window.electronAPI.openExternal) {
-                    window.electronAPI.openExternal(url);
                 }
             }
         }

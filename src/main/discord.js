@@ -149,10 +149,15 @@ function shutdownDiscordRpc() {
     }
 
     if (rpcClient) {
+        // clearActivity()/destroy() asenkron — Promise döndürüyorlar ve reddedilirse
+        // (ör. transport 'close' event'i, henüz cevaplanmamış clearActivity isteğini
+        // "connection closed" ile reddediyor) bu senkron try/catch'in hiçbir zaman
+        // yakalayamayacağı bir unhandled promise rejection oluşuyordu — bu da normal
+        // kapanışta veya RPC'yi ayarlardan kapatmada HER SEFERİNDE tetikleniyordu.
         try {
-            rpcClient.clearActivity();
+            rpcClient.clearActivity().catch(() => {});
             rpcClient.removeAllListeners();
-            rpcClient.destroy();
+            rpcClient.destroy().catch(() => {});
         } catch (err) {
             console.error('[Discord RPC] Error while destroying client:', err.message);
         }

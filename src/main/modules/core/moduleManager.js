@@ -329,13 +329,16 @@ function registerIpcHandlers(ipcMain) {
         actionLock = new Promise(r => resolveLock = r);
         await unlock;
 
+        // C-XX: try dışında tanımlanmalı — aksi halde catch bloğu (ayrı bir
+        // blok kapsamı) bu değişkenlere erişemez ve gerçek hata yerine
+        // "ReferenceError: moduleId is not defined" fırlatılır.
+        let moduleId, gameName, exePath, tag, options;
         try {
             const ipc = require('../../ipc');
             if (ipc.isScanRunning && ipc.isScanRunning()) {
                 return { success: false, error: 'scan_in_progress', message: 'Tarama devam ediyor, lütfen bekleyin.' };
             }
 
-            let moduleId, gameName, exePath, tag, options;
             if (data && typeof data === 'object') {
                 moduleId = data.moduleId;
                 gameName = data.gameName;
@@ -442,13 +445,13 @@ function registerIpcHandlers(ipcMain) {
         actionLock = new Promise(r => resolveLock = r);
         await unlock;
 
+        let moduleId, gameName, exePath;
         try {
             const ipc = require('../../ipc');
             if (ipc.isScanRunning && ipc.isScanRunning()) {
                 return { success: false, error: 'scan_in_progress', message: 'Tarama devam ediyor, lütfen bekleyin.' };
             }
 
-            let moduleId, gameName, exePath;
             if (data && typeof data === 'object') {
                 moduleId = data.moduleId;
                 gameName = data.gameName;

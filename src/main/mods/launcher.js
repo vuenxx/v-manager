@@ -149,11 +149,21 @@ async function launchXboxGame(game) {
                     const name = identityMatch[1];
                     const appId = appIdMatch[1];
                     
-                    const { exec } = require('child_process');
+                    // AppxManifest.xml'den okunan `name` dosya sisteminden geliyor —
+                    // uygulamanın kontrolünde değil. `exec` (cmd.exe üzerinden, shell
+                    // parse'lı) ve çift-tırnak içine kaçışsız gömme, ismi kötü amaçlı
+                    // hazırlanmış bir paket komut enjeksiyonuna açık bırakıyordu.
+                    // `spawn` + argv dizisi shell'i tamamen devre dışı bırakır; PowerShell
+                    // string literalindeki tek tırnak da ayrıca kaçırılır (`''`).
+                    const { spawn } = require('child_process');
+                    const psName = name.replace(/'/g, "''");
+                    const psScript = `Get-AppxPackage -Name '${psName}' | Select-Object -ExpandProperty PackageFamilyName`;
                     const pfn = await new Promise((resPfn) => {
-                        exec(`powershell.exe -NoProfile -Command "Get-AppxPackage -Name \\"${name}\\" | Select-Object -ExpandProperty PackageFamilyName"`, (error, stdout) => {
-                            resPfn(!error && stdout.trim() ? stdout.trim() : null);
-                        });
+                        const proc = spawn('powershell.exe', ['-NoProfile', '-Command', psScript], { shell: false });
+                        let stdout = '';
+                        proc.stdout.on('data', d => stdout += d.toString());
+                        proc.on('error', () => resPfn(null));
+                        proc.on('close', () => resPfn(stdout.trim() ? stdout.trim() : null));
                     });
                     
                     if (pfn) {

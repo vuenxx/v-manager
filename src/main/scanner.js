@@ -1006,11 +1006,6 @@ async function runScan(event, scanSettings) {
 
     const progressTracker = { total: 0, current: 0 };
 
-    // Clear games.json completely before scanning starts
-    console.log('[SCANNER] Clearing games.json completely at scan start.');
-    config.setExistingGamesState([]);
-    config.saveGamesState();
-
     // KURAL 2: Kaynak Filtresi — sadece seçili platformları tara
     const sources = scanSettings?.sources || ['Steam', 'Epic', 'GOG', 'EA', 'Ubisoft', 'Xbox'];
     console.log(`[SCANNER] Scanning sources: ${sources.join(', ')}`);

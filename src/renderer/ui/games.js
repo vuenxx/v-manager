@@ -168,7 +168,7 @@ export function createGameCard(game) {
 
     let coverHtml = '';
     if (game.cover) {
-        coverHtml = `<img src="${game.cover}" alt="${game.name}" class="game-cover-img">`;
+        coverHtml = `<img src="${game.cover}" alt="${escapeHtml(game.name)}" class="game-cover-img">`;
     } else {
         coverHtml = `<div class="game-cover-placeholder">🎮</div>`;
     }
@@ -225,23 +225,26 @@ export function createGameCard(game) {
     card.innerHTML = `
         <div class="game-cover-wrapper">
             <div class="source-tag">${sourceLabel}</div>
+            <button class="open-folder-btn" data-game="${escapeHtml(game.name)}" title="${t('games.openFolder')}">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg>
+            </button>
             ${coverHtml}
             ${modTagsHtml}
             <div class="game-cover-overlay">
                 <div class="game-actions-wrapper">
-                    <button class="game-launch-btn" data-game="${game.name}"> ${t('games.launchGame')}</button>
-                    <button class="mod-install-btn" data-game="${game.name}">${t('games.installMod')}</button>
-                    ${hasMod ? `<button class="mod-manage-btn" data-game="${game.name}">${t('games.manageMod')}</button>` : ''}
+                    <button class="game-launch-btn" data-game="${escapeHtml(game.name)}"> ${t('games.launchGame')}</button>
+                    <button class="mod-install-btn" data-game="${escapeHtml(game.name)}">${t('games.installMod')}</button>
+                    ${hasMod ? `<button class="mod-manage-btn" data-game="${escapeHtml(game.name)}">${t('games.manageMod')}</button>` : ''}
                 </div>
-                <button class="remove-game-btn" data-game="${game.name}">${t('games.removeGame')}</button>
+                <button class="remove-game-btn" data-game="${escapeHtml(game.name)}">${t('games.removeGame')}</button>
             </div>
         </div>
         <div class="game-info">
-            <button class="favorite-btn ${game.isFavorite ? 'active' : ''}" data-game="${game.name}">
+            <button class="favorite-btn ${game.isFavorite ? 'active' : ''}" data-game="${escapeHtml(game.name)}">
                 ${game.isFavorite ? '★' : '☆'}
             </button>
-            <button class="refresh-game-btn" data-game="${game.name}" title="Oyunu Yenile">↻</button>
-            <div class="game-title">${game.name}</div>
+            <button class="refresh-game-btn" data-game="${escapeHtml(game.name)}" title="Oyunu Yenile">↻</button>
+            <div class="game-title">${escapeHtml(game.name)}</div>
             ${upscalerHtml}
         </div>
     `;
@@ -309,6 +312,9 @@ export function createGameCard(game) {
                 const coverWrapper = card.querySelector('.game-cover-wrapper');
                 if (coverWrapper) {
                     coverWrapper.appendChild(badgeContainer);
+                    // Doğrulanmış rozet klasör butonuyla aynı köşeyi paylaşıyor —
+                    // rozet varsa butonu bir alt sıraya it.
+                    card.classList.add('has-verified-badge');
                 }
             }
         }).catch(err => {
@@ -343,8 +349,13 @@ function bindGameEvents(el, game) {
         favoriteBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (window.electronAPI && window.electronAPI.toggleFavorite) {
-                const updatedGames = await window.electronAPI.toggleFavorite(game.name);
-                renderGames(updatedGames);
+                try {
+                    const updatedGames = await window.electronAPI.toggleFavorite(game.name);
+                    renderGames(updatedGames);
+                } catch (err) {
+                    console.error("Favorite toggle error:", err);
+                    showInfoModal(t('dlss.errorTitle'), err.message || 'Favori durumu güncellenemedi.', true);
+                }
             }
         });
     }
@@ -404,6 +415,28 @@ function bindGameEvents(el, game) {
             }
         });
     }
+
+    // Klasörü Aç — grid görünümünde kapak üstündeki 📁 butonu, liste görünümünde
+    // platform rozetinin kendisi (hover'da "Klasörü Aç" yazısına döner).
+    const folderTrigger = el.querySelector('.open-folder-btn') || el.querySelector('.platform-text-badge');
+    if (folderTrigger) {
+        folderTrigger.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!window.electronAPI || !window.electronAPI.openGameFolder) return;
+            try {
+                const result = await window.electronAPI.openGameFolder({
+                    gameRoot: game.gameRoot || game.game_root,
+                    exePath: game.exePath || game.exe_path
+                });
+                if (!result || !result.success) {
+                    showInfoModal(t('dlss.errorTitle'), (t('games.openFolderError') || 'Oyunun klasörü açılamadı: ') + ((result && result.error) || ''), true);
+                }
+            } catch (err) {
+                console.error('[RENDERER games.js] openGameFolder error:', err);
+                showInfoModal(t('dlss.errorTitle'), (t('games.openFolderError') || 'Oyunun klasörü açılamadı: ') + err.message, true);
+            }
+        });
+    }
 }
 
 export function createGameListItem(game) {
@@ -413,7 +446,7 @@ export function createGameListItem(game) {
 
     let coverHtml = '';
     if (game.cover) {
-        coverHtml = `<img src="${game.cover}" alt="${game.name}" class="game-list-icon-img">`;
+        coverHtml = `<img src="${game.cover}" alt="${escapeHtml(game.name)}" class="game-list-icon-img">`;
     } else {
         coverHtml = `<div style="font-size: 18px;">🎮</div>`;
     }
@@ -463,15 +496,15 @@ export function createGameListItem(game) {
     if (modChips.length === 0) {
         modColHtml = `<span style="color: var(--text-secondary); opacity: 0.5;">–</span>`;
     } else if (modChips.length <= 4) {
-        modColHtml = `<div class="compact-mod-row">` + 
-            modChips.map(c => `<span class="compact-chip">${c.label}</span>`).join('') +
+        modColHtml = `<div class="compact-mod-row">` +
+            modChips.map(c => `<span class="compact-chip">${escapeHtml(c.label)}</span>`).join('') +
             `</div>`;
     } else {
         const visibleChips = modChips.slice(0, 3);
         const hiddenChips = modChips.slice(3);
-        const hiddenTooltip = hiddenChips.map(c => c.label).join(', ');
-        modColHtml = `<div class="compact-mod-row">` + 
-            visibleChips.map(c => `<span class="compact-chip">${c.label}</span>`).join('') +
+        const hiddenTooltip = escapeHtml(hiddenChips.map(c => c.label).join(', '));
+        modColHtml = `<div class="compact-mod-row">` +
+            visibleChips.map(c => `<span class="compact-chip">${escapeHtml(c.label)}</span>`).join('') +
             `<span class="compact-chip compact-chip-more" data-tooltip="${hiddenTooltip}">+${hiddenChips.length}</span>` +
             `</div>`;
     }
@@ -497,19 +530,24 @@ export function createGameListItem(game) {
 
     row.innerHTML = `
         <div class="game-list-icon-cell">${coverHtml}</div>
-        <div class="game-list-title-cell" title="${game.name}">${game.name}</div>
-        <div class="game-list-platform-cell"><span class="platform-text-badge">${sourceLabel}</span></div>
-        <div class="game-list-version-cell">${versionText}</div>
+        <div class="game-list-title-cell" title="${escapeHtml(game.name)}">${escapeHtml(game.name)}</div>
+        <div class="game-list-platform-cell">
+            <span class="platform-text-badge" data-game="${escapeHtml(game.name)}" title="${t('games.openFolder')}">
+                <span class="platform-text-badge-label">${escapeHtml(sourceLabel)}</span>
+                <span class="platform-text-badge-folder">📁 ${t('games.openFolder')}</span>
+            </span>
+        </div>
+        <div class="game-list-version-cell">${escapeHtml(versionText)}</div>
         <div class="game-list-mods-cell">${modColHtml}</div>
         <div class="game-list-tech-cell">${upscalerHtml}</div>
         <div class="list-actions-group">
-            <button class="icon-action-btn launch-btn game-launch-btn btn-play" data-game="${game.name}" data-tooltip="${launchTooltip}">▶</button>
-            <button class="icon-action-btn mod-install-btn btn-kur" data-game="${game.name}" data-tooltip="${installTooltip}">⚡</button>
-            ${hasAnyMod ? `<button class="icon-action-btn mod-manage-btn btn-yonet" data-game="${game.name}" data-tooltip="${manageTooltip}">🔄</button>` : ''}
-            <button class="icon-action-btn remove-btn remove-game-btn btn-sil" data-game="${game.name}" data-tooltip="${removeTooltip}">🗑️</button>
+            <button class="icon-action-btn launch-btn game-launch-btn btn-play" data-game="${escapeHtml(game.name)}" data-tooltip="${launchTooltip}">▶</button>
+            <button class="icon-action-btn mod-install-btn btn-kur" data-game="${escapeHtml(game.name)}" data-tooltip="${installTooltip}">⚡</button>
+            ${hasAnyMod ? `<button class="icon-action-btn mod-manage-btn btn-yonet" data-game="${escapeHtml(game.name)}" data-tooltip="${manageTooltip}">🔄</button>` : ''}
+            <button class="icon-action-btn remove-btn remove-game-btn btn-sil" data-game="${escapeHtml(game.name)}" data-tooltip="${removeTooltip}">🗑️</button>
             <div class="favorite-star-separator"></div>
-            <button class="refresh-game-btn list-refresh-btn" data-game="${game.name}" title="Oyunu Yenile">↻</button>
-            <button class="favorite-btn ${game.isFavorite ? 'active' : ''}" data-game="${game.name}" title="Favorilere Ekle/Çıkar">
+            <button class="refresh-game-btn list-refresh-btn" data-game="${escapeHtml(game.name)}" title="Oyunu Yenile">↻</button>
+            <button class="favorite-btn ${game.isFavorite ? 'active' : ''}" data-game="${escapeHtml(game.name)}" title="Favorilere Ekle/Çıkar">
                 ${game.isFavorite ? '★' : '☆'}
             </button>
         </div>

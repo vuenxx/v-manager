@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSettings: () => ipcRenderer.invoke('get-settings'),
     saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
     launchGame: (game) => ipcRenderer.invoke('launch-game', game),
+    openGameFolder: (data) => ipcRenderer.invoke('open-game-folder', data),
     getAppVersion: () => ipcRenderer.invoke('get-app-version'),
     startScan: (scanSettings) => ipcRenderer.send('start-scan', scanSettings),
     onGameFound: (callback) => { ipcRenderer.removeAllListeners('game-found'); ipcRenderer.on('game-found', (_event, game) => callback(game)); },
@@ -29,24 +30,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     removeGame: (gameName) => ipcRenderer.invoke('remove-game', gameName),
     compareVersions: (v1, v2) => ipcRenderer.invoke('compare-versions', v1, v2),
 
-    // Mod Uninstall IPC
-    uninstallMod: (data) => ipcRenderer.invoke('uninstall-mod', data),
-
-    // DLSS Enabler IPCs
+    // Genel dosya/klasör seçimi
     getSystemDrives: () => ipcRenderer.invoke('get-system-drives'),
-    getDlssVersions: () => ipcRenderer.invoke('get-dlss-versions'),
     selectExe: () => ipcRenderer.invoke('select-exe'),
     scanFolderForExes: (folderPath) => ipcRenderer.invoke('scan-folder-for-exes', folderPath),
-    executeDlssInstall: (data) => ipcRenderer.invoke('execute-dlss-install', data),
-    autoInstallDlss: (data) => ipcRenderer.invoke('auto-install-dlss', data),
-
-    // DLSS Sürüm Yöneticisi
-    dlssParseZip: (data) => ipcRenderer.invoke('dlss-parse-zip', data),
-    dlssInstallFromZip: (data) => ipcRenderer.invoke('dlss-install-from-zip', data),
-    getDlssEnablerReleases: (forceRefresh = false) => ipcRenderer.invoke('get-dlss-enabler-releases', { forceRefresh }),
-    downloadDlssEnablerRelease: (data) => ipcRenderer.invoke('download-dlss-enabler-release', data),
-    onDlssEnablerDownloadProgress: (callback) => ipcRenderer.on('dlss-enabler-download-progress', (_event, data) => callback(data)),
-    removeDlssEnablerProgressListeners: () => ipcRenderer.removeAllListeners('dlss-enabler-download-progress'),
 
     // ── Dual-layer Game Path System IPCs ────────────────────────────────────
     getUserGames: () => ipcRenderer.invoke('get-user-games'),
@@ -55,43 +42,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDeveloperGames: () => ipcRenderer.invoke('get-developer-games'),
     getDlssEnablerGames: () => ipcRenderer.invoke('get-dlss-enabler-games'),
     resolveGamePaths: (gameName, exePath) => ipcRenderer.invoke('resolve-game-paths', gameName, exePath),
-
-    // Streamline IPCs
-    getStreamlineVersions: () => ipcRenderer.invoke('get-streamline-versions'),
-    checkStreamlineBackup: (data) => ipcRenderer.invoke('check-streamline-backup', data),
-    installStreamline: (data) => ipcRenderer.invoke('install-streamline', data),
-    restoreStreamline: (data) => ipcRenderer.invoke('restore-streamline', data),
-    getStreamlineReleases: (forceRefresh = false) => ipcRenderer.invoke('get-streamline-releases', { forceRefresh }),
-    downloadStreamlineRelease: (data) => ipcRenderer.invoke('download-streamline-release', data),
-    onStreamlineDownloadProgress: (callback) => ipcRenderer.on('streamline-download-progress', (_event, data) => callback(data)),
-    removeStreamlineProgressListeners: () => ipcRenderer.removeAllListeners('streamline-download-progress'),
-
-    // OptiScaler IPCs
-    getOptiScalerReleases: (forceRefresh = false) => ipcRenderer.invoke('get-optiscaler-releases', { forceRefresh }),
-    downloadOptiScalerRelease: (data) => ipcRenderer.invoke('download-optiscaler-release', data),
-    onOptiscalerDownloadProgress: (callback) => ipcRenderer.on('optiscaler-download-progress', (_event, data) => callback(data)),
-    // FIX 4f: Expose a cleanup function to remove accumulated progress listeners
-    removeOptiScalerProgressListeners: () => ipcRenderer.removeAllListeners('optiscaler-download-progress'),
-    installOptiscaler: (data) => ipcRenderer.invoke('install-optiscaler', data),
-
-    // OptiBuilder IPCs
-    getOptiBuilderReleases: (forceRefresh = false) => ipcRenderer.invoke('get-optibuilder-releases', { forceRefresh }),
-    downloadOptiBuilderRelease: (data) => ipcRenderer.invoke('download-optibuilder-release', data),
-    onOptiBuilderDownloadProgress: (callback) => ipcRenderer.on('optibuilder-download-progress', (_event, data) => callback(data)),
-    removeOptiBuilderProgressListeners: () => ipcRenderer.removeAllListeners('optibuilder-download-progress'),
-    installOptiBuilder: (data) => ipcRenderer.invoke('install-optibuilder', data),
-
-    // OptiPatcher IPCs
-    getOptiPatcherReleases: (forceRefresh = false) => ipcRenderer.invoke('get-optipatcher-releases', { forceRefresh }),
-    downloadOptiPatcherRelease: (data) => ipcRenderer.invoke('download-optipatcher-release', data),
-    onOptipatcherDownloadProgress: (callback) => ipcRenderer.on('optipatcher-download-progress', (_event, data) => callback(data)),
-    removeOptiPatcherProgressListeners: () => ipcRenderer.removeAllListeners('optipatcher-download-progress'),
-
-    // FSR4 Files IPCs
-    getFsr4Releases: (forceRefresh = false) => ipcRenderer.invoke('get-fsr4-releases', { forceRefresh }),
-    downloadFsr4Release: (data) => ipcRenderer.invoke('download-fsr4-release', data),
-    onFsr4DownloadProgress: (callback) => ipcRenderer.on('fsr4-download-progress', (_event, data) => callback(data)),
-    removeFsr4ProgressListeners: () => ipcRenderer.removeAllListeners('fsr4-download-progress'),
 
     // INI Editor IPCs
     readModIni: (game, mod) => ipcRenderer.invoke('read-mod-ini', { game, mod }),
@@ -109,7 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Compression Core
     runCompression: (data) => ipcRenderer.invoke('run-compression', data),
     runUncompression: (data) => ipcRenderer.invoke('run-uncompression', data),
-    onCompressionProgress: (callback) => ipcRenderer.on('compression-progress', (_event, data) => callback(data)),
+    onCompressionProgress: (callback) => { ipcRenderer.removeAllListeners('compression-progress'); ipcRenderer.on('compression-progress', (_event, data) => callback(data)); },
     // C-02: Cleanup function for compression progress listeners to prevent memory leaks
     removeCompressionProgressListeners: () => ipcRenderer.removeAllListeners('compression-progress'),
 
@@ -143,12 +93,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onNavigateTab: (cb) => { ipcRenderer.removeAllListeners('navigate-tab'); ipcRenderer.on('navigate-tab', (_event, tabId) => cb(tabId)); },
 
     // Updater Event Listeners
-    onUpdateChecking:         (cb) => ipcRenderer.on('update-checking',          ()        => cb()),
-    onUpdateAvailable:        (cb) => ipcRenderer.on('update-available',         (_e, info) => cb(info)),
-    onUpdateNotAvailable:     (cb) => ipcRenderer.on('update-not-available',     (_e, info) => cb(info)),
-    onUpdateDownloadProgress: (cb) => ipcRenderer.on('update-download-progress', (_e, data) => cb(data)),
-    onUpdateDownloaded:       (cb) => ipcRenderer.on('update-downloaded',        (_e, info) => cb(info)),
-    onUpdateError:            (cb) => ipcRenderer.on('update-error',             (_e, msg)  => cb(msg)),
+    onUpdateChecking:         (cb) => { ipcRenderer.removeAllListeners('update-checking');          ipcRenderer.on('update-checking',          ()        => cb()); },
+    onUpdateAvailable:        (cb) => { ipcRenderer.removeAllListeners('update-available');         ipcRenderer.on('update-available',         (_e, info) => cb(info)); },
+    onUpdateNotAvailable:     (cb) => { ipcRenderer.removeAllListeners('update-not-available');     ipcRenderer.on('update-not-available',     (_e, info) => cb(info)); },
+    onUpdateDownloadProgress: (cb) => { ipcRenderer.removeAllListeners('update-download-progress'); ipcRenderer.on('update-download-progress', (_e, data) => cb(data)); },
+    onUpdateDownloaded:       (cb) => { ipcRenderer.removeAllListeners('update-downloaded');        ipcRenderer.on('update-downloaded',        (_e, info) => cb(info)); },
+    onUpdateError:            (cb) => { ipcRenderer.removeAllListeners('update-error');             ipcRenderer.on('update-error',             (_e, msg)  => cb(msg)); },
     removeUpdateListeners: () => {
         ipcRenderer.removeAllListeners('update-checking');
         ipcRenderer.removeAllListeners('update-available');
@@ -158,9 +108,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.removeAllListeners('update-error');
     },
 
-    // DLSS Wizard IPCs
-    runDlssWizard: (data) => ipcRenderer.invoke('run-dlss-wizard', data),
-    abortDlssWizard: () => ipcRenderer.invoke('abort-dlss-wizard'),
+    // Sihirbaz (wizard) — manifest tabanlı modül sihirbazı module-wizard-run/abort üzerinden çalışır,
+    // burada yalnızca paylaşılan log yönetimi kalır.
     clearWizardLogs: () => ipcRenderer.invoke('clear-wizard-logs'),
     getWizardLogsInfo: () => ipcRenderer.invoke('get-wizard-logs-info'),
     openWizardLogsDir: () => ipcRenderer.invoke('open-wizard-logs-dir'),
@@ -170,16 +119,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     removeWizardLogListeners: () => ipcRenderer.removeAllListeners('wizard-log'),
     checkDx12Support: (exePath) => ipcRenderer.invoke('check-dx12-support', exePath),
-    runOptiWizard: (data) => ipcRenderer.invoke('run-opti-wizard', data),
-    abortOptiWizard: () => ipcRenderer.invoke('abort-opti-wizard'),
-    onOptiWizardLog: (callback) => { ipcRenderer.removeAllListeners('opti-wizard-log'); ipcRenderer.on('opti-wizard-log', (_event, data) => callback(data)); },
-    removeOptiWizardLogListeners: () => ipcRenderer.removeAllListeners('opti-wizard-log'),
-
-    // OptiBuilder Wizard
-    runOptiBuilderWizard: (data) => ipcRenderer.invoke('run-optibuilder-wizard', data),
-    abortOptiBuilderWizard: () => ipcRenderer.invoke('abort-optibuilder-wizard'),
-    onOptiBuilderWizardLog: (callback) => { ipcRenderer.removeAllListeners('optibuilder-wizard-log'); ipcRenderer.on('optibuilder-wizard-log', (_event, data) => callback(data)); },
-    removeOptiBuilderWizardLogListeners: () => ipcRenderer.removeAllListeners('optibuilder-wizard-log'),
 
     deleteModVersion: (data) => ipcRenderer.invoke('delete-mod-version', data),
     openModFolder: (data) => ipcRenderer.invoke('open-mod-folder', data),
@@ -266,9 +205,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     toolsUpgrade: (toolId) => ipcRenderer.invoke('tools:upgrade', toolId),
     toolsLaunch: (toolId) => ipcRenderer.invoke('tools:launch', toolId),
     onToolsOperationLog: (callback) => {
+        ipcRenderer.removeAllListeners('tools-operation-log');
         ipcRenderer.on('tools-operation-log', (_event, data) => callback(data));
     },
     removeToolsOperationLogListeners: () => ipcRenderer.removeAllListeners('tools-operation-log'),
+    onToolsCloseBlocked: (callback) => {
+        ipcRenderer.removeAllListeners('tools-close-blocked');
+        ipcRenderer.on('tools-close-blocked', () => callback());
+    },
 
     // ── Pencere kontrolleri (özel başlık çubuğu) ─────────────────────────────
     windowMinimize: () => ipcRenderer.invoke('window:minimize'),

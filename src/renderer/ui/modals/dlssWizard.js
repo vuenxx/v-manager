@@ -4,22 +4,28 @@ import { renderGames, updateHomeStats } from '../games.js';
 import { t, getCurrentLang } from '../../i18n/i18n.js';
 
 /**
- * Sihirbaz terminali — hem eski DLSS Enabler akışını (runDlssWizard) hem de
- * manifest tabanlı evrensel sihirbazı (moduleRunWizard) aynı canlı log UI'ında çalıştırır.
- *
- * moduleCtx verilirse ve manifest'te wizard tanımı varsa manifest motoru kullanılır;
- * verilmezse eski DLSS Enabler yolu korunur (dlss.js modalı bu yoldan çağırıyor).
+ * Sihirbaz terminali — manifest tabanlı evrensel sihirbazı (moduleRunWizard) canlı log
+ * UI'ında çalıştırır. moduleInstall.js, manifest.wizard tanımlıysa bu modalı açar.
  */
 
 const DEFAULT_DLL_ORDER = ['version.dll', 'dxgi.dll', 'winmm.dll', 'dbghelp.dll', 'psapi.dll', 'winhttp.dll'];
+
+/** Manifest'ten gelen (community/hand-edited) metinleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
 
 let isWizardRunning = false;
 let closeAttempts = 0;
 let cancelRequested = false;
 let hasStreamlineWarningPending = false;
 
-// Aktif çalışan sihirbazın bağlamı — iptal ve kapanış bunun üzerinden karar verir.
-let activeCtx = { useModuleEngine: false, moduleId: null };
+// Aktif çalışan sihirbazın bağlamı — iptal kapanışta bu moduleId ile module-wizard-abort'a gider.
+let activeCtx = { moduleId: null };
 
 export function isDlssWizardRunning() {
     return isWizardRunning;
@@ -41,10 +47,9 @@ export async function openWizardModal(game, version, dllName, exePath, downloadU
 
     const manifest = moduleCtx?.manifest || null;
     const autoTest = manifest?.wizard?.autoTest || {};
-    const useModuleEngine = Boolean(manifest?.wizard);
-    const moduleId = moduleCtx?.id || manifest?.id || 'dlssenabler';
+    const moduleId = moduleCtx?.id || manifest?.id;
 
-    activeCtx = { useModuleEngine, moduleId };
+    activeCtx = { moduleId };
 
     // Denenecek DLL listesi manifest'ten gelir; yoksa klasik sıra kullanılır.
     const candidates = (Array.isArray(autoTest.candidates) && autoTest.candidates.length > 0)
@@ -116,7 +121,7 @@ export async function openWizardModal(game, version, dllName, exePath, downloadU
             item.className = 'wizard-dll-item';
             item.id = `wizard-dll-item-${dll.replace('.', '-')}`;
             item.innerHTML = `
-                <span>[${idx + 1}/${totalAttempts}] ${dll}</span>
+                <span>[${idx + 1}/${totalAttempts}] ${escapeHtml(dll)}</span>
                 <span class="dll-status">-</span>
             `;
             dllListContainer.appendChild(item);
@@ -175,11 +180,8 @@ export async function openWizardModal(game, version, dllName, exePath, downloadU
     });
 
     try {
-        // Uygulanacak preset: modal seçimi > manifest wizard.applyPresetOnSuccess > klasik 'dev-best'
-        const developerPreset =
-            moduleCtx?.preset ||
-            manifest?.wizard?.applyPresetOnSuccess ||
-            (useModuleEngine ? null : 'dev-best');
+        // Uygulanacak preset: modal seçimi > manifest wizard.applyPresetOnSuccess
+        const developerPreset = moduleCtx?.preset || manifest?.wizard?.applyPresetOnSuccess || null;
 
         const payload = {
             game,
@@ -191,13 +193,11 @@ export async function openWizardModal(game, version, dllName, exePath, downloadU
             lang: getCurrentLang()
         };
 
-        const result = useModuleEngine
-            ? await window.electronAPI.moduleRunWizard({
-                moduleId,
-                gameName: game.name,
-                ...payload
-            })
-            : await window.electronAPI.runDlssWizard(payload);
+        const result = await window.electronAPI.moduleRunWizard({
+            moduleId,
+            gameName: game.name,
+            ...payload
+        });
 
         isWizardRunning = false;
 
@@ -261,12 +261,7 @@ export async function closeWizardModal() {
         if (confirmCancel) {
             cancelRequested = true;
             if (statusText) statusText.textContent = t('wizard.cancelling') || 'Iptal ediliyor...';
-            // İptal doğru motora yönlendirilmeli.
-            if (activeCtx.useModuleEngine) {
-                await window.electronAPI.moduleAbortWizard();
-            } else {
-                await window.electronAPI.abortDlssWizard();
-            }
+            await window.electronAPI.moduleAbortWizard();
         }
         return;
     }

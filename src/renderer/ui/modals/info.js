@@ -1,4 +1,4 @@
-import { openModal, closeModal } from './base.js';
+import { openModal, closeModal, getNextModalZIndex } from './base.js';
 import { appendModuleLog } from './moduleLogView.js';
 import { t } from '../../i18n/i18n.js';
 
@@ -56,7 +56,10 @@ export function showInfoModal(title, message, isError = false, options = {}) {
     }
 
     infoModal.classList.add('active');
-    infoModal.style.zIndex = '9999';
+    // Sabit '9999' yerine paylaşılan sayaç — başka bir modal, bu info modali
+    // AÇILDIKTAN SONRA açılırsa (ör. çok sayıda modal döngüsü) info modali artık
+    // yanlışlıkla altta kalmaz; her zaman en son açılan en üstte olur.
+    infoModal.style.zIndex = getNextModalZIndex().toString();
 }
 
 export function initInfoModal() {
@@ -68,7 +71,7 @@ export function initInfoModal() {
     }
 }
 
-export function showLauncherWarningModal(onConfirm) {
+export function showLauncherWarningModal(onConfirm, onCancel) {
     const infoModal = document.getElementById('info-modal');
     const infoTitle = document.getElementById('info-modal-title');
     const infoBody = document.getElementById('info-modal-message');
@@ -97,6 +100,11 @@ export function showLauncherWarningModal(onConfirm) {
         infoClose.style.color = '#ffffff';
         infoClose.onclick = () => {
             closeModal('info-modal');
+            // opti.js/optiBuilder.js gibi bazı çağıranlar bu fonksiyonu bir
+            // Promise'e sarıp yalnızca onConfirm ile resolve ediyordu — kullanıcı
+            // İptal'e basarsa o promise hiç resolve olmadan sonsuza kadar asılı
+            // kalıyordu. Artık isteğe bağlı onCancel ile bu düzgün sonlandırılabiliyor.
+            if (onCancel) onCancel();
         };
     }
 
@@ -123,8 +131,15 @@ export function showLauncherWarningModal(onConfirm) {
     if (btnRow) btnRow.appendChild(confirmBtn);
 
     infoModal.classList.add('active');
-    infoModal.style.zIndex = '9999';
+    infoModal.style.zIndex = getNextModalZIndex().toString();
 }
+
+// showConfirmDialog paylaşılan tek bir modal DOM'unu (.onclick atamasıyla) yeniden
+// kullanıyor. İkinci bir çağrı, ilkinin cevabı gelmeden yapılırsa .onclick sessizce
+// üzerine yazılıyor ve ilk çağıranın promise'i hiç resolve olmadan sonsuza kadar
+// asılı kalıyordu. Bekleyen bir çözümleyiciyi burada takip edip, üzerine yazılmadan
+// önce "hayır" ile kapatıyoruz.
+let _pendingConfirmResolve = null;
 
 export function showConfirmDialog(title, message) {
     return new Promise((resolve) => {
@@ -139,6 +154,13 @@ export function showConfirmDialog(title, message) {
             resolve(false);
             return;
         }
+
+        if (_pendingConfirmResolve) {
+            const prevResolve = _pendingConfirmResolve;
+            _pendingConfirmResolve = null;
+            prevResolve(false);
+        }
+        _pendingConfirmResolve = resolve;
 
         titleEl.textContent = title;
         messageEl.textContent = message;

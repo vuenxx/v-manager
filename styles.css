@@ -474,13 +474,13 @@ body {
 }
 
 .tools-winget-status.ready {
-    background: rgba(68, 214, 44, 0.08);
-    border-color: rgba(68, 214, 44, 0.3);
-    color: #44d62c;
+    background: rgba(var(--accent-rgb), 0.08);
+    border-color: rgba(var(--accent-rgb), 0.3);
+    color: var(--accent-color);
 }
 
 .tools-winget-status.ready .winget-dot {
-    background-color: #44d62c;
+    background-color: var(--accent-color);
     box-shadow: 0 0 8px #44d62c;
 }
 
@@ -638,7 +638,7 @@ body:not([data-theme="dark"]) .free-games-refresh-btn:hover {
 .tool-package-id {
     font-size: 11px;
     font-family: monospace;
-    color: var(--text-muted, #71717a);
+    color: var(--text-secondary);
     display: block;
     white-space: nowrap;
     overflow: hidden;
@@ -667,13 +667,13 @@ body:not([data-theme="dark"]) .free-games-refresh-btn:hover {
 }
 
 .status-installed {
-    background: rgba(68, 214, 44, 0.1);
-    color: #44d62c;
-    border: 1px solid rgba(68, 214, 44, 0.25);
+    background: rgba(var(--accent-rgb), 0.1);
+    color: var(--accent-color);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
 }
 
 .status-installed .status-indicator-dot {
-    background: #44d62c;
+    background: var(--accent-color);
     box-shadow: 0 0 6px #44d62c;
 }
 
@@ -924,7 +924,7 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
 .tool-log-header .log-title {
     font-size: 11.5px;
     font-weight: 600;
-    color: var(--text-muted, #71717a);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -932,7 +932,7 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
 .tool-log-header .log-toggle-btn {
     background: transparent;
     border: none;
-    color: var(--text-muted, #71717a);
+    color: var(--text-secondary);
     cursor: pointer;
     font-size: 12px;
     padding: 2px 6px;
@@ -1285,12 +1285,74 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.platform-text-badge:hover {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+/* Hover'da platform adı yerine "Klasörü Aç" yazısı görünür (aynı rozet, metin swap) */
+.platform-text-badge-folder {
+    display: none;
+}
+
+.platform-text-badge:hover .platform-text-badge-label {
+    display: none;
+}
+
+.platform-text-badge:hover .platform-text-badge-folder {
+    display: inline;
 }
 
 [data-theme="dark"] .platform-text-badge {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-secondary);
+}
+
+[data-theme="dark"] .platform-text-badge:hover {
+    background: rgba(var(--accent-rgb), 0.18);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+/* ── Klasörü Aç Butonu — GRID modu (kapağın sağ üstü). Her zaman görünür.
+   .verified-badge-container ile aynı boyut/şekil/cam efekti — aynı aileden
+   gibi durması için. Doğrulanmış rozet o karta eklenince (.has-verified-badge)
+   buton bir alt sıraya iner. ── */
+.open-folder-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    background: rgba(15, 23, 42, 0.8);
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 5;
+    transition: all 0.2s ease, top 0.15s ease;
+}
+
+.game-cover-card.has-verified-badge .open-folder-btn {
+    top: 40px;
+}
+
+.open-folder-btn:hover {
+    transform: scale(1.15);
+    background: rgba(15, 23, 42, 0.95);
+    color: var(--accent-color);
 }
 
 .game-list-version-cell {
@@ -1925,6 +1987,11 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     font-size: 10.5px;
     color: var(--text-secondary);
     opacity: 0.85;
+}
+
+body:not([data-theme="dark"]) .release-cache-status-bar {
+    background: rgba(0,0,0,0.02);
+    border-color: rgba(0,0,0,0.08);
 }
 
 .cache-age-text {
@@ -3082,12 +3149,17 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.05);
     border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    color: var(--text-color, #ffffff);
+    color: var(--text-primary);
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+body:not([data-theme="dark"]) .mod-option-btn {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.15);
 }
 
 .mod-option-btn:hover {
@@ -3686,6 +3758,10 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     border-radius: 10px;
 }
 
+body:not([data-theme="dark"]) .compress-sub-nav {
+    background: rgba(0, 0, 0, 0.04);
+}
+
 .sub-nav-item {
     background: transparent;
     border: none;
@@ -4037,6 +4113,10 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
+body:not([data-theme="dark"]) .scan-modal-section {
+    border-bottom-color: rgba(0,0,0,0.08);
+}
+
 .scan-modal-section:last-of-type {
     border-bottom: none;
 }
@@ -4085,6 +4165,10 @@ body:not([data-theme="dark"]) .install-btn:hover:not(:disabled) {
     margin-top: 22px;
     padding-top: 18px;
     border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+body:not([data-theme="dark"]) .scan-modal-footer {
+    border-top-color: rgba(0,0,0,0.08);
 }
 
 .scan-start-btn {
@@ -4546,7 +4630,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     width: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;
-    background-color: #050505;
+    background-color: var(--bg-color);
 }
 
 .free-game-thumb {
@@ -4610,6 +4694,11 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
+}
+
+body:not([data-theme="dark"]) .platform-badge {
+    background: rgba(0, 0, 0, 0.035);
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 .free-game-btn {
@@ -4780,12 +4869,22 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
+body:not([data-theme="dark"]) .developer-profile-card {
+    background: rgba(0, 0, 0, 0.015);
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+body:not([data-theme="dark"]) .developer-profile-card:hover {
+    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.03);
+}
+
 .developer-avatar {
     width: 140px;
     height: 140px;
     border-radius: 50%;
     border: 3px solid var(--accent-color);
-    box-shadow: 0 0 20px rgba(68, 214, 44, 0.2);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.2);
     object-fit: cover;
     flex-shrink: 0;
     transition: transform 0.3s ease;
@@ -4836,6 +4935,11 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
     transition: all 0.2s ease;
+}
+
+body:not([data-theme="dark"]) .dev-link-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 .dev-link-btn:hover {
@@ -5142,7 +5246,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     border-bottom: 1px solid rgba(68, 214, 44, 0.15);
 }
 
-:root:not([data-theme="dark"]) .footer-notice a {
+body:not([data-theme="dark"]) .footer-notice a {
     border-bottom-color: rgba(var(--accent-rgb), 0.2);
 }
 
@@ -5196,7 +5300,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
                 0 0 15px rgba(68, 214, 44, 0.15);
 }
 
-:root:not([data-theme="dark"]) .toast-notification {
+body:not([data-theme="dark"]) .toast-notification {
     background: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 
@@ -5204,7 +5308,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     color: #1f2937;
 }
 
-:root:not([data-theme="dark"]) .toast-notification:hover {
+body:not([data-theme="dark"]) .toast-notification:hover {
     border-color: var(--accent-color);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 
                 0 0 15px rgba(var(--accent-rgb), 0.15);
@@ -5254,7 +5358,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     color: var(--text-secondary);
 }
 
-:root:not([data-theme="dark"]) .toast-body {
+body:not([data-theme="dark"]) .toast-body {
     color: #4b5563;
 }
 
@@ -5282,7 +5386,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     box-shadow: 0 2px 6px rgba(68, 214, 44, 0.2);
 }
 
-:root:not([data-theme="dark"]) .toast-btn-primary {
+body:not([data-theme="dark"]) .toast-btn-primary {
     color: #ffffff;
     box-shadow: 0 2px 6px rgba(var(--accent-rgb), 0.2);
 }
@@ -5293,7 +5397,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     box-shadow: 0 4px 12px rgba(68, 214, 44, 0.35);
 }
 
-:root:not([data-theme="dark"]) .toast-btn-primary:hover {
+body:not([data-theme="dark"]) .toast-btn-primary:hover {
     box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);
 }
 
@@ -5307,7 +5411,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     color: var(--text-secondary);
 }
 
-:root:not([data-theme="dark"]) .toast-btn-secondary {
+body:not([data-theme="dark"]) .toast-btn-secondary {
     border: 1px solid rgba(0, 0, 0, 0.12);
     color: #4b5563;
 }
@@ -5318,7 +5422,7 @@ body:not([data-theme="dark"]) .game-search-input:focus {
     background: rgba(255, 255, 255, 0.03);
 }
 
-:root:not([data-theme="dark"]) .toast-btn-secondary:hover {
+body:not([data-theme="dark"]) .toast-btn-secondary:hover {
     border-color: rgba(0, 0, 0, 0.3);
     color: #1f2937;
     background: rgba(0, 0, 0, 0.03);
@@ -7997,18 +8101,18 @@ body:not([data-theme="dark"]) .support-list-badge-btn:hover {
     box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.2);
 }
 
-:root:not([data-theme="dark"]) .exe-picker-item {
+body:not([data-theme="dark"]) .exe-picker-item {
     background: rgba(0, 0, 0, 0.02);
     border-color: rgba(0, 0, 0, 0.06);
     color: #1f2937;
 }
 
-:root:not([data-theme="dark"]) .exe-picker-item:hover {
+body:not([data-theme="dark"]) .exe-picker-item:hover {
     background: rgba(var(--accent-rgb), 0.05);
     border-color: var(--accent-color);
 }
 
-:root:not([data-theme="dark"]) .exe-picker-item.selected {
+body:not([data-theme="dark"]) .exe-picker-item.selected {
     background: rgba(var(--accent-rgb), 0.1);
     border-color: var(--accent-color);
 }

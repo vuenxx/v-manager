@@ -39,8 +39,15 @@ class SteamScanner {
      * @param {string} folderPath 
      */
     async getAppIdForFolder(folderPath) {
+        // Kütüphane listesi yalnızca constructor'da (uygulama açılışında) bir kez
+        // okunuyordu — kullanıcı uygulama açıkken yeni bir Steam kütüphane klasörü
+        // eklerse (yeni disk vb.), o kütüphanedeki oyunlar uygulama yeniden
+        // başlatılana kadar hiç tanınmazdı. libraryfolders.vdf küçük bir dosya,
+        // her çağrıda tazelemek ölçülebilir bir maliyet getirmez.
+        this._initLibraryFolders();
+
         const folderName = path.basename(folderPath).toLowerCase();
-        
+
         for (const libPath of this.libraryFolders) {
             const steamAppsPath = path.join(libPath, 'steamapps');
             if (!fs.existsSync(steamAppsPath)) continue;

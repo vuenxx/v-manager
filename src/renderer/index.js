@@ -6,15 +6,7 @@ import { initGames, initGamesListeners } from './ui/games.js';
 import { initBlacklistListeners } from './ui/blacklist.js';
 import { initSettingsListeners, renderUserGamesUI } from './ui/settings.js';
 import { initCompress } from './ui/compress.js';
-import { initDlssListeners } from './ui/modals/dlss.js';
 import { initWizardListeners } from './ui/modals/dlssWizard.js';
-import { initOptiListeners } from './ui/modals/opti.js';
-import { initOptiWizardListeners } from './ui/modals/optiWizard.js';
-import { initOptiBuilderListeners } from './ui/modals/optiBuilder.js';
-import { initOptiBuilderWizardListeners } from './ui/modals/optiBuilderWizard.js';
-import { initOptiPatcherListeners } from './ui/modals/optiPatcher.js';
-import { initFsr4Listeners } from './ui/modals/fsr4.js';
-import { initStreamlineListeners } from './ui/modals/streamline.js';
 import { initModSelectionListeners } from './ui/modals/modSelection.js';
 import { initSettingsListeners as initModalSettingsListeners } from './ui/modals/settings.js';
 import { initModsTab } from './ui/mods-tab.js';
@@ -61,15 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initBaseModals();
     initInfoModal();
     initCacheWarningModal();
-    initDlssListeners();
     initWizardListeners();
-    initOptiListeners();
-    initOptiWizardListeners();
-    initOptiBuilderListeners();
-    initOptiBuilderWizardListeners();
-    initOptiPatcherListeners();
-    initFsr4Listeners();
-    initStreamlineListeners();
     initModSelectionListeners();
     initModalSettingsListeners();
     initModsTab();
@@ -91,6 +75,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.electronAPI && window.electronAPI.onShowCloseWarning) {
         window.electronAPI.onShowCloseWarning(() => {
             showInfoModal(t('compress.closeWarningTitle'), t('compress.closeWarningMessage'), true);
+        });
+    }
+
+    // Close attempt listener (during a winget tool install/uninstall/upgrade)
+    if (window.electronAPI && window.electronAPI.onToolsCloseBlocked) {
+        window.electronAPI.onToolsCloseBlocked(() => {
+            showInfoModal(t('tools.closeBlockedTitle'), t('tools.closeBlockedBody'), true);
         });
     }
 

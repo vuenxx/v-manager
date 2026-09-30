@@ -6,29 +6,16 @@ const https = require('https');
 const config = require('./config');
 const scanner = require('./scanner');
 const utils = require('./utils');
-const dlssEnabler = require('./mods/dlssEnabler');
-const optiScaler = require('./mods/optiScaler');
-const optiBuilder = require('./mods/optiBuilder');
-const optiBuilderWizard = require('./mods/optiBuilderWizard');
-const optiPatcher = require('./mods/optiPatcher');
-const fsr4Files = require('./mods/fsr4Files');
-const streamline = require('./mods/streamline');
-const uninstaller = require('./mods/uninstaller');
 const compressor = require('./mods/compressor');
 const analyser = require('./mods/analyser');
 const compressionDb = require('./mods/compressionDb');
 const steamScanner = require('./mods/steamScanner');
 const iniEditor = require('./mods/iniEditor');
 const updater = require('./updater');
-const releaseCache = require('./mods/releaseCache');
-const dlssWizard = require('./mods/dlssWizard');
-const optiWizard = require('./mods/optiWizard');
+const moduleWizardEngine = require('./modules/core/moduleWizardEngine');
 
 let isScanning = false;
 let isCompressing = false;
-let isDlssWizardAborted = false;
-let isOptiWizardAborted = false;
-let isOptiBuilderWizardAborted = false;
 let cachedSystemInfo = null;
 // C-06: Prevent duplicate IPC handler registration
 let ipcRegistered = false;
@@ -88,6 +75,16 @@ function registerIpcHandlers() {
             console.error('[IPC] Failed to update Discord RPC after settings save:', e.message);
         }
 
+        // Tepsi (tray) menüsü kendi başına dil değişikliklerini görmüyordu — dil
+        // değiştiğinde menüyü de yeniden oluştur ki çeviri hemen yansısın.
+        if (oldSettings.language !== settings.language) {
+            try {
+                require('./tray').updateTrayMenu();
+            } catch (e) {
+                console.error('[IPC] Failed to refresh tray menu after language change:', e.message);
+            }
+        }
+
         return { success: true };
     });
 
@@ -100,6 +97,26 @@ function registerIpcHandlers() {
             } catch (e) {}
         }
         return result;
+    });
+
+    // Oyunun kurulu olduğu klasörü Explorer'da açar. exePath varsa dosyayı seçili
+    // hâlde gösterir (showItemInFolder), yoksa yalnızca kök klasörü açar.
+    ipcMain.handle('open-game-folder', async (event, { gameRoot, exePath } = {}) => {
+        try {
+            if (exePath && fs.existsSync(exePath)) {
+                shell.showItemInFolder(exePath);
+                return { success: true };
+            }
+            const dir = gameRoot || (exePath ? path.dirname(exePath) : null);
+            if (dir && fs.existsSync(dir)) {
+                const err = await shell.openPath(dir);
+                if (err) return { success: false, error: err };
+                return { success: true };
+            }
+            return { success: false, error: 'Klasör bulunamadı.' };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
     });
 
     // Scanner
@@ -294,85 +311,28 @@ function registerIpcHandlers() {
         return config.toggleFavorite(gameName);
     });
 
-    // Mod uninstallations
-    ipcMain.handle('uninstall-mod', async (event, data) => {
-        return await uninstaller.uninstallMod(data);
-    });
-
-    // DLSS Enabler
-    ipcMain.handle('get-dlss-versions', async () => {
-        return await dlssEnabler.getDlssVersions();
-    });
-
     ipcMain.handle('select-exe', async (event) => {
-        return await dlssEnabler.selectExe(event);
+        return await utils.selectExe(event);
     });
 
     ipcMain.handle('scan-folder-for-exes', async (event, folderPath) => {
         return utils.scanFolderForExes(folderPath);
     });
 
-    ipcMain.handle('execute-dlss-install', async (event, { game, exePath, version, dllName, downloadUrl }) => {
-        return await dlssEnabler.executeDlssInstall(event, game, exePath, version, dllName, downloadUrl);
-    });
-
-    ipcMain.handle('auto-install-dlss', async (event, { game, version, dllName, downloadUrl }) => {
-        return await dlssEnabler.autoInstallDlss(event, game, version, dllName, downloadUrl);
-    });
-
-    // DLSS Sürüm Yöneticisi
-    ipcMain.handle('dlss-parse-zip', async (event, { filePath, fileName }) => {
-        console.log(`[IPC] dlss-parse-zip: "${fileName}" @ "${filePath}"`);
-        return await dlssEnabler.parseZipForDlss(filePath);
-    });
-
-    ipcMain.handle('dlss-install-from-zip', async (event, { filePath, version }) => {
-        console.log(`[IPC] dlss-install-from-zip: sürüm="${version}" @ "${filePath}"`);
-        return await dlssEnabler.installDlssFromZip(filePath, version);
-    });
-
-    ipcMain.handle('get-dlss-enabler-releases', async (event, { forceRefresh } = {}) => {
-        return await dlssEnabler.getDlssEnablerReleases(forceRefresh);
-    });
-
-    ipcMain.handle('download-dlss-enabler-release', async (event, { name, downloadUrl }) => {
-        return await dlssEnabler.downloadDlssEnablerRelease(event, { name, downloadUrl });
-    });
-
-    ipcMain.handle('run-dlss-wizard', async (event, data) => {
-        isDlssWizardAborted = false;
-        return await dlssWizard.runDlssWizard(event, data, () => isDlssWizardAborted);
-    });
-
-    ipcMain.handle('abort-dlss-wizard', async () => {
-        isDlssWizardAborted = true;
-        return { success: true };
-    });
-
     ipcMain.handle('clear-wizard-logs', async () => {
-        return await dlssWizard.clearWizardLogs();
+        return await moduleWizardEngine.clearWizardLogs();
     });
 
     ipcMain.handle('get-wizard-logs-info', async () => {
-        return await dlssWizard.getWizardLogsInfo();
+        return await moduleWizardEngine.getWizardLogsInfo();
     });
 
     ipcMain.handle('open-wizard-logs-dir', async () => {
-        return await dlssWizard.openWizardLogsDir();
+        return await moduleWizardEngine.openWizardLogsDir();
     });
 
     ipcMain.handle('check-dx12-support', async (event, exePath) => {
         return await utils.checkDx12Support(exePath);
-    });
-
-    ipcMain.handle('run-opti-wizard', async (event, data) => {
-        isOptiWizardAborted = false;
-        return await optiWizard.runOptiWizard(event, data, () => isOptiWizardAborted);
-    });
-
-    ipcMain.handle('abort-opti-wizard', async () => {
-        isOptiWizardAborted = true;
-        return { success: true };
     });
 
     ipcMain.handle('get-system-info', async (event, { forceRefresh } = {}) => {
@@ -550,88 +510,6 @@ function registerIpcHandlers() {
      */
     ipcMain.handle('resolve-game-paths', async (event, gameName, exePath) => {
         return config.getGamePaths(gameName, exePath);
-    });
-
-    // Streamline
-    ipcMain.handle('get-streamline-versions', async () => {
-        return await streamline.getStreamlineVersions();
-    });
-
-    ipcMain.handle('check-streamline-backup', async (event, { game, isAuto, manualExePath }) => {
-        const window = BrowserWindow.fromWebContents(event.sender);
-        return await streamline.checkStreamlineBackup(game, isAuto, manualExePath, window);
-    });
-
-    ipcMain.handle('install-streamline', async (event, { game, version, targetDir, overwriteBackup, skipBackup }) => {
-        return await streamline.installStreamline(game, version, targetDir, overwriteBackup, skipBackup);       
-    });
-
-    ipcMain.handle('restore-streamline', async (event, { gameName }) => {
-        return await streamline.restoreStreamline(gameName);
-    });
-
-    ipcMain.handle('get-streamline-releases', async (event, { forceRefresh } = {}) => {
-        return await streamline.getStreamlineReleases(forceRefresh);
-    });
-
-    ipcMain.handle('download-streamline-release', async (event, { tag, downloadUrl }) => {
-        return await streamline.downloadStreamlineRelease(event, { tag, downloadUrl });
-    });
-
-    // OptiScaler
-    ipcMain.handle('get-optiscaler-releases', async (event, { forceRefresh } = {}) => {
-        return await optiScaler.getOptiScalerReleases(forceRefresh);
-    });
-
-    ipcMain.handle('download-optiscaler-release', async (event, { tag, downloadUrl }) => {
-        return await optiScaler.downloadOptiScalerRelease(event, { tag, downloadUrl });
-    });
-
-    ipcMain.handle('install-optiscaler', async (event, data) => {
-        return await optiScaler.installOptiScaler(event, data);
-    });
-
-    // OptiBuilder
-    ipcMain.handle('run-optibuilder-wizard', async (event, data) => {
-        isOptiBuilderWizardAborted = false;
-        return await optiBuilderWizard.runOptiBuilderWizard(event, data, () => isOptiBuilderWizardAborted);
-    });
-
-    ipcMain.handle('abort-optibuilder-wizard', async () => {
-        isOptiBuilderWizardAborted = true;
-        return { success: true };
-    });
-
-    ipcMain.handle('get-optibuilder-releases', async (event, { forceRefresh } = {}) => {
-        return await optiBuilder.getOptiBuilderReleases(forceRefresh);
-    });
-
-    ipcMain.handle('download-optibuilder-release', async (event, { tag, downloadUrl }) => {
-        return await optiBuilder.downloadOptiBuilderRelease(event, { tag, downloadUrl });
-    });
-
-    ipcMain.handle('install-optibuilder', async (event, data) => {
-        return await optiBuilder.installOptiBuilder(event, data);
-    });
-
-    // OptiPatcher
-    ipcMain.handle('get-optipatcher-releases', async (event, { forceRefresh } = {}) => {
-        if (forceRefresh) releaseCache.clearCache('optipatcher');
-        return await optiPatcher.getOptiPatcherReleases();
-    });
-
-    ipcMain.handle('download-optipatcher-release', async (event, { tag, downloadUrl }) => {
-        return await optiPatcher.downloadOptiPatcherRelease(event, { tag, downloadUrl });
-    });
-
-    // FSR4 Files
-    ipcMain.handle('get-fsr4-releases', async (event, { forceRefresh } = {}) => {
-        if (forceRefresh) releaseCache.clearCache('fsr4files');
-        return await fsr4Files.getFsr4Releases();
-    });
-
-    ipcMain.handle('download-fsr4-release', async (event, { name, downloadUrl }) => {
-        return await fsr4Files.downloadFsr4Release(event, { name, downloadUrl });
     });
 
     // Folder selection

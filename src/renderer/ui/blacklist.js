@@ -3,11 +3,21 @@ import { closeModal } from './modals/base.js';
 import { renderGames, updateHomeStats } from './games.js';
 import { switchTab } from './navigation.js';
 import { t } from '../i18n/i18n.js';
+import { showInfoModal } from './modals/info.js';
 
 // Get elements helpers to ensure they exist before use
 const getBlacklistContainer = () => document.getElementById('blacklist-container');
 const getToggleBlacklistBtn = () => document.getElementById('toggle-blacklist-btn');
 const getConfirmModal = () => document.getElementById('confirm-modal');
+
+/** Kullanıcı tarafından girilebilen metinleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
 
 let gameToRemove = null;
 let cardToRemove = null;
@@ -46,14 +56,18 @@ export async function renderBlacklistUI() {
         item.className = 'blacklist-item';
         
         item.innerHTML = `
-            <div class="blacklist-item-name">${gameName}</div>
+            <div class="blacklist-item-name">${escapeHtml(gameName)}</div>
             <button class="blacklist-remove-btn">${t('settings.blacklistRemove')}</button>
         `;
 
         const btn = item.querySelector('.blacklist-remove-btn');
         btn.addEventListener('click', async () => {
-            await window.electronAPI.removeFromBlacklist(gameName);
-            renderBlacklistUI();
+            try {
+                await window.electronAPI.removeFromBlacklist(gameName);
+                renderBlacklistUI();
+            } catch (err) {
+                showInfoModal(t('dlss.errorTitle'), err.message || String(err), true);
+            }
         });
 
         blacklistContainerEl.appendChild(item);
@@ -101,18 +115,22 @@ export function initBlacklistListeners() {
     if (confirmBlacklistBtn) {
         confirmBlacklistBtn.addEventListener('click', async () => {
             if (gameToRemove && cardToRemove) {
-                await window.electronAPI.addToBlacklist(gameToRemove);
-                cardToRemove.remove();
-                
-                const gamesContainer = document.getElementById('games-container');
-                if (gamesContainer && gamesContainer.children.length === 0) {
-                    gamesContainer.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
+                try {
+                    await window.electronAPI.addToBlacklist(gameToRemove);
+                    cardToRemove.remove();
+
+                    const gamesContainer = document.getElementById('games-container');
+                    if (gamesContainer && gamesContainer.children.length === 0) {
+                        gamesContainer.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
+                    }
+
+                    if (blacklistContainerEl && blacklistContainerEl.classList.contains('active')) {
+                        renderBlacklistUI();
+                    }
+                    updateHomeStats();
+                } catch (err) {
+                    showInfoModal(t('dlss.errorTitle'), err.message || String(err), true);
                 }
-                
-                if (blacklistContainerEl && blacklistContainerEl.classList.contains('active')) {
-                    renderBlacklistUI();
-                }
-                updateHomeStats();
             }
             closeModal('confirm-modal');
         });
@@ -121,18 +139,22 @@ export function initBlacklistListeners() {
     if (confirmRemoveBtn) {
         confirmRemoveBtn.addEventListener('click', async () => {
             if (gameToRemove && cardToRemove) {
-                await window.electronAPI.removeGame(gameToRemove);
-                cardToRemove.remove();
-                
-                const gamesContainer = document.getElementById('games-container');
-                if (gamesContainer && gamesContainer.children.length === 0) {
-                    gamesContainer.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
+                try {
+                    await window.electronAPI.removeGame(gameToRemove);
+                    cardToRemove.remove();
+
+                    const gamesContainer = document.getElementById('games-container');
+                    if (gamesContainer && gamesContainer.children.length === 0) {
+                        gamesContainer.innerHTML = `<p style="color: var(--text-secondary); text-align: center; grid-column: 1 / -1;">${t('games.noGames')}</p>`;
+                    }
+
+                    if (blacklistContainerEl && blacklistContainerEl.classList.contains('active')) {
+                        renderBlacklistUI();
+                    }
+                    updateHomeStats();
+                } catch (err) {
+                    showInfoModal(t('dlss.errorTitle'), err.message || String(err), true);
                 }
-                
-                if (blacklistContainerEl && blacklistContainerEl.classList.contains('active')) {
-                    renderBlacklistUI();
-                }
-                updateHomeStats();
             }
             closeModal('confirm-modal');
         });

@@ -3,6 +3,15 @@ import { t } from '../i18n/i18n.js';
 
 const path = window._nodePath; // Not available — we use string ops
 
+/** Kullanıcı tarafından girilebilen metinleri innerHTML'e gömmeden önce kaçır. */
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 // ── Kullanıcı Oyun Yolları Tablosu ───────────────────────────────────────────
 
 export async function renderUserGamesUI() {
@@ -38,11 +47,11 @@ export async function renderUserGamesUI() {
             tr.style.transition = 'background 0.2s';
 
             tr.innerHTML = `
-                <td style="padding: 12px; font-weight: 600;">${displayName}</td>
-                <td style="padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;">${info.game_root || '-'}</td>
-                <td style="padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;">${info.exe_path || '-'}</td>
+                <td style="padding: 12px; font-weight: 600;">${escapeHtml(displayName)}</td>
+                <td style="padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;">${escapeHtml(info.game_root) || '-'}</td>
+                <td style="padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-secondary); word-break: break-all;">${escapeHtml(info.exe_path) || '-'}</td>
                 <td style="padding: 12px; text-align: right;">
-                    <button class="blacklist-remove-btn delete-user-game-btn" data-key="${normKey}" style="padding: 4px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 4px; cursor: pointer; transition: background 0.2s;">${t('settings.deleteBtn')}</button>
+                    <button class="blacklist-remove-btn delete-user-game-btn" data-key="${escapeHtml(normKey)}" style="padding: 4px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 4px; cursor: pointer; transition: background 0.2s;">${t('settings.deleteBtn')}</button>
                 </td>
             `;
 

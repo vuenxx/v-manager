@@ -243,6 +243,46 @@ function getGamePaths(gameName, gameExePath) {
 }
 
 /**
+ * İki exe yolunun/oyun kaydının aynı oyuna ait olup olmadığını tespit eder.
+ * Sihirbazlar ve kaldırma akışları, oyunu games.json içinde tekrar bulmak için kullanır.
+ */
+function isSameGame(existingGame, newExePath) {
+    if (!existingGame.exePath || !newExePath) return false;
+    const existingPathNorm = path.resolve(existingGame.exePath).toLowerCase().replace(/\\/g, '/');
+    const newPathNorm = path.resolve(newExePath).toLowerCase().replace(/\\/g, '/');
+
+    // 1. Exact path match
+    if (existingPathNorm === newPathNorm) return true;
+
+    // 2. If existing path is a directory, check if new path is inside it
+    try {
+        const stats = fs.statSync(existingGame.exePath);
+        if (stats.isDirectory()) {
+            // Yol ayracı sınırı olmadan startsWith kullanmak "D:/Games/Cyberpunk" ile
+            // "D:/Games/CyberpunkOST/..." gibi farklı oyunları yanlışlıkla eşleştiriyordu.
+            if (newPathNorm === existingPathNorm || newPathNorm.startsWith(existingPathNorm + '/')) {
+                return true;
+            }
+        }
+    } catch (e) {}
+
+    // 3. Directory-level match (same parent folder)
+    try {
+        const existingDir = fs.statSync(existingGame.exePath).isFile() ? path.dirname(existingGame.exePath) : existingGame.exePath;
+        const newDir = path.dirname(newExePath);
+
+        const existingDirNorm = path.resolve(existingDir).toLowerCase().replace(/\\/g, '/');
+        const newDirNorm = path.resolve(newDir).toLowerCase().replace(/\\/g, '/');
+
+        if (existingDirNorm === newDirNorm) return true;
+        // Alt klasör (startsWith) kontrolü kasıtlı olarak yok — "D:\Games\GameA" ile
+        // "D:\Games\GameA_DLC" gibi aynı üst klasörü paylaşan farklı oyunları yanlış eşleştiriyordu.
+    } catch (e) {}
+
+    return false;
+}
+
+/**
  * Smart heuristic game_root resolver that prevents storing binaries subfolders (like Binaries/Win64)
  * as the game_root for scanned or manually added games when choosing a mod exe.
  */
@@ -679,6 +719,7 @@ module.exports = {
     saveUserGames,
     getGamePaths,
     resolveActualGameRoot,
+    isSameGame,
 
     getExistingGamesState: () => existingGamesState,
     setExistingGamesState: (newState) => { existingGamesState = newState; needsDedup = true; }, // FIX 5b

@@ -106,7 +106,11 @@ async function checkConditions(conditions, context) {
                     break;
                 }
                 case 'mod_installed': {
-                    if (gameState && gameState[condition.flag] !== condition.value) {
+                    // gameState henüz yoksa (oyun games.json'a kaydedilmemiş) bayrak
+                    // "kurulu değil" (false) sayılır — eskiden gameState null iken
+                    // kontrol tamamen atlanıp her koşul "geçti" sayılıyordu (fail-open).
+                    const actualValue = gameState ? gameState[condition.flag] : false;
+                    if (actualValue !== condition.value) {
                         passed = false;
                     }
                     break;

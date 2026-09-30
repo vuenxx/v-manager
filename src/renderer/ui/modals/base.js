@@ -29,15 +29,23 @@ export function closeModal(modalId) {
     }
 }
 
+// O an aktif olan modal SAYISINA göre z-index hesaplamak (eskisi) şuna yol açıyordu:
+// A aç (1 aktif → 1010), B'yi A'nın üstüne aç (2 aktif → 1020), A'yı kapat (B hâlâ
+// 1020), sonra B açıkken C aç (yine 2 aktif → 1020) — C ve B AYNI z-index'e düşüyor,
+// hangisinin üstte göründüğü DOM sırasına kalıyordu. Monoton, hep artan bir sayaç
+// bunu kökten çözer: en son açılan her zaman en üstte olur.
+let _modalZIndexCounter = 1000;
+export function getNextModalZIndex() {
+    _modalZIndexCounter += 10;
+    return _modalZIndexCounter;
+}
+
 export function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('active');
-        
-        // Dynamic z-index for stacked modals
-        const activeModals = document.querySelectorAll('.modal.active');
-        modal.style.zIndex = (1000 + activeModals.length * 10).toString();
-        
+        modal.style.zIndex = getNextModalZIndex().toString();
+
         // Focus input if it's the manual add modal
         if (modalId === 'manual-add-modal') {
             const input = document.getElementById('manual-game-name-input');
@@ -63,13 +71,9 @@ export function initBaseModals() {
     });
 
     const modModal = document.getElementById('mod-modal');
-    const dlssModal = document.getElementById('dlss-modal');
-    const streamlineModal = document.getElementById('streamline-modal');
-    const optiscalerModal = document.getElementById('optiscaler-modal');
     const confirmModal = document.getElementById('confirm-modal');
     const manageModal = document.getElementById('manage-modal');
     const uninstallModal = document.getElementById('uninstall-modal');
-    const dlssConfirmModal = document.getElementById('dlss-confirm-modal');
     const infoModal = document.getElementById('info-modal');
     const exePickerModal = document.getElementById('exe-picker-modal');
     const uninstallConfirmModal = document.getElementById('uninstall-confirm-modal');
@@ -83,13 +87,9 @@ export function initBaseModals() {
     window.addEventListener('click', (e) => {
         if (e.target === modModal) closeModal('mod-modal');
         if (e.target === vlss5Modal) closeModal('vlss5-modal');
-        if (e.target === dlssModal) closeModal('dlss-modal');
-        if (e.target === streamlineModal) closeModal('streamline-modal');
-        if (e.target === optiscalerModal) closeModal('optiscaler-modal');
         if (e.target === confirmModal) closeModal('confirm-modal');
         if (e.target === manageModal) closeModal('manage-modal');
         if (e.target === uninstallModal) closeModal('uninstall-modal');
-        if (e.target === dlssConfirmModal) closeModal('dlss-confirm-modal');
         if (e.target === infoModal) closeModal('info-modal');
         if (e.target === exePickerModal) closeModal('exe-picker-modal');
         if (e.target === uninstallConfirmModal) closeModal('uninstall-confirm-modal');

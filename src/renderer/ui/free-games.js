@@ -62,8 +62,6 @@ export function initFreeGames() {
             window.electronAPI.logToMain(`Free Games: Opening attribution link -> ${url}`);
             if (window.electronAPI && window.electronAPI.openExternalLink) {
                 window.electronAPI.openExternalLink(url);
-            } else if (window.electronAPI && window.electronAPI.openExternal) {
-                window.electronAPI.openExternal(url);
             }
         });
     }
@@ -205,8 +203,6 @@ function renderPage(page) {
             
             if (window.electronAPI && window.electronAPI.openExternalLink) {
                 window.electronAPI.openExternalLink(link);
-            } else if (window.electronAPI && window.electronAPI.openExternal) {
-                window.electronAPI.openExternal(link);
             }
         };
 

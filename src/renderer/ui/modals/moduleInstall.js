@@ -115,6 +115,12 @@ function getSelectedApi() {
  * kullanıcıyı kilitlemek, gereksiz bir kurulumdan daha kötü.
  */
 async function renderRequirementsSection(manifest, game) {
+    // E16: Bu fonksiyon çağrı yerinde await edilmiyor (fire-and-forget) — modal
+    // hızlıca başka bir mod için yeniden açılırsa, bu çağrının geç gelen IPC
+    // yanıtı yeni modun DOM'unu ezmesin diye açılış anındaki _currentModule
+    // referansını yakalayıp await sonrası karşılaştırıyoruz.
+    const openedFor = _currentModule;
+
     const sec = document.getElementById('module-install-requirements-section');
     const list = document.getElementById('module-install-requirements-list');
     const actionBtn = document.getElementById('module-install-prereq-btn');
@@ -169,6 +175,8 @@ async function renderRequirementsSection(manifest, game) {
     } catch (e) {
         res = null;
     }
+
+    if (_currentModule !== openedFor) return; // Modal başka bir mod için yeniden açıldı, bu yanıt artık geçersiz.
 
     if (!res || !res.success) {
         addRow('unknown', 'ℹ️', t('modModal.prereqCheckFailed'), res?.error || '');
@@ -308,22 +316,33 @@ async function renderApiSection(manifest, game) {
     select.innerHTML = '';
     if (hint) hint.textContent = t('modModal.apiDetecting');
 
+    // API tespiti bir .exe gerektirir — oyun kaydında yalnızca klasör varsa (henüz
+    // hiç kurulum yapılmamış manuel/taranmış oyun) burada kullanıcıya .exe seçtiririz.
+    // resolveExeForGame önce resolveGamePaths/oyun kaydını dener, yalnızca gerçekten
+    // bulunamazsa seçici açar; seçilen yol selectExeWithPicker tarafından otomatik
+    // olarak "Kullanıcı Oyun Yolları"na kaydedilir, bir daha sorulmaz.
+    const exePath = await resolveExeForGame(game, { allowPicker: true });
+
     let detection = null;
     let options = [];
-    try {
-        const res = await window.electronAPI.moduleDetectApi({
-            gameName: game?.name,
-            exePath: game?.exePath
-        });
-        // Seçenek listesi tespitten bağımsız: exe okunamasa da kullanıcı elle seçebilmeli.
-        options = (res && res.options) || [];
-        if (res && res.success) {
-            detection = res.detection;
-        } else if (hint) {
-            hint.textContent = t('modModal.apiDetectFailed') + (res && res.error ? ' (' + res.error + ')' : '');
+    if (exePath) {
+        try {
+            const res = await window.electronAPI.moduleDetectApi({
+                gameName: game?.name,
+                exePath
+            });
+            // Seçenek listesi tespitten bağımsız: exe okunamasa da kullanıcı elle seçebilmeli.
+            options = (res && res.options) || [];
+            if (res && res.success) {
+                detection = res.detection;
+            } else if (hint) {
+                hint.textContent = t('modModal.apiDetectFailed') + (res && res.error ? ' (' + res.error + ')' : '');
+            }
+        } catch (e) {
+            if (hint) hint.textContent = t('modModal.apiDetectFailed');
         }
-    } catch (e) {
-        if (hint) hint.textContent = t('modModal.apiDetectFailed');
+    } else if (hint) {
+        hint.textContent = t('modModal.apiDetectFailed');
     }
 
     // IPC tamamen başarısızsa bile manifest'in kendi API→dosya eşlemesinden

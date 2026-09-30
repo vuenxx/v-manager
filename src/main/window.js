@@ -73,6 +73,20 @@ function createWindow() {
             console.error('[WINDOW] VLSS5 kapatma kontrolü hatası:', err.message);
         }
 
+        // Bir winget kurulum/kaldırma/güncelleme işlemi sürerken de kapatma
+        // engellenir — aksi halde spawn edilen winget süreci (detached değil)
+        // pencereyle birlikte yarıda kesiliyor, araç yarım kurulu kalıyordu.
+        try {
+            const toolsManager = require('./modules/tools/toolsManager');
+            if (toolsManager.isBusy && toolsManager.isBusy()) {
+                e.preventDefault();
+                mainWindow.webContents.send('tools-close-blocked');
+                return;
+            }
+        } catch (err) {
+            console.error('[WINDOW] Tools kapatma kontrolü hatası:', err.message);
+        }
+
         if (!app.isQuitting) {
             const currentSettings = config.getSettings();
             const behavior = (currentSettings && currentSettings.closeBehavior) ? currentSettings.closeBehavior : 'tray';
