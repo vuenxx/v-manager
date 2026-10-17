@@ -107,7 +107,6 @@ function renderVlss5UI() {
     const readyBanner = document.getElementById('vlss5-ready-banner');
     const dropzone = document.getElementById('vlss5-dropzone');
     const dropText = dropzone ? dropzone.querySelector('.vlss5-dropzone-text') : null;
-    const gpuWarning = document.getElementById('vlss5-gpu-warning');
     const primaryBtn = document.getElementById('vlss5-primary-btn');
     const secondaryBtn = document.getElementById('vlss5-secondary-btn');
     const folderBtn = document.getElementById('vlss5-folder-btn');
@@ -157,16 +156,6 @@ function renderVlss5UI() {
     }
     if (pickBtn) pickBtn.disabled = isBusy;
     if (findBtn) findBtn.disabled = isBusy;
-
-    // ── GPU uyarısı (engelleme değil, bilgilendirme) ──
-    if (gpuWarning) {
-        if (s.gpuSupported === false) {
-            gpuWarning.style.display = 'block';
-            gpuWarning.textContent = t('vlss5.gpuWarning') + (s.gpuName ? ` (${s.gpuName})` : '');
-        } else {
-            gpuWarning.style.display = 'none';
-        }
-    }
 
     // ── Sürüm bilgisi hatası ──
     // Ekranda daha spesifik bir hata varsa (ör. başarısız kurulum) onu ezme

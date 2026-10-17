@@ -3,7 +3,7 @@
 > **Bu dosyanın amacı:** Kod tabanında "ne nerede?" sorusunu dosya dosya aramadan cevaplamak.
 > Yeni bir iş isteğinde önce bu dosya okunur, sonra sadece ilgili dosyalar açılır.
 >
-> Oluşturulma: 2026-09-16 · Sürüm: `package.json` → **0.7.0** · Branch: `main`
+> Oluşturulma: 2026-09-16 · Son güncelleme: 2026-10-16 · Sürüm: `package.json` → **0.7.5** · Branch: `main`
 > **Güncelleme kuralı:** Yeni IPC kanalı, yeni modül/manifest, yeni sekme veya yeni userData dosyası eklendiğinde ilgili tablo güncellenmeli.
 
 ---
@@ -139,8 +139,9 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 
 | Dosya | Satır | Sorumluluk |
 |---|---|---|
-| `core/moduleManager.js` | 678 | Manifest keşfi/yükleme, doğrulama, **17 adet `module-*` IPC handler'ı**, custom manifest kaydet/sil |
-| `core/moduleEngine.js` | 1171 | **18 adımlı kurulum pipeline'ı** + `uninstall`, `getReleases`, `downloadRelease`, `resolveDestinationDir`, `findDynamicSearchDir` |
+| `core/moduleManager.js` | ~900 | Manifest keşfi/yükleme, doğrulama, **17 adet `module-*` IPC handler'ı**, custom manifest kaydet/sil. Kurulum/kaldırma/sihirbaz `actionLock` ile **tek sıraya** girer. `init()` ilk çağrıda (process başına bir kez) `repairPendingInstalls()`'ı tetikler |
+| `core/moduleEngine.js` | ~2400 | **18 adımlı kurulum pipeline'ı** + `uninstall`, `getReleases`, `downloadRelease`, `resolveDestinationDir`, `findDynamicSearchDir`, `performRollback`, `repairPendingInstalls` |
+| `core/installJournal.js` | ~70 | **Yarım kalan kurulum defteri** — `userData/pending-install-journal.json` (atomik yazım). `install()` dosyaya dokunan her adımdan ÖNCE `rollbackState`'i buraya yazar; başarı/rollback sonrası kayıt silinir. Kalan her kayıt = çökme/zorla kapatma ile yarım kalmış kurulum |
 | `core/moduleWizardEngine.js` | ~700 | Manifest'ten sürülen evrensel otomatik-test sihirbazı. İndirme `moduleEngine.downloadRelease`, kopyalama `copyModFiles`, çakışma kontrolü `manifest.conditions` üzerinden — modülden bağımsız. Ayrıca `config.isSameGame()` ile oyunu games.json'da bulur ve sihirbaz log klasörlerini (`userData/logs/*-wizard`) yönetir (`getWizardLogsInfo`/`clearWizardLogs`/`openWizardLogsDir`) |
 | `core/manifestValidator.js` | 387 | Manifest şema doğrulaması (hata + uyarı listesi) |
 | `core/backup.js` | 204 | `userData/module-backups/<oyun>/<modId>/<timestamp>/` + `backup-meta.json`, SHA-256 hash, 3 yedek sakla |
@@ -148,7 +149,7 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 | `core/archive.js` | ~60 | `.zip` (extract-zip), `.7z` (7zip-bin) ve `.rar` (rarExtractor) çıkarma |
 | `core/exeApiDetector.js` | ~330 | **Oyun exe'sinin grafik API'si + bit genişliği** — PE başlığı (kesin bitlik), import/delay-import tablosu, exe içi string taraması, motor (UE/Unity) ve yol ipuçları. Puanlanmış sıralı liste döner; `apiTargeting` ve kurulum modalı kullanır |
 | `core/requirementChecker.js` | ~155 | **Manifest ön koşulları (`requires`)** — "bu mod kurulmadan önce şu modül kurulu olmalı". Önce diskten (`moduleDetector.isModuleInstalledIn`), sonra `games.json` bayrağından kontrol eder. Kurulum modalı ve motorun 5c adımı **aynı** sonucu okur; `failures` şekli `conditionChecker` ile birebir aynıdır |
-| `core/conflictChecker.js` | ~270 | **Çakışma denetimi** — (a) manifest'te bildirilen `conflicts` / `incompatible_mods`, (b) dahili *dosya sahipliği* çakışması: hedef dosya zaten var ve başka bir modüle ait, (c) **yabancı dosya çakışması** (`findForeignTargetConflict`): hedef dosya var ama sahibi hiçbir modül değil — yani oyunun kendi dosyası; kurulum durur ve kullanıcıdan başka bir enjeksiyon tipi seçmesi istenir. `requires`'ın aynası; `failures` şekli `conditionChecker`/`requirementChecker` ile birebir aynı. Aynı `detect.exclusiveGroup` içindeki varyantlar (OptiScaler ↔ OptiBuilder) çakışma sayılmaz |
+| `core/conflictChecker.js` | ~270 | **Çakışma denetimi** — (a) manifest'te bildirilen `conflicts` / `incompatible_mods`, (b) dahili *dosya sahipliği* çakışması: hedef dosya zaten var ve başka bir modüle ait, (c) **yabancı dosya çakışması** (`findForeignTargetConflict`): hedef dosya var ama sahibi hiçbir modül değil — yani oyunun kendi dosyası; kurulum durur ve kullanıcıdan başka bir enjeksiyon tipi seçmesi istenir. `requires`'ın aynası; `failures` şekli `conditionChecker`/`requirementChecker` ile birebir aynı. Aynı `detect.exclusiveGroup` içindeki varyantlar (OptiScaler ↔ OptiBuilder) çakışma sayılmaz. (d) **Eklenti çakışmaları** (`role: both` modüller): `checkAddonConflicts` — seçilen eklentinin modülü oyuna zaten tek başına kuruluysa ya da eklenti modülünün kendi `conflicts`'inden biri varsa eklenti atlanır (modal onay kutusunu kilitler, motor `installAddons`'ta uyarıyla atlar, ana kurulum sürer); `findAddonInstallConflict` — modül tek başına kurulurken başka bir modun eklentisi olarak zaten varsa (hedef yolu `addons[].install.renameTo` ile kesin olan girdiler, ör. `plugins/MFGUnlocker.asi`) kurulum 5d'de durur |
 | `core/sourceResolver.js` | ~330 | **Manifest kaynağı çözücü** — `source.type: "github"`, `"github_files"` veya `"url"`. URL kaynağında sürüm keşfi (`html_scrape` / `json_field` / `static`) yapar, githubFetcher ile **aynı şemada** kayıt döndürür, böylece motorun geri kalanı değişmez. `github_files`: release'de asset yokken (yalnızca "Source code (zip)" varken) gereken dosyaları `raw.githubusercontent.com`'dan tek tek indirir (`rawFileUrl`, `downloadFiles`) |
 | `core/rarExtractor.js` | ~130 | **RAR4/RAR5 çıkarma** (node-unrar-js/WASM). 7za RAR desteklemediği için yazıldı; asar altında `app.asar.unpacked` yolundan WASM okur, zip-slip koruması var |
 | `core/configEditor.js` | 134 | INI/JSON config okuma-yazma, `Section.Key` nokta notasyonu |
@@ -159,7 +160,8 @@ Dış link açma yalnızca `open-external-link` IPC kanalıyla (`shell.openExter
 | `vlss5/vlss5Manager.js` | ~880 | **VLSS5 kurulum/güncelleme yöneticisi** — `getStatus`, `install`, `checkForUpdatesOnStartup`, `checkForUpdatesManual`, `launch`, `setModelDll`, `findModelDllInDriverStore`, `closeRunningApp`, `isBusy`, `uninstall`. Durum state dosyasından değil diskten okunur |
 | `test-module-system.js` | 828 | Birim test paketi |
 | `test-e2e-dlssenabler.js` | 196 | Gerçek GitHub indirmeli E2E test |
-| `test-e2e-dummy.js` | 146 | dummy-mod E2E test |
+| `test-e2e-dummy.js` | 146 | dummy-mod E2E test (dummy-mod artık `official/` altında yok — bu test şu an çalışmaz) |
+| `test-install-journal.js` | ~140 | `installJournal` + açılış onarımı; `init()` tekrar çağrıldığında süren kurulumun geri alınmadığını doğrular |
 | `test-detector.js` | ~165 | moduleDetector birim testleri (sahte FileDescription/FileVersion ile) |
 | `test-vlss5.js` | ~200 | VLSS5 + RAR çıkarma testleri (`test-data/vlss5-sample.rar` ile) |
 
@@ -186,10 +188,10 @@ Aynı `id` iki kez bulunursa ilk yüklenen kazanır (shadowing engeli).
 | `fsr4` | **addon** | `vuenxx/extra_policebosstr` | `game_exe` | asset `["*.7z","*.zip"]`, yalnızca `*.dll` kopyalanır |
 | `optiscaler-dlssnr` | mod | `Dagherbou/OptiScaler_DLSSNR` | `game_exe` | OptiScaler + DLSS5 Neural Rendering forku. `[DlssNr]` config şeması + 4 preset, `proxyDetection`, `files.exclude` (setup script'leri). **`nvngx_dlssnr.dll` kullanıcı tarafından sağlanır** |
 | `mfg-unlock` | mod | `mavismmg/MFGAdaUnlock-RenoDx` | `game_exe` | RTX 40'ta DLSS Multi Frame Generation (3x/4x/6x) kilidini açan **ReShade addon'u**. Asset arşiv değil, tek `.addon64` dosyası. `requires: [reshade]` ile ReShade'e bağlı; ayarları `ReShade.ini` → `[RenoDX.MFGUnlock]` |
+| `mfg-unlocker` | mod | `dashdogy/MFG-Unlocker` | `game_exe` | **MFGUnlocker (Universal)** — RTX 40/30'da DLSS MFG. RenoDX'in aksine **ReShade gerektirmez**: tek `MFGUnlocker.dll`, `proxyDetection` ile seçilen proxy adına (varsayılan `version.dll`) kopyalanır. `config` yok (Yönet'te ayar ekranı çıkmaz). Asset `MFGUnlocker-*.zip` → yalnızca v1.5.0+ listelenir (eski sürümler `RTXMFG.dll` taşır). `mfg-unlock` ile karşılıklı `conflicts: block`. **`role: both`** — ayrıca `optibuilder` ve `optiscaler-dlssnr` kurulum ekranında eklenti olarak çıkar: `MFGUnlocker.dll` → `plugins/MFGUnlocker.asi` + `Plugins.LoadAsiPlugins=true` (XeMFG için). OptiScaler 0.9.x desteklenmediği için `optiscaler`'da yok |
 | `reshade` | **both** | `reshade.me` (url) | `game_exe` | Post-process enjektör. `source.type: url` + sürüm keşfi, SFX exe'den DLL çıkarma, `apiTargeting` (32/64 bit + API'ye göre yeniden adlandırma), `extraSources` (shader paketi), `ReShade.ini` üretimi |
 | `dlssg-for-sm86` | mod | `sdli1995/dlssg_for_sm86` | `game_exe` | RTX 20/30'da MFG. Release'de **asset yok** → `source.type: "github_files"` (yalnızca gereken dosyalar raw üzerinden). Her enjeksiyon adı ayrı binary → `proxyDetection.sourceByTarget`. DLL'de FileDescription yok → kaldırma `uninstall.verifiedDlls[].matchModFileHash` ile |
 | `streamline` | mod | `NVIDIA-RTX/Streamline` | `dynamic_search` | `in_place_suffix` backup (`.backup`), hash kaydı, `whitelistFiles` |
-| `dummy-mod` | mod | `vuenxx/dummy` | `game_exe` | Test manifesti |
 
 > `role: "addon"` olan modüller **mod seçim ekranında listelenmez**; bağlı oldukları modun
 > kurulum modalında onay kutusu olarak çıkar. Kendi manifest'leri (repo/asset) tek doğruluk
@@ -303,7 +305,7 @@ permissions[], metadata:{ homepage, tags[], notes }
 | 5 | `resolveDestinationDir()` | 25 |
 | 5b | Yol-bağımlı `conditions` tekrar kontrolü | — |
 | 5c | **`requires`** — ön koşul modülleri kurulu mu? (eksikse **indirme başlamadan** durur, hata `failures[]` taşır) | 27 |
-| 5d | **`conflicts`** — bildirilmiş çakışan modül kurulu mu? (kuruluysa indirme başlamadan durur) | 27 |
+| 5d | **`conflicts`** — bildirilmiş çakışan modül kurulu mu? + bu modül burada başka bir modun **eklentisi olarak** zaten kurulu mu? (`findAddonInstallConflict`, `failures[0].type = 'addon_installed'`). İkisinde de indirme başlamadan durur | 27 |
 | 5e | **`proxyDetection`** — enjeksiyon (proxy) DLL hedefini belirle. *Eskiden 12a idi*; `github_files` kaynağında indirilecek dosya seçime bağlı olduğu için indirmeden önceye alındı. Öncelik: kullanıcı seçimi > diskte tespit (`descriptionMatch`, yoksa `state.injectionField`) > `defaultTarget` | 27 |
 | 5f | **Enjeksiyon çakışması ön-kontrolü** — seçilen proxy adı oyunun kendi dosyasıyla çakışıyorsa **indirme hiç başlamaz** (aynı kontrol 12e'de `apiTargeting` hedefi için tekrarlanır) | 27 |
 | 6 | Sürüm belirle + yerel mod klasörü var mı? | 30 |
@@ -316,15 +318,17 @@ permissions[], metadata:{ homepage, tags[], notes }
 | 12b | `cleanStaleVersionFiles` — eski sürüm artıkları | — |
 | 12e | **Dahili çakışma** — hedef DLL başka bir V-Manager moduna aitse `.bak` alınmaz, kurulum durur. **Sahibi hiçbir modül değilse** (oyunun kendi dosyası) kurulum yine durur: *"Seçtiğiniz enjeksiyon tipi (X) oyunun içerisindeki dosyalarla çakışıyor. Lütfen farklı bir enjeksiyon tipi deneyin."* — `failures[0].type = 'injection_conflict'`. Sahiplik `detect` bloklarından bilinir; `detect` tanımlamayan manifestlerde ve `apiTargeting.backupExisting: true` olan manifestlerde (ör. ReShade) bu kontrol atlanır | — |
 | 13 | Dosyaları kopyala | 80 |
-| 13a | Enjeksiyon tipi değiştiyse eski proxy DLL'i kaldır (hash'i önbellekteki mod dosyasıyla birebir aynıysa; oyunun kendi DLL'ine dokunulmaz) | — |
+| 13a | Enjeksiyon tipi değiştiyse eski proxy DLL'i kaldır — yalnızca bize aitse: hash'i önbellekteki mod dosyasıyla aynı (`sourceByTarget`'ta hedef adlı dosya, klasik modda `sourceFile`) **veya** FileDescription `descriptionMatch` ile eşleşiyor. Oyunun kendi DLL'ine dokunulmaz | — |
 | 13b | `verifyAntiVirusDelayMs` — AV silmiş mi kontrolü | 83 |
-| 13c | **`addons`** — seçili eklentileri kur (hata ana kurulumu bozmaz) | 84 |
+| 13c | **`addons`** — seçili eklentileri kur (hata ana kurulumu bozmaz). Her eklenti önce `checkAddonConflicts`'ten geçer; çakışan eklenti `addonWarnings` ile atlanır | 84 |
 | 14 | `config` değişikliklerini uygula (`set` / preset / addon `configChanges`) | 85 |
 | 15 | `games.json` state güncelle (`state.flag`, `versionField`) | 90 |
 | 16–17 | Doğrula + temizlik | 95–99 |
 | 18 | Bitti | 100 |
 
-**Hata durumunda:** backup varsa otomatik rollback (`restoreBackup`).
+**Hata durumunda:** `performRollback()` — kopyalanan dosyalar silinir, `.bak`/`.backup` yedekleri geri konur, backup varsa `restoreBackup`.
+
+**Çökme durumunda:** adım 5'ten itibaren `installJournal`'da kayıt açılır; `renamedBaks`/`installedPaths` işlemden **önce**, `inPlaceBackups` kopya **tamamlandıktan sonra** deftere yazılır. Sonraki açılışta `repairPendingInstalls()` kalan kayıtları `performRollback()` ile geri alır. Defter yalnızca adım değiştiğinde veya rollback listesi değiştiğinde yazılır (indirme yüzdesi yazım tetiklemez).
 
 **`uninstall()` sırası:** dosya silme (`uninstall.files`) → doğrulamalı DLL silme (`verifiedDlls`: FileDescription eşleşmesi ya da `matchModFileHash` ile indirilmiş dosyanın hash'i) → `.backup` / klasör yedeği geri yükleme → **`.bak` geri yükleme (adım 3b)** → state sıfırlama.
 `.bak` dosyaları `apiTargeting` kurulumunda üzerine yazılan orijinal DLL'lerdir; ÖNCE mod dosyası silinir, SONRA `.bak` uzantısı kaldırılarak orijinal adıyla geri konur (ad çakışması olmasın diye).
@@ -355,7 +359,7 @@ Mod-özel (dlssenabler/optiscaler/optibuilder/... için ayrı ayrı tanımlı) e
 `select-exe`, `scan-folder-for-exes`, `delete-mod-version`, `open-mod-folder`, `read-mod-ini`, `write-mod-ini`, `mod-presets:read`, `mod-presets:write`, `check-dx12-support`, `clear-wizard-logs`, `get-wizard-logs-info`, `open-wizard-logs-dir` (son üçü `moduleWizardEngine`'e bağlanır, sihirbaz motorundan bağımsız — hangi modülün sihirbazı çalışmış olursa olsun aynı log klasörlerini yönetir).
 
 ### 6.6 Manifest modül sistemi (`moduleManager.registerIpcHandlers`)
-`module-list` · `module-get-info` · `module-get-active-for-game` · `module-install` · `module-uninstall` · `module-get-releases` · `module-download-release` · `module-check-conditions` · `module-list-backups` · `module-read-config` · `module-apply-config-changes` · `module-validate-manifest` · `module-save-manifest` · `module-delete-custom-manifest` · `module-wizard-run` · `module-wizard-abort` · `module-reload` · `module-detect-api` · `module-check-requirements` · `module-check-conflicts`
+`module-list` · `module-get-info` · `module-get-active-for-game` · `module-install` · `module-uninstall` · `module-get-releases` · `module-download-release` · `module-check-conditions` · `module-list-backups` · `module-read-config` · `module-apply-config-changes` · `module-validate-manifest` · `module-save-manifest` · `module-delete-custom-manifest` · `module-wizard-run` · `module-wizard-abort` · `module-reload` · `module-detect-api` · `module-check-requirements` · `module-check-conflicts` · `module-check-addon-conflicts`
 
 ### 6.7 Sıkıştırma
 `select-folder` · `analyze-folder` · `get-folder-game-info` · `run-compression` · `run-uncompression` · `get-compression-history` · `remove-history-entry` · `clear-compression-history`
@@ -471,6 +475,7 @@ Event'ler (main → renderer):
 | `modules/<id>/manifest.json` | Kullanıcının custom manifest'leri |
 | `module-backups/<oyun>/<modId>/<timestamp>/` | Yedekler + `backup-meta.json` |
 | `releases-cache/<modId>.json` | GitHub release cache (TTL 1 saat) |
+| `pending-install-journal.json` | Yarım kalan kurulum defteri — normalde boş `{}`; dolu kayıt açılışta onarılır |
 | `logs/<mod>-wizard/` | Sihirbaz log dosyaları |
 | `vlss5/` | **VLSS5 kurulum klasörü** — `VLSS5.exe`, `nvngx.dll_dlssnr.dll` (forwarder) + kullanıcının koyduğu `nvngx_dlssnr.dll` |
 | `vlss5-state.json` | `{ installedVersion, installedTag, installedAt, assetName, exePath, dllAddedAt, pendingUpdate? }` — `pendingUpdate` yalnızca işlem sürerken var; zorla kapatma sonrası onarım işareti |
@@ -729,6 +734,10 @@ node src/main/modules/test-requirements.js
 
 ```bash
 node src/main/modules/test-dlssg-sm86.js
+```
+
+```bash
+node src/main/modules/test-install-journal.js
 ```
 
 ```bash

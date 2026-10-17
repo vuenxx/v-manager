@@ -193,6 +193,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     moduleDetectApi: (data) => ipcRenderer.invoke('module-detect-api', data),
     moduleCheckRequirements: (data) => ipcRenderer.invoke('module-check-requirements', data),
     moduleCheckConflicts: (data) => ipcRenderer.invoke('module-check-conflicts', data),
+    moduleCheckAddonConflicts: (data) => ipcRenderer.invoke('module-check-addon-conflicts', data),
     removeModuleProgressListeners: () => ipcRenderer.removeAllListeners('module-progress'),
 
     // ── Winget Tabanlı Araçlar API ───────────────────────────────────────────

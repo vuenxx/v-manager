@@ -5420,63 +5420,8 @@ body:not([data-theme="dark"]) .toast-btn-secondary:hover {
     margin-top: 10px;
 }
 
-/* ==========================================
-   Floating Bug Report Button
-   ========================================== */
-.bug-report-btn {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 999;
-    box-shadow: var(--shadow);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    outline: none;
-}
-
-.bug-report-btn:hover {
-    color: #ef4444; /* Premium bug red/coral on hover */
-    background-color: var(--item-hover);
-    border-color: rgba(239, 68, 68, 0.4);
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.15), var(--shadow);
-}
-
-.bug-report-btn:active {
-    transform: translateY(0) scale(0.95);
-}
-
-.bug-report-btn .bug-icon {
-    width: 22px;
-    height: 22px;
-    transition: transform 0.25s ease;
-}
-
-.bug-report-btn:hover .bug-icon {
-    transform: rotate(-10deg) scale(1.1);
-}
-
 /* Adjust for small screens */
 @media (max-width: 480px) {
-    .bug-report-btn {
-        bottom: 16px;
-        right: 16px;
-        width: 40px;
-        height: 40px;
-    }
-    .bug-report-btn .bug-icon {
-        width: 18px;
-        height: 18px;
-    }
     .toast-container {
         bottom: 72px;
         right: 16px;
@@ -8726,16 +8671,6 @@ body[data-theme="light"] .mb-code-pre code {
 .vlss5-github-link:hover {
     border-color: var(--accent-color);
     color: var(--accent-color);
-}
-
-.vlss5-gpu-warning {
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 8px;
-    padding: 9px 12px;
 }
 
 /* ─── Kurulum kontrol listesi ──────────────────────────────────────────────── */

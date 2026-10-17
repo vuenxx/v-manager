@@ -21,12 +21,10 @@ const CLIENT_ID = '1519739544478417026';
 
 const TRANSLATIONS = {
     tr: {
-        details: 'Mod Yöneticisi',
-        buttonLabel: 'Web Sitesi'
+        details: 'Mod Yöneticisi'
     },
     en: {
-        details: 'Mod Manager',
-        buttonLabel: 'Web Site'
+        details: 'Mod Manager'
     }
 };
 
@@ -115,13 +113,7 @@ function setPresence() {
         state: 'V-Manager',
         largeImageKey: 'vmanager_logo',
         largeImageText: 'V-Manager',
-        startTimestamp: startTime,
-        buttons: [
-            {
-                label: text.buttonLabel,
-                url: 'https://vuenxx.com/v-manager'
-            }
-        ]
+        startTimestamp: startTime
     };
 
     // 2. Deduplicate (Cache check)

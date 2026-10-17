@@ -105,10 +105,10 @@ async function run() {
 
     d = await scanFakeDir({
         'dxgi.dll': { desc: 'OptiScaler', version: '10.0.0.1' },
-        'nvngx.dll_dlssnr.dll': {},
+        'READ ME - DLSS Neural Rendering.txt': {},
         'OptiScaler.ini': {}
     }, detectors);
-    check('nvngx.dll_dlssnr.dll varsa -> optiscaler-dlssnr',
+    check('DLSSNR README isareti varsa -> optiscaler-dlssnr',
         d['optiscaler-dlssnr'] && !d.optibuilder && !d.optiscaler, d);
 
     d = await scanFakeDir({ 'dxgi.dll': { desc: 'OptiScaler', version: null } }, detectors);

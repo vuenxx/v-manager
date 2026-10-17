@@ -275,6 +275,9 @@ export const tr = {
         restartNote: 'Kurulumdan sonra oyunu bir kez açıp kapatın. İlk açılışta DLSS-G çekirdekleri derlendiği için takılma olabilir; performansı ikinci açılışta değerlendirin.',
         vulkanNote: "Vulkan desteği deneyseldir; Dinamik MFG yalnızca Direct3D 12'de çalışır.",
         dlssgNote: 'Geliştirici güncel bir nvngx_dlssg.dll (310.x) önerir. Bu dosya NVIDIA telifli olduğu için V-Manager ona dokunmaz; isterseniz kendiniz güncelleyebilirsiniz.',
+        unlockerNote: "Oyunda Frame Generation'ı açın ve menüyü Backspace ile açın (ilk açılışta kendiliğinden açılır). Menü görünmezse oyun bu proxy adını yüklemiyor olabilir; farklı bir enjeksiyon tipiyle yeniden kurun.",
+        conflictsRenodx: 'MFG Unlock (RenoDX) kurulu. İki MFG kilit açıcı aynı anda çalışmaz; önce onu kaldırın.',
+        conflictsUniversal: 'MFGUnlocker (Universal) kurulu. İki MFG kilit açıcı aynı anda çalışmaz; önce onu kaldırın.',
     },
     modModal: {
         prereqTitle: '🔗 Gerekli Modlar',
@@ -288,6 +291,8 @@ export const tr = {
         conflictOk: 'Çakışma yok',
         conflictBlocked: 'Önce çakışan modu kaldırın',
         conflictCheckFailed: 'Çakışmalar kontrol edilemedi',
+        alreadyAsAddon: '{name} bu oyunda zaten {parent} eklentisi olarak kurulu ({file}). Aynı mod iki kez yüklenir; önce {parent} modunu kaldırın.',
+        addonStandaloneInstalled: '{name} bu oyuna zaten tek başına kurulu. Eklenti olarak kurmak için önce onu kaldırın.',
         apiLabel: "🎮 Oyunun Grafik API'si",
         apiAuto: 'Otomatik tespit',
         apiDetecting: 'Oyun dosyası analiz ediliyor...',
@@ -334,6 +339,12 @@ export const tr = {
         errorTitle: 'Hata',
         unexpectedError: 'Beklenmeyen hata: ',
         standaloneLoadError: 'Sürümler yüklenirken hata oluştu: ',
+        patcherLabel: 'OptiPatcher',
+        patcherHelp: 'OptiScaler için ek ASI eklentilerini yükler ve ini dosyasını yapılandırır.',
+        fsr4Label: 'FSR4 INT8',
+        fsr4Help: 'FSR4 upscaling dosyalarını yükleyerek oyunda FSR 4 desteği sağlar.',
+        mfgUnlockerLabel: 'MFGUnlocker (Universal)',
+        mfgUnlockerHelp: "MFGUnlocker'ı OptiScaler eklentisi olarak kurar (plugins/MFGUnlocker.asi): XeSS Multi Frame Generation (XeMFG, 2x-6x, her GPU'da). XeMFG için OptiScaler'da FG çıktısını XeFG yapın. Aynı oyuna ayrıca tek başına MFGUnlocker kurmayın.",
     },
     update: {
         version: 'Sürüm:',
@@ -667,7 +678,6 @@ export const tr = {
         checkExe: 'VLSS5 programı',
         checkDll: 'nvngx_dlssnr.dll (DLSS5 modeli)',
         readyBanner: '✓ Kurulum tamam — DLSS5 kullanıma hazır',
-        gpuWarning: 'VLSS5 yalnızca NVIDIA RTX ekran kartlarında çalışır. Sisteminizde uyumlu bir kart bulunamadı.',
 
         dropText: 'nvngx_dlssnr.dll dosyasını buraya sürükleyin',
         dropReplaceText: 'Değiştirmek için yeni bir nvngx_dlssnr.dll sürükleyin',
@@ -718,9 +728,6 @@ export const tr = {
         errMultipleFiles: 'Lütfen tek bir dosya bırakın.',
         errWrongFile: 'Yanlış dosya. Yalnızca nvngx_dlssnr.dll kabul edilir.',
         errPathUnavailable: 'Dosya yolu okunamadı. Lütfen "Dosya Seç" butonunu kullanın.',
-    },
-    bugReport: {
-        title: 'Hata Bildir / Öneri Yap',
     },
     releaseCache: {
         refreshWarningTitle: 'Sürümleri Yenile',

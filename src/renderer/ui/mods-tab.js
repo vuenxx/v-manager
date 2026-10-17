@@ -159,6 +159,37 @@ export async function renderModTabsNav() {
 
     renderModRail();
     renderDetailHeader();
+
+    // Rozetlerde "kaç sürüm kurulu" bilgisinin görünmesi için her modülün
+    // sadece tıklanınca değil, ray ilk çizildiğinde arka planda (önbellekten)
+    // çekilmesi gerekiyor — aksi halde kullanıcı tıklamadığı modüllerde sayı hiç çıkmıyordu.
+    prefetchInstalledCounts();
+}
+
+/**
+ * Sol raydaki her modül için sürüm/kurulu sayısı rozetini doldurmak amacıyla
+ * arka planda (önbellekten, forceRefresh olmadan) sürüm verisini çeker.
+ * Zaten yüklenmiş olan modülleri (ör. aktif sekme) tekrar sormaz.
+ */
+function prefetchInstalledCounts() {
+    if (!window.electronAPI || !window.electronAPI.moduleGetReleases) return;
+
+    allModules.forEach(mod => {
+        if (releasesData[mod.id]) return; // zaten yüklü
+
+        window.electronAPI.moduleGetReleases({ moduleId: mod.id, forceRefresh: false })
+            .then(result => {
+                if (!result || result.error) return;
+                releasesData[mod.id] = {
+                    releases: result.releases ?? [],
+                    fetchedAt: result.fetchedAt ?? null,
+                    fromStaleCache: result.fromStaleCache ?? false
+                };
+                renderModRail();
+                if (mod.id === currentMod) renderDetailHeader();
+            })
+            .catch(e => console.warn('[ModsTab] prefetchInstalledCounts error for', mod.id, e));
+    });
 }
 
 /** Modül için kullanıcıya gösterilecek ad. */

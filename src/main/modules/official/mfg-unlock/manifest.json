@@ -22,6 +22,14 @@
             "message": "MFG Unlock bir ReShade addon'udur (.addon64). Once ReShade kurulmalidir."
         }
     ],
+    "conflicts": [
+        {
+            "moduleId": "mfg-unlocker",
+            "severity": "block",
+            "messageKey": "mfg.conflictsUniversal",
+            "message": "MFGUnlocker (Universal) kurulu. Iki MFG kilit acici ayni anda calismaz; once onu kaldirin."
+        }
+    ],
     "install": {
         "destination": "game_exe",
         "extractRoot": "none",

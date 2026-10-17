@@ -275,6 +275,9 @@ export const en = {
         restartNote: 'Restart the game once after installing. The first launch compiles DLSS-G kernels and may stutter; judge performance on the second launch.',
         vulkanNote: 'Vulkan support is experimental; Dynamic MFG only works on Direct3D 12.',
         dlssgNote: 'The developer recommends an up-to-date nvngx_dlssg.dll (310.x). That file is NVIDIA copyrighted, so V-Manager never touches it; update it yourself if you wish.',
+        unlockerNote: 'Enable Frame Generation in game and press Backspace to open the menu (it opens by itself on first launch). If the menu does not appear, the game may not load this proxy name; reinstall with a different injection type.',
+        conflictsRenodx: 'MFG Unlock (RenoDX) is installed. Two MFG unlockers cannot run at the same time; uninstall it first.',
+        conflictsUniversal: 'MFGUnlocker (Universal) is installed. Two MFG unlockers cannot run at the same time; uninstall it first.',
     },
     modModal: {
         prereqTitle: '🔗 Required Mods',
@@ -288,6 +291,8 @@ export const en = {
         conflictOk: 'No conflict',
         conflictBlocked: 'Remove the conflicting mod first',
         conflictCheckFailed: 'Conflicts could not be checked',
+        alreadyAsAddon: '{name} is already installed in this game as a {parent} add-on ({file}). The mod would load twice; uninstall {parent} first.',
+        addonStandaloneInstalled: '{name} is already installed standalone in this game. Uninstall it first to install it as an add-on.',
         apiLabel: "🎮 Game's Graphics API",
         apiAuto: 'Auto-detect',
         apiDetecting: 'Analyzing game executable...',
@@ -334,6 +339,12 @@ export const en = {
         errorTitle: 'Error',
         unexpectedError: 'Unexpected error: ',
         standaloneLoadError: 'Error loading versions: ',
+        patcherLabel: 'OptiPatcher',
+        patcherHelp: 'Installs extra ASI plugins for OptiScaler and configures its ini file.',
+        fsr4Label: 'FSR4 INT8',
+        fsr4Help: 'Installs the FSR4 upscaling files to enable FSR 4 in the game.',
+        mfgUnlockerLabel: 'MFGUnlocker (Universal)',
+        mfgUnlockerHelp: 'Installs MFGUnlocker as an OptiScaler plugin (plugins/MFGUnlocker.asi): XeSS Multi Frame Generation (XeMFG, 2x-6x, on any GPU). For XeMFG, set the FG output to XeFG in OptiScaler. Do not also install standalone MFGUnlocker in the same game.',
     },
     update: {
         version: 'Version:',
@@ -667,7 +678,6 @@ export const en = {
         checkExe: 'VLSS5 application',
         checkDll: 'nvngx_dlssnr.dll (DLSS5 model)',
         readyBanner: '✓ Installation complete — DLSS5 is ready',
-        gpuWarning: 'VLSS5 only works on NVIDIA RTX graphics cards. No compatible card was detected on your system.',
 
         dropText: 'Drag nvngx_dlssnr.dll here',
         dropReplaceText: 'Drag a new nvngx_dlssnr.dll to replace it',
@@ -718,9 +728,6 @@ export const en = {
         errMultipleFiles: 'Please drop a single file.',
         errWrongFile: 'Wrong file. Only nvngx_dlssnr.dll is accepted.',
         errPathUnavailable: 'Could not read the file path. Please use the "Browse" button.',
-    },
-    bugReport: {
-        title: 'Report Bug / Suggestion',
     },
     releaseCache: {
         refreshWarningTitle: 'Refresh Versions',

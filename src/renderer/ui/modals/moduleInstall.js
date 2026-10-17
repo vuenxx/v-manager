@@ -18,6 +18,51 @@ let _blockingRequirement = null;
 // hâlde alakasız bir kurulumdan sonra yanlış modal açılır.
 let _returnToAfterPrereq = null;
 
+// ── Kurulum devam ederken modal kapatılırsa sağ altta yüzde bildirimi ──────
+// Kurulum zaten ana süreçte (main process) devam ediyor — modalı kapatmak
+// onu iptal etmiyor, sadece ekrandan kaldırıyor. Kullanıcı ilerlemeyi
+// kaybetmesin diye modal kapanınca kalıcı bir toast'a geçiyoruz.
+let _installInFlight = false;
+let _installLabelForToast = '';
+let _lastProgressPercent = 0;
+let _lastProgressMessage = '';
+let _installProgressToastEl = null;
+
+function showInstallProgressToast(percent, message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const p = Math.round(percent || 0);
+
+    if (!_installProgressToastEl) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.style.pointerEvents = 'auto';
+        toast.innerHTML = `
+            <div class="toast-header">
+                <span class="toast-title">⏳ ${_installLabelForToast} kuruluyor</span>
+            </div>
+            <div class="toast-body">
+                <span class="module-install-toast-percent">%${p}</span>
+            </div>
+        `;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 50);
+        _installProgressToastEl = toast;
+    } else {
+        const percentEl = _installProgressToastEl.querySelector('.module-install-toast-percent');
+        if (percentEl) percentEl.textContent = `%${p}`;
+    }
+}
+
+function hideInstallProgressToast() {
+    if (_installProgressToastEl) {
+        const el = _installProgressToastEl;
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 400);
+        _installProgressToastEl = null;
+    }
+}
+
 /**
  * Oyunun gerçek .exe yolunu çözer.
  * Sırasıyla: resolveGamePaths → oyun kaydındaki exePath → kullanıcıya exe seçtirme.
@@ -230,7 +275,11 @@ async function renderConflictsSection(manifest, game) {
     if (!sec || !list) return;
 
     const declared = manifest.conflicts || manifest.incompatible_mods;
-    if (!Array.isArray(declared) || declared.length === 0) {
+    const hasDeclared = Array.isArray(declared) && declared.length > 0;
+    // role "both": modül başka bir modun eklentisi olarak da kurulabilir;
+    // o şekilde zaten kuruluysa (ör. plugins/MFGUnlocker.asi) burada gösterilir.
+    const canBeAddon = manifest.role === 'both';
+    if (!hasDeclared && !canBeAddon) {
         sec.style.display = 'none';
         return;
     }
@@ -280,13 +329,25 @@ async function renderConflictsSection(manifest, game) {
         return; // kurulum engellenmez
     }
 
+    // Yalnızca "eklenti olarak kurulu mu?" kontrolü yapıldıysa ve temizse
+    // gösterilecek satır yoktur — bölüm boş başlıkla kalmasın.
+    if (!res.results || res.results.length === 0) {
+        sec.style.display = 'none';
+        return;
+    }
+
     for (const c of (res.results || [])) {
         if (!c.present) {
             addRow('ok', '✓', c.name, t('modModal.conflictOk'));
             continue;
         }
 
-        const message = (c.messageKey ? t(c.messageKey) : null) || c.message;
+        const message = c.via === 'addon'
+            ? t('modModal.alreadyAsAddon')
+                .replace('{name}', manifest.name || manifest.id)
+                .replace(/\{parent\}/g, c.name)
+                .replace('{file}', c.fileName || '')
+            : ((c.messageKey ? t(c.messageKey) : null) || c.message);
         addRow(c.severity === 'warn' ? 'warn' : 'blocked', c.severity === 'warn' ? '⚠️' : '✗', c.name, message);
     }
 
@@ -294,6 +355,51 @@ async function renderConflictsSection(manifest, game) {
         submitBtn.disabled = true;
         submitBtn.textContent = t('modModal.conflictBlocked');
     }
+}
+
+/**
+ * Çakışan eklentilerin onay kutusunu kilitler ve sebebini satıra yazar.
+ *
+ * Ör. MFGUnlocker oyuna zaten tek başına (proxy DLL) kuruluysa, OptiBuilder'ın
+ * "MFGUnlocker" eklentisi seçilemez — aksi halde mod iki kez yüklenir.
+ * Kontrol edilemezse hiçbir şey kilitlenmez; motor installAddons içinde aynı
+ * kontrolü yapıp çakışan eklentiyi atlar.
+ */
+async function lockConflictingAddons(manifest, game) {
+    if (!window.electronAPI?.moduleCheckAddonConflicts) return;
+
+    let res = null;
+    try {
+        res = await window.electronAPI.moduleCheckAddonConflicts({
+            moduleId: _currentModule?.id || manifest.id,
+            gameName: game?.name,
+            exePath: game?.exePath || game?.exe_path
+        });
+    } catch (e) {
+        res = null;
+    }
+    if (!res || !res.success || !res.addons) return;
+
+    document.querySelectorAll('#module-install-addons-list .module-install-addon-cb').forEach(cb => {
+        const check = res.addons[cb.dataset.moduleId];
+        if (!check || check.clear) return;
+
+        cb.checked = false;
+        cb.disabled = true;
+        const row = cb.closest('label');
+        if (!row) return;
+        row.style.cursor = 'not-allowed';
+        row.style.opacity = '0.75';
+
+        const reasons = check.failures.map(f => f.type === 'addon_standalone'
+            ? t('modModal.addonStandaloneInstalled').replace('{name}', f.name)
+            : ((f.messageKey ? t(f.messageKey) : null) || f.message));
+
+        const reasonEl = document.createElement('div');
+        reasonEl.style.cssText = 'font-size:11px; color:#ef4444; margin-top:3px;'; // .module-prereq-row.blocked ile aynı kırmızı
+        reasonEl.textContent = `✗ ${reasons.join(' ')}`;
+        row.lastElementChild?.appendChild(reasonEl);
+    });
 }
 
 /**
@@ -632,6 +738,7 @@ export async function openModuleInstallModal(moduleData, game, forceRefresh = fa
                 addonsList.appendChild(row);
             });
             addonsSec.style.display = 'block';
+            lockConflictingAddons(manifest, game);
         }
     }
 
@@ -645,6 +752,21 @@ export async function openModuleInstallModal(moduleData, game, forceRefresh = fa
 }
 
 export function initModuleInstallModalListeners() {
+    // Kurulum devam ederken kullanıcı modalı kapatırsa (X butonu, dışarı tıklama
+    // vb. — hepsi sonunda modalin 'active' sınıfını kaldırıyor) ilerlemeyi
+    // sağ alttaki kalıcı bildirime taşı. Kurulumun kendisi zaten ana süreçte
+    // (main process) devam ediyor; burada sadece görünürlüğü koruyoruz.
+    const installModalEl = document.getElementById('module-install-modal');
+    if (installModalEl) {
+        const observer = new MutationObserver(() => {
+            const isActive = installModalEl.classList.contains('active');
+            if (!isActive && _installInFlight && !_installProgressToastEl) {
+                showInstallProgressToast(_lastProgressPercent, _lastProgressMessage);
+            }
+        });
+        observer.observe(installModalEl, { attributes: true, attributeFilter: ['class'] });
+    }
+
     const cancelBtn = document.getElementById('module-install-cancel-btn');
     if (cancelBtn) {
         cancelBtn.addEventListener('click', () => {
@@ -746,6 +868,11 @@ export function initModuleInstallModalListeners() {
             if (percentText) percentText.textContent = '%10';
             if (statusText) statusText.textContent = 'Kurulum başlatılıyor...';
 
+            _installInFlight = true;
+            _installLabelForToast = _currentModule?.manifest?.name || _currentModule?.name || _currentModule?.id || 'Mod';
+            _lastProgressPercent = 10;
+            _lastProgressMessage = 'Kurulum başlatılıyor...';
+
             try {
                 console.log('[MODULE_INSTALL_UI] Kurulum başlatılıyor:', {
                     moduleId: _currentModule.id,
@@ -763,6 +890,9 @@ export function initModuleInstallModalListeners() {
                             if (progressBar) progressBar.style.width = `${Math.min(95, p)}%`;
                             if (percentText) percentText.textContent = `%${p}`;
                             if (statusText) statusText.textContent = `İndiriliyor... %${p}`;
+                            _lastProgressPercent = p;
+                            _lastProgressMessage = `İndiriliyor... %${p}`;
+                            if (_installProgressToastEl) showInstallProgressToast(p);
                         }
                     });
                 }
@@ -776,6 +906,9 @@ export function initModuleInstallModalListeners() {
                             if (percentText) percentText.textContent = `%${p}`;
                             if (statusText && data.message) statusText.textContent = data.message;
                             console.log(`[MODULE_PROGRESS] [${_currentModule.id}] Adım ${data.step}: ${data.message} (%${p})`);
+                            _lastProgressPercent = p;
+                            if (data.message) _lastProgressMessage = data.message;
+                            if (_installProgressToastEl) showInstallProgressToast(p);
                         }
                     });
                 }
@@ -810,6 +943,11 @@ export function initModuleInstallModalListeners() {
                 }
 
                 console.log('[MODULE_INSTALL_UI_RESULT]', result);
+
+                // Kurulum bitti — modal kapatılmış olsa bile ekranda kalmış
+                // olabilecek ilerleme bildirimini kaldır (sonuç zaten showInfoModal ile bildiriliyor).
+                _installInFlight = false;
+                hideInstallProgressToast();
 
                 if (result && result.success) {
                     if (progressBar) progressBar.style.width = '100%';
@@ -890,6 +1028,8 @@ export function initModuleInstallModalListeners() {
                 if (progressSec) progressSec.style.display = 'none';
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Kurulumu Başlat';
+                _installInFlight = false;
+                hideInstallProgressToast();
                 console.error('[MODULE_INSTALL_EXCEPTION]', err);
                 showInfoModal('Hata', err.message || 'Beklenmeyen hata oluştu.', true);
             }

@@ -641,6 +641,26 @@
                 }
             },
             "descriptionKey": "opti.fsr4Help"
+        },
+        {
+            "moduleId": "mfg-unlocker",
+            "label": "MFGUnlocker (Universal)",
+            "labelKey": "opti.mfgUnlockerLabel",
+            "description": "MFGUnlocker'i OptiScaler eklentisi olarak (plugins/MFGUnlocker.asi) kurar: XeSS Multi Frame Generation (XeMFG, 2x-6x, her GPU'da) ve OptiScaler menusunden MFG kontrolu. Ayni oyuna ayrica tek basina MFGUnlocker kurmayin.",
+            "descriptionKey": "opti.mfgUnlockerHelp",
+            "default": false,
+            "install": {
+                "destination": "plugins",
+                "files": {
+                    "include": [
+                        "MFGUnlocker.dll"
+                    ]
+                },
+                "renameTo": "MFGUnlocker.asi"
+            },
+            "configChanges": {
+                "Plugins.LoadAsiPlugins": "true"
+            }
         }
     ],
     "detect": {
@@ -678,6 +698,7 @@
             "OptiMX.log",
             "OptiScaler",
             "D3D12_OptiScaler",
+            "MFGUnlocker.asi",
             "dlssnr-capture",
             "READ ME - DLSS Neural Rendering.txt",
             "!! EXTRACT ALL FILES TO GAME FOLDER !!",

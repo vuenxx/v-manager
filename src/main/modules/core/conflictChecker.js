@@ -263,7 +263,135 @@ async function findForeignTargetConflict(manifest, destDir, fileNames = []) {
     return null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Eklenti (addon) çakışmaları
+//
+// `role: "both"` olan bir modül hem tek başına (ör. proxy DLL olarak) hem de
+// başka bir modun eklentisi olarak (ör. plugins/X.asi) kurulabilir. İkisi aynı
+// oyunda bulunursa mod iki kez yüklenir. Bu iki fonksiyon iki yönü de kapatır:
+//   - checkAddonConflicts:      ana mod + eklenti kurulurken
+//   - findAddonInstallConflict: modül tek başına kurulurken
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Eklentinin hedef dosya yolu — yalnızca `renameTo` ile tek ve kesin bir ad
+ * verilmişse bilinebilir. `include` glob'u (ör. "*.dll") oyunun kendi
+ * dosyalarıyla da eşleşeceği için sahiplik kanıtı sayılmaz → null.
+ */
+function addonTargetPath(addon, destDir) {
+    const renameTo = addon && addon.install && addon.install.renameTo;
+    if (!renameTo || !destDir) return null;
+    const destSpec = addon.install.destination || 'game_exe';
+    const addonDest = (destSpec === 'game_exe' || destSpec === 'parent') ? destDir : path.join(destDir, destSpec);
+    return path.join(addonDest, renameTo);
+}
+
+/**
+ * Ana mod kurulurken seçilen bir eklenti kurulabilir mi?
+ *
+ * Engel durumları:
+ *   1. Eklentinin modülü bu oyuna zaten TEK BAŞINA kurulu (disk → games.json)
+ *   2. Eklenti modülünün kendi bildirdiği çakışmalardan biri kurulu
+ *      (ör. MFGUnlocker ↔ MFG Unlock RenoDX)
+ *
+ * @param {object} parentManifest  Kurulan ana modun manifest'i
+ * @param {object} addon           parentManifest.addons[] girdisi
+ * @param {object} context         { gameName, gameDir }
+ * @returns {Promise<{clear:boolean, failures:Array}>}
+ */
+async function checkAddonConflicts(parentManifest, addon, context = {}) {
+    const { gameName, gameDir } = context;
+    const failures = [];
+
+    let target = null;
+    try { target = mgr().getModule(addon.moduleId); } catch (e) { /* aşağıda null */ }
+    const addonManifest = target ? target.manifest : null;
+    const name = (addonManifest && addonManifest.name) || addon.label || addon.moduleId;
+
+    // 1. Aynı modül tek başına kurulu mu? Eklenti dosyasının kendisi (ör. .asi)
+    //    detect adaylarında olmadığı için burada yalnızca bağımsız kurulum yakalanır.
+    const diskHit = await moduleDetector.isModuleInstalledIn(addon.moduleId, gameDir);
+    const game = findGameRecord(gameName);
+    if (diskHit.installed || isInstalledInState(game, addon.moduleId, addonManifest)) {
+        failures.push({
+            type: 'addon_standalone',
+            moduleId: addon.moduleId,
+            name,
+            message: `${name} bu oyuna zaten tek başına kurulu. Aynı mod iki kez yüklenir; eklenti olarak kurmak için önce onu kaldırın.`
+        });
+    }
+
+    // 2. Eklenti modülünün kendi bildirdiği çakışmalar (ana modun kendisi hariç)
+    if (addonManifest) {
+        const declared = await checkDeclaredConflicts(addonManifest, { gameName, gameDir });
+        for (const r of declared.results) {
+            if (!r.present || r.severity !== 'block' || r.moduleId === parentManifest.id) continue;
+            failures.push({
+                type: 'addon_conflicts',
+                moduleId: r.moduleId,
+                name,
+                message: r.message,
+                messageKey: r.messageKey
+            });
+        }
+    }
+
+    return { clear: failures.length === 0, failures };
+}
+
+/**
+ * Bir modül tek başına kurulurken: aynı modül bu klasörde zaten başka bir
+ * modun eklentisi olarak mı duruyor? (ör. plugins/MFGUnlocker.asi)
+ *
+ * Tüm yüklü manifest'lerin `addons` listeleri taranır; hedef yolu kesin olan
+ * (`renameTo`) ve diskte bulunan ilk eşleşme döner.
+ *
+ * @returns {Promise<{type, moduleId, parentId, parentName, fileName, message}|null>}
+ */
+async function findAddonInstallConflict(manifest, destDir) {
+    if (!manifest || !destDir) return null;
+
+    let modules = [];
+    try { modules = mgr().getModules() || []; } catch (e) { return null; }
+
+    for (const mod of modules) {
+        const parent = mod.manifest || mod;
+        if (!parent || parent.id === manifest.id || !Array.isArray(parent.addons)) continue;
+
+        for (const addon of parent.addons) {
+            if (!addon || addon.moduleId !== manifest.id) continue;
+            const targetPath = addonTargetPath(addon, destDir);
+            if (!targetPath || !fs.existsSync(targetPath)) continue;
+
+            // Aynı eklenti birden fazla ana modda (OptiBuilder, DLSSNR) tanımlı
+            // olabilir; diskte kurulu olanı adlandır, bulunamazsa ilk tanımlayanı.
+            let parentName = parent.name || parent.id;
+            for (const other of modules) {
+                const om = other.manifest || other;
+                if (!om || !Array.isArray(om.addons) || !om.addons.some(a => a && a.moduleId === manifest.id)) continue;
+                if ((await moduleDetector.isModuleInstalledIn(om.id, destDir)).installed) {
+                    parentName = om.name || om.id;
+                    break;
+                }
+            }
+
+            const rel = path.relative(destDir, targetPath).replace(/\\/g, '/');
+            return {
+                type: 'addon_installed',
+                moduleId: manifest.id,
+                parentName,
+                fileName: rel,
+                message: `${manifest.name || manifest.id} bu oyunda zaten ${parentName} eklentisi olarak kurulu (${rel}). ` +
+                         `Aynı mod iki kez yüklenir; önce ${parentName} modunu kaldırın.`
+            };
+        }
+    }
+    return null;
+}
+
 module.exports = {
+    checkAddonConflicts,
+    findAddonInstallConflict,
     checkDeclaredConflicts,
     findFileOwnerConflict,
     findForeignTargetConflict,

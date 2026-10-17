@@ -27,6 +27,7 @@ const TAG = '[MODULE_MANAGER]';
 
 // ── Yüklü modüller ────────────────────────────────────────────────────────────
 const loadedModules = new Map();  // moduleId -> { manifest, dir, type }
+let pendingRepairDone = false;    // yarım kalan kurulum onarımı bu process'te çalıştı mı
 
 // ── Modül keşif dizinleri ─────────────────────────────────────────────────────
 function _getModuleRoots() {
@@ -126,6 +127,19 @@ function init() {
     }
 
     console.log(`${TAG} Modül sistemi hazır. Yüklenen: ${totalLoaded}, Hata: ${totalErrors}`);
+
+    // Önceki oturum kurulum sırasında çökmüş/zorla kapanmışsa yarım kalan
+    // dosya değişikliklerini geri al — aksi halde oyun klasörü kalıcı olarak
+    // karışık (bazı dosyalar .bak'ta, bazıları üzerine yazılmış) kalır.
+    // YALNIZCA process başına bir kez: init() özel manifest kaydet/sil ve
+    // module-reload ile de tekrar çağrılıyor; o anda süren bir kurulumun
+    // defter kaydı "yarım kalmış" sanılıp dosyaları geri alınmamalı.
+    if (!pendingRepairDone) {
+        pendingRepairDone = true;
+        moduleEngine.repairPendingInstalls().catch((e) => {
+            console.error(`${TAG} Yarım kalan kurulum onarımı başarısız:`, e.message);
+        });
+    }
 }
 
 /**
@@ -708,19 +722,70 @@ function registerIpcHandlers(ipcMain) {
             const manifest = mod.manifest;
             const conflictChecker = require('./conflictChecker');
             const entries = conflictChecker.normalizeConflictEntries(manifest);
-            if (entries.length === 0) {
+            const canBeAddon = manifest.role === 'both';
+            if (entries.length === 0 && !canBeAddon) {
                 return { success: true, clear: true, results: [], failures: [] };
             }
 
             const gameDir = moduleEngine.resolveDestinationDir(manifest, gameName, exePath);
-            const result = await conflictChecker.checkDeclaredConflicts(manifest, {
-                gameName, exePath, gameDir
-            });
+            const result = entries.length > 0
+                ? await conflictChecker.checkDeclaredConflicts(manifest, { gameName, exePath, gameDir })
+                : { clear: true, results: [], failures: [] };
+
+            // Motorun 5d adımıyla aynı: bu modül burada başka bir modun eklentisi
+            // olarak zaten kuruluysa (ör. plugins/MFGUnlocker.asi) kurulum kilitlenir.
+            if (canBeAddon) {
+                const asAddon = await conflictChecker.findAddonInstallConflict(manifest, gameDir);
+                if (asAddon) {
+                    result.results.push({
+                        moduleId: asAddon.moduleId,
+                        name: asAddon.parentName,
+                        present: true,
+                        severity: 'block',
+                        via: 'addon',
+                        fileName: asAddon.fileName,
+                        message: asAddon.message,
+                        messageKey: null
+                    });
+                    result.failures.push(asAddon);
+                    result.clear = false;
+                }
+            }
 
             return { success: true, ...result };
         } catch (err) {
             console.error(`${TAG} module-check-conflicts hatası:`, err);
             // Kontrol edilemedi ≠ çakışma var. UI bu durumda kurulumu engellemez.
+            return { success: false, error: err.message };
+        }
+    });
+
+    // ── module-check-addon-conflicts: Ana modun eklentileri kurulabilir mi ──
+    // Kurulum modalı, çakışan eklentinin onay kutusunu kilitlemek için çağırır
+    // (ör. MFGUnlocker zaten proxy olarak kuruluyken OptiBuilder eklentisi).
+    // Motor installAddons içinde aynı kontrolü tekrarlar.
+    ipcMain.handle('module-check-addon-conflicts', async (_event, { moduleId, gameName, exePath } = {}) => {
+        try {
+            const mod = getModule(moduleId);
+            if (!mod) {
+                return { success: false, error: `Modül bulunamadı: ${moduleId}` };
+            }
+
+            const manifest = mod.manifest;
+            const addons = Array.isArray(manifest.addons) ? manifest.addons : [];
+            if (addons.length === 0) return { success: true, addons: {} };
+
+            const conflictChecker = require('./conflictChecker');
+            const gameDir = moduleEngine.resolveDestinationDir(manifest, gameName, exePath);
+            const out = {};
+            for (const addon of addons) {
+                if (!addon || !addon.moduleId) continue;
+                out[addon.moduleId] = await conflictChecker.checkAddonConflicts(manifest, addon, { gameName, gameDir });
+            }
+            return { success: true, addons: out };
+        } catch (err) {
+            console.error(`${TAG} module-check-addon-conflicts hatası:`, err);
+            // Kontrol edilemedi ≠ çakışma var; motor yine de kontrol eder.
             return { success: false, error: err.message };
         }
     });
@@ -808,8 +873,16 @@ function registerIpcHandlers(ipcMain) {
     });
 
     // ── module-wizard-run: Manifest tabanlı sihirbazı çalıştır ──────────
+    // Diğer kurulum/kaldırma işlemleriyle AYNI sıraya giriyor (actionLock) —
+    // aksi halde bir oyuna sihirbazla mod kurulurken aynı anda başka bir
+    // oyuna normal kurulum başlatılabiliyor, iki ayrı dosya işlemi yarışa girebiliyordu.
     let isWizardAborted = false;
     ipcMain.handle('module-wizard-run', async (event, data = {}) => {
+        const unlock = actionLock;
+        let resolveLock;
+        actionLock = new Promise(r => resolveLock = r);
+        await unlock;
+
         try {
             isWizardAborted = false;
             const moduleId = data.moduleId;
@@ -839,6 +912,8 @@ function registerIpcHandlers(ipcMain) {
         } catch (err) {
             console.error(`${TAG} module-wizard-run hatası:`, err);
             return { success: false, error: err.message };
+        } finally {
+            resolveLock();
         }
     });
 

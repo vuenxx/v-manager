@@ -1,0 +1,132 @@
+{
+    "id": "mfg-unlocker",
+    "name": "MFGUnlocker (Universal)",
+    "description": "RTX 40 ve RTX 30 serisi kartlarda DLSS Multi Frame Generation'i (2x-6x, Dynamic MFG) acar. Tek DLL'lik bagimsiz bir proxy moddur — ReShade gerekmez; oyun ici menu Backspace ile acilir.",
+    "author": "dashdogy",
+    "version": "latest",
+    "role": "both",
+    "source": {
+        "type": "github",
+        "repo": "dashdogy/MFG-Unlocker",
+        "release": "latest",
+        "asset": [
+            "MFGUnlocker-*.zip"
+        ],
+        "maxReleases": 10
+    },
+    "conflicts": [
+        {
+            "moduleId": "mfg-unlock",
+            "severity": "block",
+            "messageKey": "mfg.conflictsRenodx",
+            "message": "MFG Unlock (RenoDX) kurulu. Iki MFG kilit acici ayni anda calismaz; once onu kaldirin."
+        }
+    ],
+    "install": {
+        "destination": "game_exe",
+        "extractRoot": "auto",
+        "refreshGameOnComplete": true,
+        "verifyAntiVirusDelayMs": 1500,
+        "whitelistFiles": [
+            "MFGUnlocker.dll"
+        ],
+        "proxyDetection": {
+            "sourceFile": "MFGUnlocker.dll",
+            "candidates": [
+                "version.dll",
+                "winmm.dll",
+                "dxgi.dll",
+                "d3d12.dll",
+                "d3d11.dll",
+                "d3d10.dll",
+                "d3d9.dll",
+                "dinput8.dll",
+                "dsound.dll",
+                "wininet.dll",
+                "winhttp.dll",
+                "xinput1_3.dll",
+                "xinput1_4.dll",
+                "xinput9_1_0.dll"
+            ],
+            "descriptionMatch": "mfg unlocker",
+            "defaultTarget": "version.dll"
+        }
+    },
+    "detect": {
+        "priority": 15,
+        "depthStrategy": "shallowest",
+        "match": {
+            "proxyDll": {
+                "candidates": [
+                    "version.dll",
+                    "winmm.dll",
+                    "dxgi.dll",
+                    "d3d12.dll",
+                    "d3d11.dll",
+                    "d3d10.dll",
+                    "d3d9.dll",
+                    "dinput8.dll",
+                    "dsound.dll",
+                    "wininet.dll",
+                    "winhttp.dll",
+                    "xinput1_3.dll",
+                    "xinput1_4.dll",
+                    "xinput9_1_0.dll",
+                    "mfgunlocker.dll"
+                ],
+                "descriptionMatch": "mfg unlocker"
+            }
+        }
+    },
+    "state": {
+        "flag": "hasMfgUnlocker",
+        "versionField": "mfgUnlockerVersion",
+        "pathField": "mfgUnlockerPath",
+        "injectionField": "mfgUnlockerInjection"
+    },
+    "uninstall": {
+        "files": [
+            "RTXMFG-Universal.status.json"
+        ],
+        "verifiedDlls": [
+            {
+                "candidates": [
+                    "version.dll",
+                    "winmm.dll",
+                    "dxgi.dll",
+                    "d3d12.dll",
+                    "d3d11.dll",
+                    "d3d10.dll",
+                    "d3d9.dll",
+                    "dinput8.dll",
+                    "dsound.dll",
+                    "wininet.dll",
+                    "winhttp.dll",
+                    "xinput1_3.dll",
+                    "xinput1_4.dll",
+                    "xinput9_1_0.dll",
+                    "MFGUnlocker.dll"
+                ],
+                "descriptionMatch": "mfg unlocker"
+            }
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://github.com/dashdogy/MFG-Unlocker",
+        "postInstallNoteKey": "mfg.unlockerNote",
+        "tags": [
+            "mfg",
+            "frame-generation",
+            "dlss",
+            "rtx40",
+            "rtx30"
+        ],
+        "notes": "ReShade GEREKMEZ — MFGUnlocker.dll secilen proxy adiyla (version.dll, winmm.dll, dxgi.dll...) oyunun exe'sinin yanina kopyalanir; menu oyunda Backspace ile acilir. Ayar dosyasi (RTXMFG-Universal.json) mod tarafindan yonetilir, V-Manager'da config ekrani yoktur ve kaldirmada kullanicinin ayarlarini korumak icin silinmez. Yalnizca MFGUnlocker-*.zip asset'li surumler (v1.5.0+) listelenir; daha eski RTXMFG.dll surumleri farkli dosya adi tasidigi icin bilincli olarak disarida birakildi. Bink proxy yolu (binkw64.dll -> binkw64Hooked.dll) oyunun orijinal DLL'inin yeniden adlandirilmasini gerektirdigi icin aday listesinde yok. OptiScaler eklentisi olarak kurulum (plugins/MFGUnlocker.asi, XeMFG icin) bu manifestte degil; OptiScaler 10 tabanli optibuilder ve optiscaler-dlssnr manifestlerinin 'addons' listesinde (role: both). OptiScaler 0.9.x desteklenmedigi icin 'optiscaler' manifestinde yok."
+    }
+}

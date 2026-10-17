@@ -20,6 +20,7 @@ const conflictChecker = require('./conflictChecker');
 const backup = require('./backup');
 const { createLogger, getLogFilePath } = require('./moduleLogger');
 const manifestValidator = require('./manifestValidator');
+const installJournal = require('./installJournal');
 
 const TAG = '[MODULE_ENGINE]';
 
@@ -83,12 +84,14 @@ function findFileInDir(rootDir, targetName, maxDepth = 5) {
  * bozulmaz, yalnızca uyarı olarak raporlanır.
  *
  * @param {object} parentManifest  Ana modülün manifest'i (addons tanımını içerir)
- * @param {object} options         install() options — options.addons: { <id>: true | {tag, downloadUrl} }
+ * @param {object} options         install() options — options.addons: { <id>: true | {tag, downloadUrl} },
+ *                                 options.gameName (eklenti çakışma kontrolü için)
  * @param {string} destDir         Ana modülün kurulum dizini
  * @param {object} logger
+ * @param {function} onBeforeCopy  Her hedef dosya kopyalanmadan önce yolu ile çağrılır
  * @returns {Promise<{installed: string[], warnings: string[], configChanges: object}>}
  */
-async function installAddons(parentManifest, options, destDir, logger) {
+async function installAddons(parentManifest, options, destDir, logger, onBeforeCopy = () => { }) {
     const installed = [];
     const warnings = [];
     const configChanges = {};
@@ -115,6 +118,17 @@ async function installAddons(parentManifest, options, destDir, logger) {
                 throw new Error(`Referans modül bulunamadı: ${addon.moduleId}`);
             }
             const addonManifest = refMod.manifest;
+
+            // ── Çakışma: modül zaten tek başına kurulu ya da kendi bildirdiği
+            //    çakışmalardan biri var → eklenti atlanır (ana kurulum sürer).
+            //    Kurulum modalı bu durumda onay kutusunu zaten kilitler; bu
+            //    motor tarafındaki güvenlik ağıdır.
+            const addonCheck = await conflictChecker.checkAddonConflicts(parentManifest, addon, {
+                gameName: options?.gameName, gameDir: destDir
+            });
+            if (!addonCheck.clear) {
+                throw new Error(addonCheck.failures.map(f => f.message).join('; '));
+            }
 
             // ── Sürüm / indirme linki ────────────────────────────────────
             let tag = (typeof sel === 'object' && sel.tag) ? sel.tag : null;
@@ -166,6 +180,8 @@ async function installAddons(parentManifest, options, destDir, logger) {
             let copied = 0;
             for (const name of files) {
                 const target = path.join(addonDest, (renameTo && files.length === 1) ? renameTo : name);
+                // Kopyalamadan ÖNCE bildir — çağıran yarım kalma defterine yazabilsin
+                onBeforeCopy(target);
                 fs.copyFileSync(path.join(srcDir, name), target);
                 installedPaths.push(target);
                 copied++;
@@ -388,15 +404,100 @@ function findExistingLocalModDir(manifest, releaseTarget, release = null) {
     return null;
 }
 
+/**
+ * Yarım kalmış bir kurulumun yaptığı dosya değişikliklerini geri alır.
+ * Hem normal kurulum hatasında (aynı process içinde) hem de uygulama
+ * çöktükten sonraki açılış onarımında (repairPendingInstalls) kullanılır —
+ * bu yüzden sadece closure üzerinden değil, parametre olarak çalışır.
+ */
+async function performRollback({ rollbackState, backupCreated, gameName, manifestId, destDir, extractedDir, rollbackOnFailure }, logger) {
+    const log = logger || { step: () => {}, error: () => {} };
+
+    // Kopyalanan yeni dosyaları sil
+    for (const p of (rollbackState?.installedPaths || [])) {
+        try { if (fs.existsSync(p)) fs.rmSync(p, { force: true, recursive: true }); } catch (e) { }
+    }
+
+    // .bak yedeklerini geri yükle
+    for (const b of (rollbackState?.renamedBaks || [])) {
+        try {
+            if (fs.existsSync(b.backup)) {
+                if (fs.existsSync(b.original)) fs.rmSync(b.original, { force: true });
+                fs.renameSync(b.backup, b.original);
+            }
+        } catch (e) { }
+    }
+
+    // in_place_suffix (.backup) geri yükle
+    if ((rollbackState?.inPlaceBackups || []).length > 0 && rollbackOnFailure) {
+        for (const { backupPath, activePath } of rollbackState.inPlaceBackups) {
+            try {
+                if (fs.existsSync(activePath)) fs.unlinkSync(activePath);
+                if (fs.existsSync(backupPath)) fs.renameSync(backupPath, activePath);
+            } catch (rbErr) { }
+        }
+    }
+
+    if (backupCreated && destDir) {
+        try {
+            await backup.restoreBackup(gameName, manifestId, destDir, backupCreated);
+            log.step({ tr: 'Yedek geri yüklendi (geri alma)', en: 'Backup restored (rollback)' });
+        } catch (rollbackErr) {
+            log.error({ tr: `Geri alma hatası: ${rollbackErr.message}`, en: `Rollback failed: ${rollbackErr.message}` });
+        }
+    }
+
+    if (extractedDir && fs.existsSync(extractedDir)) {
+        try { fs.rmSync(extractedDir, { recursive: true, force: true }); } catch (e) { /* ignore */ }
+    }
+}
+
+/**
+ * Uygulama açılışında çağrılır. Önceki oturumda çökme/zorla kapatma yüzünden
+ * yarım kalmış (installJournal'da hâlâ kayıtlı) kurulumları bulur ve
+ * dosyalarını geri alır — aksi halde oyun klasörü hem yeni hem .bak dosyalarla
+ * karışık, uygulamanın hiç haberi olmayan bir durumda kalırdı.
+ */
+async function repairPendingInstalls() {
+    const pending = installJournal.getAllPending();
+    const entryIds = Object.keys(pending);
+    if (entryIds.length === 0) return { repaired: 0 };
+
+    let repaired = 0;
+    for (const entryId of entryIds) {
+        const entry = pending[entryId];
+        console.warn(`${TAG} [REPAIR] Yarım kalmış kurulum bulundu, geri alınıyor: ${entry.manifestId} (${entry.gameName})`);
+        try {
+            await performRollback({
+                rollbackState: entry.rollbackState,
+                backupCreated: entry.backupCreated,
+                gameName: entry.gameName,
+                manifestId: entry.manifestId,
+                destDir: entry.destDir,
+                extractedDir: null,
+                rollbackOnFailure: true
+            }, null);
+            repaired++;
+        } catch (e) {
+            console.error(`${TAG} [REPAIR] Onarım hatası (${entryId}):`, e);
+        } finally {
+            installJournal.clear(entryId);
+        }
+    }
+    console.warn(`${TAG} [REPAIR] Tamamlandı: ${repaired}/${entryIds.length} kurulum onarıldı`);
+    return { repaired, total: entryIds.length };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // install — Ana kurulum pipeline'ı
 // ─────────────────────────────────────────────────────────────────────────────
-async function install(manifest, gameName, exePath, tag, options, onProgress = () => { }) {
+async function install(manifest, gameName, exePath, tag, options, onProgressExternal = () => { }) {
     const logger = createLogger(manifest.id, { scope: 'install', gameName });
-    
+
     let destDir = null;
     let extractedDir = null;
     let backupCreated = null;
+    let journalEntryId = null;
     const recordedHashes = {};
     const rollbackState = {
         installedPaths: [],
@@ -404,6 +505,25 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
         inPlaceBackups: []
     };
     const partialFailures = [];
+
+    // Yarım kalma defterine anlık rollbackState'i yazar. Dosya sistemine
+    // dokunan her adımdan ÖNCE (yeniden adlandırma/kopyalama) çağrılır ki
+    // process ortadan kesilirse repairPendingInstalls() o değişikliği de bilsin.
+    let journaledStep = null;
+    const syncJournal = () => {
+        if (!journalEntryId) return;
+        installJournal.update(journalEntryId, { destDir, backupCreated, rollbackState, step: journaledStep });
+    };
+
+    // Defter yalnızca adım DEĞİŞTİĞİNDE yazılır — indirme yüzdesi gibi sık
+    // gelen ilerleme bildirimleri her seferinde diske yazım tetiklemesin.
+    const onProgress = (progress) => {
+        try { onProgressExternal(progress); } catch (e) { /* ignore */ }
+        if (progress?.step !== journaledStep) {
+            journaledStep = progress?.step;
+            syncJournal();
+        }
+    };
 
     try {
         console.log(`${TAG} Kurulum başlatılıyor: ${manifest.id} (tag: ${tag})`);
@@ -476,6 +596,11 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
         }
         logger.info({ tr: `Hedef klasör: ${destDir}`, en: `Target folder: ${destDir}` });
 
+        // Hedef klasör belli oldu — dosyalara dokunmadan önce defter kaydı aç.
+        // Buradan sonra process ölürse repairPendingInstalls() bu kaydı bulup temizler.
+        journalEntryId = `${manifest.id}::${destDir}`;
+        installJournal.begin(journalEntryId, { manifestId: manifest.id, gameName, destDir });
+
         // ── 5b. Re-check path-dependent conditions ────────────────────────
         if (manifest.conditions && manifest.conditions.length > 0) {
             const pathConditions = manifest.conditions.filter(c =>
@@ -528,6 +653,15 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                 const reasons = declared.failures.map(f => f.message).join('; ');
                 const err = new Error(reasons);
                 err.failures = declared.failures;
+                throw err;
+            }
+
+            // Bu modül burada zaten başka bir modun eklentisi olarak mı kurulu?
+            // (ör. plugins/MFGUnlocker.asi varken MFGUnlocker'ı proxy olarak kurmak)
+            const asAddon = await conflictChecker.findAddonInstallConflict(manifest, destDir);
+            if (asAddon) {
+                const err = new Error(asAddon.message);
+                err.failures = [asAddon];
                 throw err;
             }
         }
@@ -865,7 +999,10 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                         const destFileDir = path.dirname(backupPath);
                         if (!fs.existsSync(destFileDir)) fs.mkdirSync(destFileDir, { recursive: true });
                         fs.copyFileSync(activePath, backupPath);
+                        // Kopya TAMAMLANDIKTAN sonra kaydedilir: yarım bir .backup
+                        // geri yüklenirse orijinal dosya bozuk kopyayla değişirdi.
                         rollbackState.inPlaceBackups.push({ backupPath, activePath });
+                        syncJournal();
                         logger.step({ tr: `Yerinde yedek oluşturuldu: ${file} -> ${file}${backupSuffix}`, en: `In-place backup created: ${file} -> ${file}${backupSuffix}` });
                     } catch (e) {
                         logger.warn({ tr: `Yerinde yedek oluşturulamadı (${file}): ${e.message}`, en: `In-place backup could not be created (${file}): ${e.message}` });
@@ -878,6 +1015,7 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
             );
             if (backupRes.success) {
                 backupCreated = path.basename(backupRes.backupPath);
+                syncJournal();
                 logger.step({ tr: `Yedek oluşturuldu (${backupRes.backedUpFiles} dosya)`, en: `Backup created (${backupRes.backedUpFiles} file(s))` });
             } else {
                 logger.warn({ tr: 'Yedek oluşturulamadı, kurulum devam ediyor', en: 'Backup could not be created; installation continues' });
@@ -1068,17 +1206,23 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                     if (fs.existsSync(destPath)) {
                         const bakPath = destPath + '.bak';
                         if (!fs.existsSync(bakPath)) {
+                            // Yeniden adlandırmadan ÖNCE deftere yaz; .bak hiç oluşmazsa
+                            // performRollback zaten var olmayan yedeği atlar.
+                            const bakEntry = { original: destPath, backup: bakPath };
+                            rollbackState.renamedBaks.push(bakEntry);
+                            syncJournal();
                             try {
                                 fs.renameSync(destPath, bakPath);
-                                rollbackState.renamedBaks.push({ original: destPath, backup: bakPath });
                             } catch (bkErr) {
+                                rollbackState.renamedBaks.splice(rollbackState.renamedBaks.indexOf(bakEntry), 1);
                                 logger.warn({ tr: `Mevcut dosya yedeklenemedi (${bkErr.message}), üzerine yazılıyor: ${entry.name}`, en: `Existing file could not be backed up (${bkErr.message}); overwriting: ${entry.name}` });
                             }
                         }
                     }
 
-                    fs.copyFileSync(srcPath, destPath);
                     rollbackState.installedPaths.push(destPath);
+                    syncJournal();
+                    fs.copyFileSync(srcPath, destPath);
                     installedFileCount++;
                     copiedRelPaths.push(`${relPath} → ${path.relative(destDir, destPath).replace(/\\/g, '/') || path.basename(destPath)}`);
                 }
@@ -1108,8 +1252,9 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                         } else {
                             // Yabancı / oyunun dosyası
                             if (!fs.existsSync(backupPath)) {
-                                fs.renameSync(destFile, backupPath);
                                 rollbackState.renamedBaks.push({ original: destFile, backup: backupPath });
+                                syncJournal();
+                                fs.renameSync(destFile, backupPath);
                                 logger.warn({ tr: `Mevcut ${apiTarget.targetName} yedeklendi: ${path.basename(backupPath)}`, en: `Existing ${apiTarget.targetName} backed up: ${path.basename(backupPath)}` });
                             } else {
                                 // .bak zaten var (muhtemelen oyunun orijinali), şu anki üzerine yazılacak olanı sadece sil
@@ -1121,8 +1266,9 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                     }
                 }
 
-                fs.copyFileSync(srcFile, destFile);
                 rollbackState.installedPaths.push(destFile);
+                syncJournal();
+                fs.copyFileSync(srcFile, destFile);
                 installedFileCount = 1;
                 lastInstalledDllPath = destFile;
                 logger.step({ tr: `Kopyalandı: ${apiTarget.sourceFile} → ${apiTarget.targetName}`, en: `Copied: ${apiTarget.sourceFile} → ${apiTarget.targetName}` });
@@ -1165,21 +1311,37 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
             logger.step({ tr: `Toplam ${installedFileCount} dosya kopyalandı`, en: `${installedFileCount} file(s) copied in total` });
 
             // ── 13a. Enjeksiyon tipi degistiyse eski proxy DLL'i kaldir ────
-            // Aksi halde oyun klasorunde iki proxy birden kalir. Yalnizca
-            // hash'i onbellekteki mod dosyasiyla BIREBIR ayni olan dosya silinir;
-            // oyunun kendi DLL'ine hicbir kosulda dokunulmaz.
+            // Aksi halde oyun klasorunde iki proxy birden kalir. Yalnizca bize
+            // ait oldugu kanitlanan dosya silinir: hash'i onbellekteki mod
+            // dosyasiyla BIREBIR ayni ya da FileDescription'i manifest'in
+            // descriptionMatch'iyle eslesiyor (kaldirma adimiyla ayni kural —
+            // eski bir surumden kalan proxy'nin hash'i guncel onbellekle tutmaz).
+            // Oyunun kendi DLL'ine hicbir kosulda dokunulmaz.
             if (effectiveProxyTarget && manifest.state?.injectionField) {
                 const previousTarget = gameState && gameState[manifest.state.injectionField];
                 if (previousTarget && String(previousTarget).toLowerCase() !== effectiveProxyTarget.toLowerCase()) {
+                    const pd = manifest.install.proxyDetection || {};
                     const previousPath = path.join(destDir, previousTarget);
-                    const cachedPrevious = path.join(sourceDir, previousTarget);
+                    // sourceByTarget: onbellekte her hedef kendi adiyla durur.
+                    // Klasik (yeniden adlandirma) mod: onbellekte tek dosya `sourceFile` adiyla durur.
+                    const cachedPrevious = (pd.sourceByTarget || !pd.sourceFile)
+                        ? path.join(sourceDir, previousTarget)
+                        : path.join(sourceDir, pd.sourceFile);
                     try {
-                        if (fs.existsSync(previousPath) && fs.existsSync(cachedPrevious)) {
-                            const [installedHash, cachedHash] = await Promise.all([
-                                utils.getFileHash(previousPath),
-                                utils.getFileHash(cachedPrevious)
-                            ]);
-                            if (installedHash && installedHash === cachedHash) {
+                        if (fs.existsSync(previousPath)) {
+                            let isOurs = false;
+                            if (fs.existsSync(cachedPrevious)) {
+                                const [installedHash, cachedHash] = await Promise.all([
+                                    utils.getFileHash(previousPath),
+                                    utils.getFileHash(cachedPrevious)
+                                ]);
+                                isOurs = !!installedHash && installedHash === cachedHash;
+                            }
+                            if (!isOurs && pd.descriptionMatch) {
+                                const desc = await utils.getFileDescription(previousPath);
+                                isOurs = !!desc && desc.toLowerCase().includes(pd.descriptionMatch.toLowerCase());
+                            }
+                            if (isOurs) {
                                 fs.unlinkSync(previousPath);
                                 logger.step({ tr: `Eski enjeksiyon dosyası kaldırıldı: ${previousTarget}`, en: `Previous injection file removed: ${previousTarget}` });
                             } else {
@@ -1251,12 +1413,14 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
                             }
                             const dst = path.join(targetSub, item);
                             const dstPreExisted = fs.existsSync(dst);
-                            fs.cpSync(src, dst, { recursive: true, force: true });
                             if (!dstPreExisted) {
                                 // Bu yol tamamen bu kurulumla oluşturuldu — başarısızlıkta
-                                // güvenle tamamen silinebilir.
+                                // güvenle tamamen silinebilir. Kopyalamadan önce deftere yazılır.
                                 rollbackState.installedPaths.push(dst);
-                            } else {
+                                syncJournal();
+                            }
+                            fs.cpSync(src, dst, { recursive: true, force: true });
+                            if (dstPreExisted) {
                                 // Zaten var olan bir klasör/dosyanın içine birleştirildi
                                 // (ör. kullanıcının kendi shader'ları) — rollback'te bunu
                                 // otomatik silmek, içindeki önceden var olan içeriği de
@@ -1304,10 +1468,10 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
         let addonResult = { installed: [], warnings: [], configChanges: {}, installedPaths: [] };
         if (Array.isArray(manifest.addons) && options?.addons) {
             onProgress({ step: 13, message: 'Eklentiler kuruluyor...', percent: 84 });
-            addonResult = await installAddons(manifest, options, destDir, logger);
-            if (addonResult.installedPaths) {
-                rollbackState.installedPaths.push(...addonResult.installedPaths);
-            }
+            addonResult = await installAddons(manifest, { ...options, gameName }, destDir, logger, (target) => {
+                rollbackState.installedPaths.push(target);
+                syncJournal();
+            });
         } else if (Array.isArray(manifest.addons) && manifest.addons.length > 0) {
             logger.skip({
                 tr: 'Eklenti kurulumu atlandı — kullanıcı hiçbir eklenti seçmedi',
@@ -1472,50 +1636,25 @@ async function install(manifest, gameName, exePath, tag, options, onProgress = (
         if (partialFailures.length > 0) {
             resultObj.partialFailures = partialFailures;
         }
+        if (journalEntryId) installJournal.clear(journalEntryId);
         return resultObj;
 
     } catch (error) {
         console.error(`${TAG} Kurulum hatası (${manifest.id}):`, error);
         logger.error(error.message);
 
-        // Kopyalanan yeni dosyaları sil
-        for (const p of rollbackState.installedPaths) {
-            try { if (fs.existsSync(p)) fs.rmSync(p, { force: true, recursive: true }); } catch (e) { }
-        }
+        await performRollback({
+            rollbackState,
+            backupCreated,
+            gameName,
+            manifestId: manifest.id,
+            destDir,
+            extractedDir,
+            rollbackOnFailure: manifest.backup?.rollbackOnFailure
+        }, logger);
 
-        // apiTarget .bak yedeklerini geri yükle
-        for (const b of rollbackState.renamedBaks) {
-            try {
-                if (fs.existsSync(b.backup)) {
-                    if (fs.existsSync(b.original)) fs.rmSync(b.original, { force: true });
-                    fs.renameSync(b.backup, b.original);
-                }
-            } catch (e) { }
-        }
-
-        // in_place_suffix (.backup) geri yükle
-        if (rollbackState.inPlaceBackups.length > 0 && manifest.backup?.rollbackOnFailure) {
-            for (const { backupPath, activePath } of rollbackState.inPlaceBackups) {
-                try {
-                    if (fs.existsSync(activePath)) fs.unlinkSync(activePath);
-                    if (fs.existsSync(backupPath)) fs.renameSync(backupPath, activePath);
-                } catch (rbErr) {}
-            }
-        }
-
-        if (backupCreated && destDir) {
-            console.log(`${TAG} Rollback yapılıyor (backup: ${backupCreated})...`);
-            try {
-                await backup.restoreBackup(gameName, manifest.id, destDir, backupCreated);
-                logger.step({ tr: 'Yedek geri yüklendi (geri alma)', en: 'Backup restored (rollback)' });
-            } catch (rollbackErr) {
-                logger.error({ tr: `Geri alma hatası: ${rollbackErr.message}`, en: `Rollback failed: ${rollbackErr.message}` });
-            }
-        }
-
-        if (extractedDir && fs.existsSync(extractedDir)) {
-            try { fs.rmSync(extractedDir, { recursive: true, force: true }); } catch (e) { /* ignore */ }
-        }
+        // Rollback bu process içinde tamamlandı — yarım kalma defterine artık gerek yok.
+        if (journalEntryId) installJournal.clear(journalEntryId);
 
         return {
             success: false,
@@ -2289,5 +2428,6 @@ module.exports = {
     getModFolderCandidates,
     findExistingLocalModDir,
     resolveRepoPathIn,
-    migrateFlatRepoFiles
+    migrateFlatRepoFiles,
+    repairPendingInstalls
 };

@@ -148,20 +148,6 @@ function inspectInstallDir() {
     return result;
 }
 
-/** GPU bilgisi — NVIDIA değilse UI sarı uyarı gösterir (engelleme yok). */
-async function getGpuHint() {
-    try {
-        const conditionChecker = require('../core/conditionChecker');
-        const gpu = await conditionChecker.getGpuInfo();
-        return {
-            gpuName: gpu.name || null,
-            gpuSupported: gpu.vendor === 'nvidia'
-        };
-    } catch (e) {
-        return { gpuName: null, gpuSupported: true };
-    }
-}
-
 /**
  * Tam durum. Ağ hatasında bile yerel durum döner (latest* alanları null olur).
  * @param {{ forceRefresh?: boolean }} opts
@@ -169,7 +155,6 @@ async function getGpuHint() {
 async function getStatus(opts = {}) {
     const insp = inspectInstallDir();
     const state = readState();
-    const gpu = await getGpuHint();
 
     const installedVersion = insp.exeExists ? (state.installedVersion || null) : null;
 
@@ -236,8 +221,6 @@ async function getStatus(opts = {}) {
         hasUpdate,
         releaseError,
         fromStaleCache,
-        gpuName: gpu.gpuName,
-        gpuSupported: gpu.gpuSupported,
         githubUrl: GITHUB_URL,
         state: uiState
     };

@@ -55,6 +55,29 @@ console.log('');
 let passed = 0;
 let failed = 0;
 
+// Eski official/dummy-mod manifest'i (b8be283'te silindi) — test fikstürü olarak
+const DUMMY_MANIFEST = {
+    id: 'dummy-mod',
+    name: 'Dummy Mod',
+    description: 'V-Manager manifest modül sistemini test etmek için örnek mod.',
+    author: 'vuenxx',
+    version: '0.1.0',
+    source: { type: 'github', repo: 'vuenxx/dummy', release: 'latest', asset: 'dummy-mod*.zip', maxReleases: 10 },
+    install: { destination: 'game_exe', extractRoot: 'auto', files: { exclude: ['README*', 'LICENSE*'] } },
+    config: [{
+        file: 'dummy-config.ini',
+        format: 'ini',
+        search: ['dummy-config.ini', 'Dummy-Config.ini'],
+        required: false,
+        set: { 'DummySection.TestSetting': 'enabled', 'DummySection.Version': '0.1' }
+    }],
+    backup: { enabled: false },
+    state: { flag: 'hasDummyMod', versionField: 'dummyModVersion' },
+    uninstall: { files: ['dummy-config.ini', 'dummy-mod-file.asi', 'dummy-folder'], restoreBackup: false, resetState: true },
+    permissions: ['internet', 'game_files'],
+    metadata: { homepage: 'https://github.com/vuenxx/dummy', tags: ['test', 'dummy'] }
+};
+
 async function test(name, fn) {
     try {
         await fn();
@@ -348,8 +371,12 @@ async function runTests() {
     });
 
     // ── 7. dummy-mod manifest doğrulama ───────────────────────────────────────────
+    // dummy-mod artık official/ altında yok; test kendi manifest'ini özel (custom)
+    // modül dizinine (mock userData/modules) yazar — böylece custom kök keşfi de sınanır.
     console.log('\n─── dummy-mod manifest ──────────────────────────────');
-    const dummyManifestPath = path.join(__dirname, 'official', 'dummy-mod', 'manifest.json');
+    const dummyManifestPath = path.join(mockUserData, 'modules', 'dummy-mod', 'manifest.json');
+    fs.mkdirSync(path.dirname(dummyManifestPath), { recursive: true });
+    fs.writeFileSync(dummyManifestPath, JSON.stringify(DUMMY_MANIFEST, null, 2), 'utf-8');
 
     await test('Dummy manifest okunabilmeli', () => {
         assert(fs.existsSync(dummyManifestPath), `Dosya bulunamadı: ${dummyManifestPath}`);
@@ -467,10 +494,11 @@ async function runTests() {
         assert(modules.length >= 2, `Yüklenen modül sayısı: ${modules.length}`);
     });
 
-    await test('dummy-mod yüklenmeli', () => {
+    await test('dummy-mod (custom) yüklenmeli', () => {
         const mod = moduleManager.getModule('dummy-mod');
         assert(mod !== null, 'dummy-mod bulunamadı');
         assert(mod.manifest.name === 'Dummy Mod');
+        assert(mod.type === 'custom', `Beklenen tip custom, gelen: ${mod.type}`);
     });
 
     await test('dlssenabler yüklenmeli', () => {
@@ -821,6 +849,11 @@ async function runTests() {
         process.exit(1);
     }
 }
+
+// Test sonunda (başarılı/başarısız) geçici custom dummy-mod klasörünü sil
+process.on('exit', () => {
+    try { fs.rmSync(path.join(mockUserData, 'modules', 'dummy-mod'), { recursive: true, force: true }); } catch (e) { /* yoksay */ }
+});
 
 runTests().catch(err => {
     console.error('Fatal test runner error:', err);
