@@ -6,7 +6,8 @@
         { "moduleId": "dlssenabler", "severity": "warn" },
         { "moduleId": "optiscaler", "severity": "warn" },
         { "moduleId": "optibuilder", "severity": "warn" },
-        { "moduleId": "optiscaler-dlssnr", "severity": "warn" }
+        { "moduleId": "optiscaler-dlssnr", "severity": "warn" },
+        { "moduleId": "anr-fg", "severity": "block", "message": "ANR FG de DLSS-G'nin yerine gecer; ayni oyunda dlssg-for-sm86 ile kullanilamaz." }
     ],
     "author": "sdli1995",
     "version": "latest",

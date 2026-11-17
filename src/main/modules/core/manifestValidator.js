@@ -119,6 +119,9 @@ function validate(manifest) {
                 if (dest.type !== 'relative' || typeof dest.path !== 'string') {
                     errors.push("Obje olarak belirtilen 'install.destination' { type: 'relative', path: '...' } şeklinde olmalıdır.");
                 }
+                if (dest.base !== undefined && dest.base !== 'game_root' && dest.base !== 'game_exe') {
+                    errors.push("'install.destination.base' 'game_root' veya 'game_exe' olmalıdır.");
+                }
             } else {
                 errors.push("'install.destination' geçerli bir string veya obje olmalıdır.");
             }
@@ -297,6 +300,12 @@ function validate(manifest) {
                 if (!cfg.set && !cfg.schema) {
                     errors.push(`'config[${idx}]' için 'set' veya 'schema' alanlarından en az biri tanımlanmalıdır.`);
                 }
+                if (cfg.searchFrom !== undefined && cfg.searchFrom !== 'game_exe' && cfg.searchFrom !== 'destination') {
+                    errors.push(`'config[${idx}].searchFrom' 'game_exe' veya 'destination' olmalıdır.`);
+                }
+                if (cfg.restoreOnUninstall !== undefined && typeof cfg.restoreOnUninstall !== 'boolean') {
+                    errors.push(`'config[${idx}].restoreOnUninstall' boolean olmalıdır.`);
+                }
 
                 // Validate config schema
                 if (cfg.schema !== undefined) {
@@ -385,6 +394,9 @@ function validate(manifest) {
             }
             if (det.depthStrategy !== undefined && det.depthStrategy !== 'shallowest' && det.depthStrategy !== 'deepest') {
                 errors.push("'detect.depthStrategy' 'shallowest' veya 'deepest' olmalıdır.");
+            }
+            if (det.versionFile !== undefined && (typeof det.versionFile !== 'string' || !det.versionFile.trim())) {
+                errors.push("'detect.versionFile' boş olmayan bir string olmalıdır.");
             }
 
             const m = det.match;

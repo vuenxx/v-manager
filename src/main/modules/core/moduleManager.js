@@ -805,7 +805,7 @@ function registerIpcHandlers(ipcMain) {
                 return { success: false, error: `Modül için config tanımı bulunamadı: ${moduleId}` };
             }
 
-            const searchBaseDir = moduleEngine.resolveDestinationDir(manifest, gameName, exePath);
+            const searchBaseDir = moduleEngine.resolveConfigSearchDir(manifest, configEntry, gameName, exePath);
             if (!searchBaseDir) {
                 return { success: false, error: `Oyun dizini çözümlenemedi: ${gameName}` };
             }
@@ -845,7 +845,7 @@ function registerIpcHandlers(ipcMain) {
                 return { success: false, error: `Modül için config tanımı bulunamadı: ${moduleId}` };
             }
 
-            const searchBaseDir = moduleEngine.resolveDestinationDir(manifest, gameName, exePath);
+            const searchBaseDir = moduleEngine.resolveConfigSearchDir(manifest, configEntry, gameName, exePath);
             if (!searchBaseDir) {
                 return { success: false, error: `Oyun dizini çözümlenemedi: ${gameName}` };
             }

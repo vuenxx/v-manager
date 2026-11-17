@@ -1,0 +1,104 @@
+{
+    "id": "anr-fg",
+    "name": "ANR FG (Apex Neural Rendering)",
+    "description": "Apex Compute'un yapay zeka tabanli kare uretimi (frame generation). OptiScaler'a ozel DLSS-G saglayicisi olarak takilir; oyunda DLSS Frame Generation acildiginda ANR FG devreye girer. NVIDIA RTX 20-50 / GTX 16, AMD RX 5000-9000 ve Intel Arc. Beta.",
+    "author": "Apex Compute",
+    "version": "latest",
+    "source": {
+        "type": "github",
+        "repo": "apex-compute/ANR",
+        "release": "latest",
+        "asset": "anr-fg-*-addon.zip",
+        "maxReleases": 10
+    },
+    "install": {
+        "destination": {
+            "type": "relative",
+            "base": "game_exe",
+            "path": "OptiScaler/custom"
+        },
+        "extractRoot": "none",
+        "files": {
+            "include": [
+                "Apex Neural Rendering FG/*"
+            ],
+            "keepExisting": [
+                "Apex Neural Rendering FG/dlssg/nr_fg.ini"
+            ]
+        },
+        "refreshGameOnComplete": true
+    },
+    "requires": [
+        {
+            "moduleId": "optibuilder",
+            "severity": "block",
+            "message": "ANR FG, OptiScaler'in ozel FG saglayicisi destegini (custom/<klasor>/dlssg) ister. Once OptiBuilder 10.0.2 veya sonrasini kurun."
+        }
+    ],
+    "conflicts": [
+        {
+            "moduleId": "dlssg-for-sm86",
+            "severity": "block",
+            "message": "dlssg-for-sm86 de DLSS-G'nin yerine gecer; ANR FG ile ayni oyunda kullanilamaz."
+        },
+        {
+            "moduleId": "dlssenabler",
+            "severity": "warn",
+            "message": "DLSS Enabler kuruluyken ANR FG yerine Enabler'in kare uretimi devreye girebilir."
+        }
+    ],
+    "config": [
+        {
+            "file": "OptiScaler.ini",
+            "format": "ini",
+            "search": [
+                "OptiScaler.ini",
+                "optiscaler.ini"
+            ],
+            "searchFrom": "game_exe",
+            "required": true,
+            "createIfMissing": false,
+            "restoreOnUninstall": true,
+            "restoreMissingAs": "auto",
+            "set": {
+                "FrameGen.FGInput": "nvngxfg",
+                "FrameGen.FGNvngxReplacement": "Apex Neural Rendering FG",
+                "FrameGen.DisableHudless": "false"
+            }
+        }
+    ],
+    "detect": {
+        "priority": 30,
+        "match": {
+            "anyFileName": [
+                "nr_fg.ini"
+            ]
+        }
+    },
+    "state": {
+        "flag": "hasAnrFg",
+        "versionField": "anrFgVersion",
+        "pathField": "anrFgPath"
+    },
+    "uninstall": {
+        "files": [
+            "Apex Neural Rendering FG"
+        ],
+        "restoreBackup": false,
+        "resetState": true
+    },
+    "permissions": [
+        "internet",
+        "game_files"
+    ],
+    "metadata": {
+        "homepage": "https://github.com/apex-compute/ANR",
+        "tags": [
+            "anr",
+            "apex",
+            "frame-generation",
+            "optiscaler"
+        ],
+        "notes": "OptiScaler/custom/Apex Neural Rendering FG altina kurulur ve OptiScaler.ini'de FGInput=nvngxfg, FGNvngxReplacement=Apex Neural Rendering FG, DisableHudless=false yazar; eski degerler kaldirmada geri yazilir (config.restoreOnUninstall). Yalnizca oyunun kendi DLSS Frame Generation'i olan oyunlarda calisir. Stok OptiScaler 0.9.x ve optibuilder 10.0.1 ozel FG klasorlerini yuklemez (upstream 941ce6a1, 2026-10-29). ANR'in kendi ayarlari (dlssg/nr_fg.ini) bolumsuz INI oldugu icin V-Manager ayar ekraninda yok. Paket kapali kaynak ve imzali; V-Manager gommez, release'den indirir."
+    }
+}

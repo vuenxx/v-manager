@@ -499,6 +499,7 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
     let backupCreated = null;
     let journalEntryId = null;
     const recordedHashes = {};
+    const configRestore = []; // restoreOnUninstall: [{ index, values: { "Section.Key": eskiDeğer|null } }]
     const rollbackState = {
         installedPaths: [],
         renamedBaks: [],
@@ -1151,7 +1152,7 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
         // kuralindan oturu ATLANDI. Cok dosyali arsivlerde gunlugu bogmamak
         // icin atlananlar tek tek degil, sebep basina toplu yazilir.
         const copiedRelPaths = [];
-        const skippedByRule = { whitelist: [], include: [], exclude: [] };
+        const skippedByRule = { whitelist: [], include: [], exclude: [], kept: [] };
 
         const installFilesRecursive = (src, dest) => {
             // Hedef klasor DOSYA yazilmadan hemen once acilir. Kaynak klasorde
@@ -1178,6 +1179,14 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
                 if (manifest.install.files?.exclude) {
                     const excluded = manifest.install.files.exclude.some(p => matchGlob(relPath, p) || matchGlob(entry.name, p));
                     if (excluded) { skippedByRule.exclude.push(relPath); continue; }
+                }
+
+                // keepExisting: hedefte zaten varsa üzerine yazılmaz (kullanıcının ayar
+                // dosyası güncellemede korunur, ör. ANR FG'nin nr_fg.ini'si)
+                if (!entry.isDirectory() && manifest.install.files?.keepExisting && fs.existsSync(destPath) &&
+                    manifest.install.files.keepExisting.some(p => matchGlob(relPath, p) || matchGlob(entry.name, p))) {
+                    skippedByRule.kept.push(relPath);
+                    continue;
                 }
 
                 if (entry.isDirectory()) {
@@ -1299,6 +1308,12 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
                     logger.skip({
                         tr: `${skippedByRule.include.length} dosya atlandı — manifest install.files.include kuralına uymuyor: ${skippedByRule.include.join(', ')}`,
                         en: `${skippedByRule.include.length} file(s) skipped — did not match manifest install.files.include: ${skippedByRule.include.join(', ')}`
+                    });
+                }
+                if (skippedByRule.kept.length > 0) {
+                    logger.skip({
+                        tr: `${skippedByRule.kept.length} dosya korundu — hedefte zaten var (install.files.keepExisting): ${skippedByRule.kept.join(', ')}`,
+                        en: `${skippedByRule.kept.length} file(s) kept — already present at the target (install.files.keepExisting): ${skippedByRule.kept.join(', ')}`
                     });
                 }
                 if (skippedByRule.exclude.length > 0) {
@@ -1493,13 +1508,16 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
             });
         }
         if (manifest.config && manifest.config.length > 0) {
-            for (const entry of manifest.config) {
+            for (const [entryIndex, entry] of manifest.config.entries()) {
                 const searchNames = entry.search || [entry.file];
-                let configPath = configEditor.findConfigFile(destDir, searchNames);
+                // searchFrom:"game_exe" → config, modun kurulduğu klasörde değil exe
+                // klasöründe aranır (ör. ANR FG OptiScaler/custom'a kurulur, OptiScaler.ini exe yanında)
+                const configBaseDir = resolveConfigSearchDir(manifest, entry, gameName, exePath, destDir);
+                let configPath = configEditor.findConfigFile(configBaseDir, searchNames);
 
                 if (!configPath) {
                     if (entry.createIfMissing) {
-                        configPath = path.join(destDir, entry.file);
+                        configPath = path.join(configBaseDir, entry.file);
                         const configDir = path.dirname(configPath);
                         if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
                         if (entry.format === 'json') {
@@ -1537,6 +1555,24 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
                     changesToApply = Object.assign({}, changesToApply, addonResult.configChanges);
                 }
 
+                // restoreOnUninstall: yazılacak anahtarların ŞU ANKİ değerleri saklanır,
+                // kaldırmada geri yazılır (adım 15 ilk kurulumdaki değerleri korur)
+                if (entry.restoreOnUninstall && (entry.format || 'ini') === 'ini') {
+                    try {
+                        const before = await configEditor.readConfig(configPath, 'ini');
+                        const prev = {};
+                        for (const key of Object.keys(changesToApply)) {
+                            const dot = key.lastIndexOf('.');
+                            if (dot === -1) continue;
+                            const v = before.data?.[key.slice(0, dot)]?.[key.slice(dot + 1)];
+                            prev[key] = v === undefined ? null : v;
+                        }
+                        configRestore.push({ index: entryIndex, values: prev });
+                    } catch (e) {
+                        logger.warn({ tr: `Eski config değerleri okunamadı (kaldırmada geri yüklenmeyecek): ${e.message}`, en: `Previous config values could not be read (will not be restored on uninstall): ${e.message}` });
+                    }
+                }
+
                 await configEditor.applyChanges(configPath, entry.format, changesToApply, {
                     createIfMissing: !!entry.createIfMissing
                 });
@@ -1551,11 +1587,14 @@ async function install(manifest, gameName, exePath, tag, options, onProgressExte
             const dbGame = games.find(g => config.normalizeGameKey(g.name) === config.normalizeGameKey(gameName));
             if (dbGame) {
                 if (!dbGame.installedMods) dbGame.installedMods = {};
+                const priorRestore = dbGame.installedMods[manifest.id]?.configRestore;
                 dbGame.installedMods[manifest.id] = {
                     installed: true,
                     version: effectiveVersion,
                     installedAt: new Date().toISOString()
                 };
+                const mergedRestore = mergeConfigRestore(priorRestore, configRestore);
+                if (mergedRestore.length > 0) dbGame.installedMods[manifest.id].configRestore = mergedRestore;
                 if (manifest.state) {
                     if (manifest.state.flag) dbGame[manifest.state.flag] = true;
                     if (manifest.state.versionField) dbGame[manifest.state.versionField] = effectiveVersion;
@@ -2096,8 +2135,42 @@ async function uninstall(manifest, gameName, exePath) {
             }
         }
 
+        // ── 3c. Config geri yükleme (config[].restoreOnUninstall) ─────────────
+        const restoreList = dbGame?.installedMods?.[manifest.id]?.configRestore;
+        if (Array.isArray(restoreList) && restoreList.length > 0) {
+            for (const rec of restoreList) {
+                const entry = (manifest.config || [])[rec.index];
+                if (!entry) continue;
+                try {
+                    const baseDir = resolveConfigSearchDir(manifest, entry, gameName, exePath, destDir);
+                    const cfgPath = baseDir ? configEditor.findConfigFile(baseDir, entry.search || [entry.file]) : null;
+                    if (!cfgPath) {
+                        logger.skip({ tr: `Config geri yükleme atlandı — dosya yok: ${entry.file}`, en: `Config restore skipped — file not found: ${entry.file}` });
+                        continue;
+                    }
+                    const changes = {};
+                    for (const [key, val] of Object.entries(rec.values || {})) {
+                        if (val !== null && val !== undefined) changes[key] = val;
+                        else if (entry.restoreMissingAs !== undefined) changes[key] = entry.restoreMissingAs;
+                    }
+                    if (Object.keys(changes).length === 0) continue;
+                    await configEditor.applyChanges(cfgPath, entry.format || 'ini', changes);
+                    logger.step({
+                        tr: `Config eski haline getirildi: ${path.basename(cfgPath)} (${Object.keys(changes).join(', ')})`,
+                        en: `Config restored: ${path.basename(cfgPath)} (${Object.keys(changes).join(', ')})`
+                    });
+                } catch (e) {
+                    logger.warn({ tr: `Config geri yüklenemedi (${entry.file}): ${e.message}`, en: `Config could not be restored (${entry.file}): ${e.message}` });
+                }
+            }
+        }
+
         // ── 4. State Sıfırlama ────────────────────────────────────────────────
         if (dbGame) {
+            // Bu modüle `requires` ile bağlı modların dosyaları da bu kaldırmayla
+            // gittiyse (ör. OptiBuilder → OptiScaler klasörü → içindeki ANR FG),
+            // onların kaydı da temizlenir; yoksa kartta "kurulu" kalırlardı.
+            clearOrphanedDependents(manifest, gameName, exePath, dbGame, logger);
             if (dbGame.installedMods && dbGame.installedMods[manifest.id]) {
                 delete dbGame.installedMods[manifest.id];
             }
@@ -2413,9 +2486,74 @@ function resolveDestinationDir(manifest, gameName, exePath) {
         const found = findDynamicSearchDir(searchBase, manifest.install?.detection);
         return found || exeDir || gameRoot;
     } else if (typeof destType === 'object' && destType.type === 'relative') {
-        return path.join(gameRoot, destType.path);
+        // base:"game_exe" → exe klasörüne göre (ör. "OptiScaler/custom"); varsayılan oyun kökü
+        const base = destType.base === 'game_exe' ? (exeDir || gameRoot) : gameRoot;
+        return path.join(base, destType.path);
     }
     return gameRoot;
+}
+
+/**
+ * Bir config girdisinin aranacağı klasör. Varsayılan: modun hedef klasörü.
+ * entry.searchFrom === "game_exe" → oyunun exe klasörü (mod alt klasöre kurulsa da
+ * başka bir modun config'ini, ör. OptiScaler.ini, düzenleyebilsin diye).
+ */
+function resolveConfigSearchDir(manifest, entry, gameName, exePath, destDir) {
+    if (entry && entry.searchFrom === 'game_exe') {
+        const gamePaths = config.getGamePaths(gameName, exePath);
+        const exeDir = gamePaths?.exe_path ? path.dirname(gamePaths.exe_path) : (exePath ? path.dirname(exePath) : null);
+        return exeDir || config.resolveActualGameRoot(gameName, exePath) || destDir || null;
+    }
+    return destDir || resolveDestinationDir(manifest, gameName, exePath);
+}
+
+/**
+ * `manifest`i `requires` ile isteyen ve bu oyunda kurulu kayıtlı modlardan, kendi
+ * uninstall.files öğelerinin HİÇBİRİ artık diskte bulunmayanların state'ini temizler.
+ * uninstall.files tanımlamayan modlara dokunulmaz (emin olunamaz).
+ */
+function clearOrphanedDependents(manifest, gameName, exePath, dbGame, logger) {
+    let modules = [];
+    try { modules = require('./moduleManager').getModules() || []; } catch (e) { return; }
+    for (const mod of modules) {
+        const dep = mod.manifest;
+        if (!dep || dep.id === manifest.id || !Array.isArray(dep.requires)) continue;
+        if (!dep.requires.some(r => r && r.moduleId === manifest.id && r.enabled !== false)) continue;
+        const st = dep.state || {};
+        const recorded = (dbGame.installedMods && dbGame.installedMods[dep.id]?.installed) || (st.flag && dbGame[st.flag] === true);
+        if (!recorded) continue;
+        const names = (dep.uninstall?.files || []).map(f => (typeof f === 'string' ? f : f && f.file)).filter(Boolean);
+        if (names.length === 0) continue;
+        const depDir = resolveDestinationDir(dep, gameName, exePath);
+        const stillThere = depDir && fs.existsSync(depDir) && names.some(n => findFileInDir(depDir, n, 5).length > 0);
+        if (stillThere) continue;
+
+        if (dbGame.installedMods) delete dbGame.installedMods[dep.id];
+        if (st.flag) dbGame[st.flag] = false;
+        if (st.versionField) dbGame[st.versionField] = null;
+        if (st.pathField) dbGame[st.pathField] = null;
+        if (st.hashesField) delete dbGame[st.hashesField];
+        if (st.modVersionField) delete dbGame[st.modVersionField];
+        if (st.injectionField) dbGame[st.injectionField] = null;
+        if (st.upscalerField && dbGame.upscalers) dbGame.upscalers[st.upscalerField] = false;
+        logger.step({
+            tr: `${dep.name || dep.id} da kaldırıldı — dosyaları ${manifest.name || manifest.id} ile birlikte gitti, kaydı temizlendi`,
+            en: `${dep.name || dep.id} was removed too — its files went with ${manifest.name || manifest.id}; its record was cleared`
+        });
+    }
+}
+
+/** Yeniden kurulumda İLK kurulumdan önceki değerler korunur (güncelleme onları ezmesin). */
+function mergeConfigRestore(prior, current) {
+    const out = Array.isArray(prior) ? prior.map(r => ({ index: r.index, values: { ...(r.values || {}) } })) : [];
+    for (const rec of current || []) {
+        const existing = out.find(r => r.index === rec.index);
+        if (!existing) { out.push({ index: rec.index, values: { ...rec.values } }); continue; }
+        for (const [k, v] of Object.entries(rec.values || {})) {
+            if (!(k in existing.values)) existing.values[k] = v;
+        }
+    }
+    return out;
 }
 
 module.exports = {
@@ -2424,6 +2562,7 @@ module.exports = {
     getReleases,
     downloadRelease,
     resolveDestinationDir,
+    resolveConfigSearchDir,
     findDynamicSearchDir,
     getModFolderCandidates,
     findExistingLocalModDir,

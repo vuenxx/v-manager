@@ -105,7 +105,9 @@ async function fetchReleases(moduleId, repo, options = {}) {
     } catch (e) {
         console.warn(`[GITHUB_FETCHER] API hatası, önbellek deneniyor: ${e.message}`);
         const stale = releaseCache.readCache(moduleId);
-        if (stale) return { fetchedAt: stale.fetchedAt, fromStaleCache: true, releases: stale.releases };
+        // Manifest'in repo'su değiştiyse eski repo'nun listesi gösterilmez (ör. optibuilder:
+        // extra_newrepo → OptiScalerBuilder); API limiti dolduğunda yanlış sürümler kurulmasın
+        if (stale && (!repo || stale.repo === repo)) return { fetchedAt: stale.fetchedAt, fromStaleCache: true, releases: stale.releases };
         return { error: e.message };
     }
 }

@@ -14,6 +14,7 @@
  *   "exclusiveGroup": "optiscaler", // aynı gruptan yalnızca en yüksek öncelikli tespit kalır
  *   "depthStrategy": "shallowest",  // "deepest" → daha derin klasör bulunursa üzerine yazar
  *   "sticky": false,                // true → tespit edilmezse mevcut state korunur (streamline)
+ *   "versionFile": "OptiScaler/OptiBuilder.version", // varsa sürüm buradan (DLL klasörüne göre)
  *   "match": {
  *     "anyFileName": ["dlss-enabler.dll"],
  *     "fileNamePattern": "sl.*.dll",
@@ -69,6 +70,30 @@ function compareVersions(a, b) {
         if (x < y) return -1;
     }
     return 0;
+}
+
+/**
+ * `detect.versionFile` — paketle gelen sürüm işaret dosyası (eşleşen DLL'in
+ * klasörüne göre yol). DLL'in FileVersion'ı her derlemede aynı olabildiği
+ * için (ör. OptiScaler master: hep 10.0.0.1) kurulu sürüm buradan okunur.
+ * İçerik JSON ({"version":"10.0.2", ...}) ya da ilk satırı sürüm olan düz metin.
+ * Dosya yoksa/okunamazsa null → çağıran FileVersion'a döner.
+ */
+function readVersionFile(dir, relPath) {
+    if (!dir || !relPath) return null;
+    const fs = require('fs');
+    const path = require('path');
+    try {
+        const raw = fs.readFileSync(path.join(dir, relPath), 'utf8').replace(/^﻿/, '').trim();
+        if (!raw) return null;
+        if (raw.startsWith('{')) {
+            const v = JSON.parse(raw).version;
+            return v ? String(v).trim() : null;
+        }
+        return raw.split(/\r?\n/)[0].trim() || null;
+    } catch (e) {
+        return null;
+    }
 }
 
 /**
@@ -132,6 +157,7 @@ function buildMatchPlan(detectors) {
  *
  * ctx: {
  *   fileNameLow,
+ *   dir                  → dosyanın klasörü (detect.versionFile için)
  *   hasSibling(name)     → aynı klasörde dosya var mı (senkron, dizin listesi cache'li)
  *   readDescription()    → Promise<string>  (çağıran taraf cache'ler)
  *   readVersion()        → Promise<string|null>
@@ -178,7 +204,11 @@ async function matchFile(detectors, ctx) {
             }
         }
 
-        return { moduleId: d.moduleId, detector: d, version, viaProxy };
+        // versionRange yukarıda DLL'in kendi sürümüyle denetlendi; görünen sürüm
+        // varsa paketin işaret dosyasından gelir (fileVersion ayrıca saklanır).
+        const marked = d.detect.versionFile ? readVersionFile(ctx.dir, d.detect.versionFile) : null;
+
+        return { moduleId: d.moduleId, detector: d, version: marked || version, fileVersion: version, viaProxy };
     }
 
     return null;
@@ -317,6 +347,7 @@ async function isModuleInstalledIn(moduleId, dir) {
 
         const hit = await matchFile(detectors, {
             fileNameLow: nameLow,
+            dir,
             hasSibling,
             readDescription: async () => {
                 if (descCache === undefined) descCache = await utils.getFileDescription(filePath);
@@ -406,6 +437,7 @@ async function identifyFileOwner(filePath, options = {}) {
 
     const hit = await matchFile(detectors, {
         fileNameLow: nameLow,
+        dir,
         hasSibling,
         readDescription: async () => {
             if (descCache === undefined) descCache = await utils.getFileDescription(filePath);

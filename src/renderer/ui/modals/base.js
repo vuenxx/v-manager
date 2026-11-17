@@ -11,6 +11,9 @@ export function closeModal(modalId) {
         if (modal) {
             modal.classList.remove('active');
             modal.style.zIndex = '';
+            // info-modal paylaşımlı — kurulum günlüğü sonraki uyarılara taşınmasın
+            const staleLog = modal.querySelector('.module-log-details');
+            if (staleLog) (staleLog.parentElement || staleLog).remove();
         }
         // Floating kaydet butonunu settings-modal kapanınca gizle
         if (modalId === 'settings-modal') {

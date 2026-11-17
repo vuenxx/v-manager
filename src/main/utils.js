@@ -115,7 +115,87 @@ function checkGameRunningDetailed(exePath) {
 }
 
 // C-07: Use spawn with array args to avoid path-based command injection
+// ── Dosya sürüm bilgisi önbelleği ────────────────────────────────────────────
+// Her okuma bir PowerShell süreci (~450 ms). Tarama aynı DLL'leri tekrar tekrar
+// okuyordu; sonuç dosya yolu + boyut + değişiklik zamanına göre saklanır, dosya
+// değişince yeniden okunur.
+const _versionInfoCache = new Map();
+
+function _versionInfoKey(filePath) {
+    try {
+        const st = fs.statSync(filePath);
+        return `${st.size}:${st.mtimeMs}`;
+    } catch (e) {
+        return null;
+    }
+}
+
+function _getCachedVersionInfo(filePath) {
+    const key = _versionInfoKey(filePath);
+    if (!key) return null;
+    const hit = _versionInfoCache.get(path.resolve(filePath).toLowerCase());
+    return hit && hit.key === key ? hit : null;
+}
+
+function _storeVersionInfo(filePath, fields) {
+    const key = _versionInfoKey(filePath);
+    if (!key) return;
+    const id = path.resolve(filePath).toLowerCase();
+    const prev = _versionInfoCache.get(id);
+    const base = prev && prev.key === key ? prev : { key };
+    _versionInfoCache.set(id, { ...base, ...fields, key });
+}
+
+/**
+ * Birden çok dosyanın FileVersion + FileDescription'ını TEK PowerShell çağrısıyla
+ * okuyup önbelleğe koyar (tarama bir klasördeki aday DLL'ler için çağırır).
+ * Yollar ortam değişkeniyle JSON olarak geçer — tırnak/kaçış sorunu olmaz.
+ * Hata olursa sessizce döner; tek tek okuma (getFileVersion/Description) yine çalışır.
+ */
+function prefetchVersionInfo(filePaths) {
+    const todo = (filePaths || []).filter(p => {
+        const c = _getCachedVersionInfo(p);
+        return !(c && c.version !== undefined && c.description !== undefined);
+    });
+    if (todo.length === 0) return Promise.resolve();
+    return new Promise((resolve) => {
+        const script = [
+            '[Console]::OutputEncoding = [Text.Encoding]::UTF8',
+            '$out = @{}',
+            'foreach ($p in ($env:VM_VERSIONINFO_PATHS | ConvertFrom-Json)) {',
+            '  try { $vi = (Get-Item -LiteralPath $p).VersionInfo; $out[$p] = @([string]$vi.FileVersion, [string]$vi.FileDescription) } catch { }',
+            '}',
+            '$out | ConvertTo-Json -Compress'
+        ].join('\n');
+        let stdout = '';
+        let proc;
+        try {
+            proc = spawn('powershell.exe', ['-NoProfile', '-Command', script], {
+                shell: false,
+                timeout: 15000,
+                env: { ...process.env, VM_VERSIONINFO_PATHS: JSON.stringify(todo) }
+            });
+        } catch (e) {
+            return resolve();
+        }
+        proc.stdout.on('data', d => stdout += d.toString('utf8'));
+        proc.on('error', () => resolve());
+        proc.on('close', () => {
+            try {
+                const parsed = JSON.parse(stdout.trim() || '{}');
+                for (const [p, pair] of Object.entries(parsed)) {
+                    const [version, description] = Array.isArray(pair) ? pair : [];
+                    _storeVersionInfo(p, { version: (version || '').trim(), description: (description || '').trim() });
+                }
+            } catch (e) { /* tek tek okumaya düşülür */ }
+            resolve();
+        });
+    });
+}
+
 function getFileDescription(filePath) {
+    const cached = _getCachedVersionInfo(filePath);
+    if (cached && cached.description !== undefined) return Promise.resolve(cached.description);
     return new Promise((resolve) => {
         const script = `(Get-ItemProperty '${filePath.replace(/'/g, "''")}').VersionInfo.FileDescription`;
         const proc = spawn('powershell.exe', ['-NoProfile', '-Command', script], {
@@ -125,7 +205,11 @@ function getFileDescription(filePath) {
         let stdout = '';
         proc.stdout.on('data', d => stdout += d.toString());
         proc.on('error', () => resolve(''));
-        proc.on('close', () => resolve(stdout.trim()));
+        proc.on('close', () => {
+            const description = stdout.trim();
+            _storeVersionInfo(filePath, { description });
+            resolve(description);
+        });
     });
 }
 
@@ -156,6 +240,8 @@ function compareVersions(v1, v2) {
 
 // C-07: Use spawn with array args for getFileVersion as well
 function getFileVersion(filePath) {
+    const cached = _getCachedVersionInfo(filePath);
+    if (cached && cached.version !== undefined) return Promise.resolve(cached.version);
     return new Promise((resolve) => {
         const script = `(Get-ItemProperty '${filePath.replace(/'/g, "''")}').VersionInfo.FileVersion`;
         const proc = spawn('powershell.exe', ['-NoProfile', '-Command', script], {
@@ -165,7 +251,11 @@ function getFileVersion(filePath) {
         let stdout = '';
         proc.stdout.on('data', d => stdout += d.toString());
         proc.on('error', () => resolve(''));
-        proc.on('close', () => resolve(stdout.trim()));
+        proc.on('close', () => {
+            const version = stdout.trim();
+            _storeVersionInfo(filePath, { version });
+            resolve(version);
+        });
     });
 }
 
@@ -435,6 +525,7 @@ module.exports = {
     checkGameRunningDetailed,
     getFileDescription,
     getFileVersion,
+    prefetchVersionInfo,
     isOptiScalerFile,
     copyDir,
     getFolderStats,

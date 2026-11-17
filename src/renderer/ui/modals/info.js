@@ -2,6 +2,13 @@ import { openModal, closeModal, getNextModalZIndex } from './base.js';
 import { appendModuleLog } from './moduleLogView.js';
 import { t } from '../../i18n/i18n.js';
 
+// info-modal birden çok akış tarafından paylaşılıyor; önceki bir kurulum
+// sonucundan kalan günlük bloğu sonraki pencerelere (ör. launcher uyarısı) sızmasın.
+function removeStaleModuleLog(infoModal) {
+    const staleLog = infoModal.querySelector('.module-log-details');
+    if (staleLog) (staleLog.parentElement || staleLog).remove();
+}
+
 /**
  * @param {string} title
  * @param {string} message
@@ -23,9 +30,7 @@ export function showInfoModal(title, message, isError = false, options = {}) {
     const existingExtra = infoModal.querySelector('.unsaved-extra-btn');
     if (existingExtra) existingExtra.remove();
 
-    // Önceki çağrıdan kalan günlük bloğunu temizle
-    const staleLog = infoModal.querySelector('.module-log-details');
-    if (staleLog) (staleLog.parentElement || staleLog).remove();
+    removeStaleModuleLog(infoModal);
 
     if (infoModalOkBtn) {
         infoModalOkBtn.textContent = t('info.okBtn') || 'Tamam';
@@ -84,6 +89,7 @@ export function showLauncherWarningModal(onConfirm, onCancel) {
     }
 
     if (infoProgress) infoProgress.style.display = 'none';
+    removeStaleModuleLog(infoModal);
 
     infoTitle.textContent = t('manualAdd.warningTitle') || 'Önemli Uyarı';
     infoTitle.style.color = 'var(--accent-color)';

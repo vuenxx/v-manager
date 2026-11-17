@@ -183,7 +183,7 @@ Aynı `id` iki kez bulunursa ilk yüklenen kazanır (shadowing engeli).
 |---|---|---|---|---|
 | `dlssenabler` | mod | `vuenxx/extra_goldteam34` | `game_exe` | `proxyDetection`, `verifyAntiVirusDelayMs`, `wizard.autoTest`, `uninstall.verifiedDlls`, `unlessState` |
 | `optiscaler` | mod | `optiscaler/OptiScaler` | `game_exe` | Zengin `config.schema` + `visibleIf`, `proxyDetection`, **`addons`: optipatcher + fsr4** |
-| `optibuilder` | mod | `vuenxx/extra_newrepo` | `game_exe` | OptiScaler ≥0.10 varyantı. `proxyDetection`, asset `["*.7z","*.zip"]`, `injectionField` |
+| `optibuilder` | mod | `vuenxx/OptiScalerBuilder` (bygalacos/OptiScalerBuilder fork; yalnızca elle, taslak release) | `game_exe` | OptiScaler ≥0.10 varyantı. `proxyDetection`, asset `["*.7z","*.zip"]`, `injectionField` |
 | `optipatcher` | **addon** | `optiscaler/OptiPatcher` | `plugins/` (parent altı) | asset `*.asi` → `OptiPatcher.asi`, `configChanges: LoadAsiPlugins=true` |
 | `fsr4` | **addon** | `vuenxx/extra_policebosstr` | `game_exe` | asset `["*.7z","*.zip"]`, yalnızca `*.dll` kopyalanır |
 | `optiscaler-dlssnr` | mod | `Dagherbou/OptiScaler_DLSSNR` | `game_exe` | OptiScaler + DLSS5 Neural Rendering forku. `[DlssNr]` config şeması + 4 preset, `proxyDetection`, `files.exclude` (setup script'leri). **`nvngx_dlssnr.dll` kullanıcı tarafından sağlanır** |
@@ -191,6 +191,7 @@ Aynı `id` iki kez bulunursa ilk yüklenen kazanır (shadowing engeli).
 | `mfg-unlocker` | mod | `dashdogy/MFG-Unlocker` | `game_exe` | **MFGUnlocker (Universal)** — RTX 40/30'da DLSS MFG. RenoDX'in aksine **ReShade gerektirmez**: tek `MFGUnlocker.dll`, `proxyDetection` ile seçilen proxy adına (varsayılan `version.dll`) kopyalanır. `config` yok (Yönet'te ayar ekranı çıkmaz). Asset `MFGUnlocker-*.zip` → yalnızca v1.5.0+ listelenir (eski sürümler `RTXMFG.dll` taşır). `mfg-unlock` ile karşılıklı `conflicts: block`. **`role: both`** — ayrıca `optibuilder` ve `optiscaler-dlssnr` kurulum ekranında eklenti olarak çıkar: `MFGUnlocker.dll` → `plugins/MFGUnlocker.asi` + `Plugins.LoadAsiPlugins=true` (XeMFG için). OptiScaler 0.9.x desteklenmediği için `optiscaler`'da yok |
 | `reshade` | **both** | `reshade.me` (url) | `game_exe` | Post-process enjektör. `source.type: url` + sürüm keşfi, SFX exe'den DLL çıkarma, `apiTargeting` (32/64 bit + API'ye göre yeniden adlandırma), `extraSources` (shader paketi), `ReShade.ini` üretimi |
 | `dlssg-for-sm86` | mod | `sdli1995/dlssg_for_sm86` | `game_exe` | RTX 20/30'da MFG. Release'de **asset yok** → `source.type: "github_files"` (yalnızca gereken dosyalar raw üzerinden). Her enjeksiyon adı ayrı binary → `proxyDetection.sourceByTarget`. DLL'de FileDescription yok → kaldırma `uninstall.verifiedDlls[].matchModFileHash` ile |
+| `anr-fg` | mod | `apex-compute/ANR` (asset `anr-fg-*-addon.zip`) | `{relative, base: game_exe, path: OptiScaler/custom}` | Apex Neural Rendering FG — OptiScaler'a özel DLSS-G sağlayıcısı. `requires: optibuilder` (custom FG desteği 10.0.2+), `files.include` ile yalnızca `Apex Neural Rendering FG/` klasörü, `config.searchFrom: game_exe` + `restoreOnUninstall` (FGInput/FGNvngxReplacement/DisableHudless). Ayarları (`nr_fg.ini`) bölümsüz INI → ayar ekranı yok |
 | `streamline` | mod | `NVIDIA-RTX/Streamline` | `dynamic_search` | `in_place_suffix` backup (`.backup`), hash kaydı, `whitelistFiles` |
 
 > `role: "addon"` olan modüller **mod seçim ekranında listelenmez**; bağlı oldukları modun
@@ -217,9 +218,11 @@ source:   { type:"github" | "github_files" | "url",
             asset: "*.zip" | ["*.7z","*.zip"],    // tek glob veya glob dizisi
             legacyFolders: ["fsr4files"] }        // mods/ altındaki eski klasör adları
 install:
-  destination:  "game_root" | "game_exe" | "dynamic_search" | {type:"relative", path}
+  destination:  "game_root" | "game_exe" | "dynamic_search" | {type:"relative", path, base?:"game_root"|"game_exe"}
+                // base:"game_exe" → yol exe klasörüne göre (ör. anr-fg: "OptiScaler/custom")
   extractRoot:  "auto" | "bin/x64"
-  files:        { exclude:[glob], include:[glob] }
+  files:        { exclude:[glob], include:[glob],
+                  keepExisting:[glob] }   // hedefte varsa üzerine yazılmaz (ör. anr-fg: nr_fg.ini güncellemede korunur)
   proxyDetection: { sourceFile, candidates[], descriptionMatch, defaultTarget,
                     sourceByTarget: { "dxgi.dll": "alternatives/dxgi.dll", ... } }
                   // Klasik mod: TEK dosya (`sourceFile`) seçilen hedef adla kopyalanır.
@@ -237,7 +240,11 @@ install:
   detection:    { searchBase, strategy:"shallowest_directory", files[], fallback, allowManualPicker }
   whitelistFiles[], cleanStaleVersionFiles, refreshGameOnComplete, verifyAntiVirusDelayMs
 config: [ { file, format:"ini"|"json", search[], required, createIfMissing,
-            set:{"Section.Key":val}, schema:{...}, presets:{...} } ]
+            set:{"Section.Key":val}, schema:{...}, presets:{...},
+            searchFrom:"destination"|"game_exe",   // game_exe → config exe klasöründen aranır (kurulum + Yönet)
+            restoreOnUninstall:true,               // yazılan anahtarların İLK kurulum öncesi değerleri
+                                                   // installedMods[id].configRestore'a kaydedilir, kaldırmada geri yazılır
+            restoreMissingAs:"auto" } ]            // önceden olmayan anahtar kaldırmada bu değere döner (yoksa dokunulmaz)
 conditions: [ { type:"check_conflicts"|"file_exists"|"file_not_exists"|"gpu", ... } ]
 backup:   { enabled, files[], strategy:"in_place_suffix", suffix, recordHashes, rollbackOnFailure }
 uninstall:{ files[], verifiedDlls[], restoreBackup, resetState, cleanModOnlyFiles, gameUpdatedCheck,
@@ -258,6 +265,8 @@ detect:   { priority: 60,                  // büyükten küçüğe denenir, ilk
             exclusiveGroup: "optiscaler-family",  // gruptan yalnızca en yüksek öncelikli tespit kalır
             depthStrategy: "shallowest"|"deepest",// deepest → daha derin klasör bulunursa üzerine yazar
             sticky: false,                        // true → tespit edilmezse mevcut state korunur
+            versionFile: "OptiScaler/OptiBuilder.version", // varsa görünen sürüm buradan (DLL klasörüne göre;
+                                  // JSON {"version"} veya ilk satır). versionRange yine DLL FileVersion'ıyla denetlenir
             enabled: true,
             match: { anyFileName:[...],           // doğrudan dosya adı
                      fileNamePattern: "sl.*.dll", // glob deseni
@@ -330,7 +339,7 @@ permissions[], metadata:{ homepage, tags[], notes }
 
 **Çökme durumunda:** adım 5'ten itibaren `installJournal`'da kayıt açılır; `renamedBaks`/`installedPaths` işlemden **önce**, `inPlaceBackups` kopya **tamamlandıktan sonra** deftere yazılır. Sonraki açılışta `repairPendingInstalls()` kalan kayıtları `performRollback()` ile geri alır. Defter yalnızca adım değiştiğinde veya rollback listesi değiştiğinde yazılır (indirme yüzdesi yazım tetiklemez).
 
-**`uninstall()` sırası:** dosya silme (`uninstall.files`) → doğrulamalı DLL silme (`verifiedDlls`: FileDescription eşleşmesi ya da `matchModFileHash` ile indirilmiş dosyanın hash'i) → `.backup` / klasör yedeği geri yükleme → **`.bak` geri yükleme (adım 3b)** → state sıfırlama.
+**`uninstall()` sırası:** dosya silme (`uninstall.files`) → doğrulamalı DLL silme (`verifiedDlls`: FileDescription eşleşmesi ya da `matchModFileHash` ile indirilmiş dosyanın hash'i) → `.backup` / klasör yedeği geri yükleme → **`.bak` geri yükleme (adım 3b)** → **config geri yükleme (adım 3c, `restoreOnUninstall`)** → state sıfırlama. State sıfırlanırken bu modülü `requires` ile isteyen ve `uninstall.files` öğelerinin hiçbiri artık diskte olmayan modların kaydı da temizlenir (`clearOrphanedDependents`; ör. OptiBuilder kaldırılınca `OptiScaler/` ile giden ANR FG).
 `.bak` dosyaları `apiTargeting` kurulumunda üzerine yazılan orijinal DLL'lerdir; ÖNCE mod dosyası silinir, SONRA `.bak` uzantısı kaldırılarak orijinal adıyla geri konur (ad çakışması olmasın diye).
 
 ---

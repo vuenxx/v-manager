@@ -170,18 +170,38 @@ async function detectUpscalers(gamePath) {
     const ignoreFolders = ['data', 'shader', 'resource', 'asset', 'sound', 'audio', 'video', 'movie', 'ui', 'localization', 'language', '_redist', '__commonredist', 'docs'];
     const priorityFolders = ['bin', 'binaries', 'x64', 'win64', 'dx12', 'plugins'];
     const MAX_DEPTH = 12; // Sonsuz taramayı önlemek için derinlik sınırı
+    // Yüz binlerce dosyalık mod klasörleri (ör. PES cpk/sider modları) taramayı
+    // dakikalarca sürdürüp kurulum sonucunu %100'de bekletiyordu. BFS olduğu için
+    // sığ klasörlerdeki DLL'ler bütçe dolmadan zaten bulunur.
+    const MAX_DIRS = 4000;
+    const TIME_BUDGET_MS = 8000;
+    const startedAt = Date.now();
 
     const queue = [{ path: rootPath, depth: 0 }];
+    let head = 0; // shift() büyük kuyruklarda O(n) — indeksle ilerle
     const visited = new Set();
 
-    while (queue.length > 0) {
-        const current = queue.shift();
+    while (head < queue.length) {
+        if (visited.size >= MAX_DIRS || Date.now() - startedAt > TIME_BUDGET_MS) {
+            console.warn(`[SCANNER] detectUpscalers bütçesi doldu (${visited.size} klasör, ${Date.now() - startedAt}ms): ${rootPath}`);
+            break;
+        }
+        const current = queue[head++];
         const absPath = path.resolve(current.path);
         if (visited.has(absPath)) continue;
         visited.add(absPath);
 
         try {
             const files = await fs.promises.readdir(current.path, { withFileTypes: true });
+
+            // Bu klasördeki aday dosyaların sürüm/açıklama bilgisi TEK PowerShell
+            // çağrısıyla okunur (dosya başına ayrı süreç ~450 ms; ör. Cyberpunk
+            // bin/x64'te 11 sl.*.dll + dxgi.dll taramayı tek klasörde 8 sn bütçesinin
+            // dışına itiyordu ve alt klasörlerdeki modlar — ANR FG — hiç taranmıyordu)
+            const candidatePaths = files
+                .filter(f => f.isFile() && !f.isSymbolicLink() && matchPlan.isCandidate(f.name.toLowerCase()))
+                .map(f => path.join(current.path, f.name));
+            if (candidatePaths.length > 0) await utils.prefetchVersionInfo(candidatePaths);
 
             // requireSiblingFile kontrolü için klasör içeriği (dizin başına bir kez)
             let dirFileSet = null;
@@ -214,6 +234,7 @@ async function detectUpscalers(gamePath) {
 
                         const hit = await moduleDetector.matchFile(detectors, {
                             fileNameLow: nameLow,
+                            dir: current.path,
                             hasSibling,
                             readDescription: async () => {
                                 if (descCache === undefined) descCache = await utils.getFileDescription(filePath);
@@ -263,7 +284,7 @@ async function detectUpscalers(gamePath) {
             }
         } catch (e) { }
 
-        if (queue.length % 10 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+        if (head % 20 === 0) await new Promise(resolve => setTimeout(resolve, 0));
     }
 
     // Aynı exclusiveGroup'tan yalnızca en yüksek öncelikli tespit kalsın

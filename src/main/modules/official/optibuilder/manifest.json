@@ -16,7 +16,7 @@
     "version": "latest",
     "source": {
         "type": "github",
-        "repo": "vuenxx/extra_newrepo",
+        "repo": "vuenxx/OptiScalerBuilder",
         "release": "latest",
         "asset": [
             "*.7z",
@@ -280,6 +280,10 @@
                             {
                                 "val": "Combo",
                                 "label": "Combo"
+                            },
+                            {
+                                "val": "Apex Neural Rendering FG",
+                                "label": "ANR FG (Apex) — ANR FG modu kurulu olmali"
                             }
                         ]
                     }
@@ -423,7 +427,8 @@
             "versionRange": {
                 "min": "0.10"
             }
-        }
+        },
+        "versionFile": "OptiScaler/OptiBuilder.version"
     },
     "state": {
         "flag": "hasOptiBuilder",
@@ -437,11 +442,11 @@
             "moduleId": "mfg-unlocker",
             "label": "MFGUnlocker (Universal)",
             "labelKey": "opti.mfgUnlockerLabel",
-            "description": "MFGUnlocker'i OptiScaler eklentisi olarak (plugins/MFGUnlocker.asi) kurar: XeSS Multi Frame Generation (XeMFG, 2x-6x, her GPU'da) ve OptiScaler menusunden MFG kontrolu. Ayni oyuna ayrica tek basina MFGUnlocker kurmayin.",
+            "description": "MFGUnlocker'i OptiScaler eklentisi olarak (OptiScaler/plugins/MFGUnlocker.asi) kurar: XeSS Multi Frame Generation (XeMFG, 2x-6x, her GPU'da) ve OptiScaler menusunden MFG kontrolu. Ayni oyuna ayrica tek basina MFGUnlocker kurmayin.",
             "descriptionKey": "opti.mfgUnlockerHelp",
             "default": false,
             "install": {
-                "destination": "plugins",
+                "destination": "OptiScaler/plugins",
                 "files": {
                     "include": [
                         "MFGUnlocker.dll"
@@ -521,7 +526,7 @@
         "game_files"
     ],
     "metadata": {
-        "homepage": "https://github.com/vuenxx/extra_newrepo",
+        "homepage": "https://github.com/vuenxx/OptiScalerBuilder",
         "tags": [
             "optiscaler",
             "optibuilder",
